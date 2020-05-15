@@ -12,17 +12,11 @@ func NewDefaultApplicationArguments() ApplicationArguments {
 
 type ApplicationRunListener interface {
 	starting()
-
 	environmentPrepared(environment ConfigurableEnvironment)
-
 	contextPrepared(context ConfigurableApplicationContext)
-
 	contextLoaded(context ConfigurableApplicationContext)
-
 	started(context ConfigurableApplicationContext)
-
 	running(context ConfigurableApplicationContext)
-
 	failed(context ConfigurableApplicationContext, err error)
 }
 
