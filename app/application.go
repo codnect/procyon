@@ -1,6 +1,11 @@
 package app
 
+import "procyon/env"
+
 type ApplicationArguments interface {
+	ContainsOption(name string) bool
+	GetOptionNames() []string
+	GetOptionValues(name string) []string
 }
 
 type DefaultApplicationArguments struct {
@@ -10,9 +15,21 @@ func NewDefaultApplicationArguments() ApplicationArguments {
 	return &DefaultApplicationArguments{}
 }
 
+func (arg DefaultApplicationArguments) ContainsOption(name string) bool {
+	return false
+}
+
+func (arg DefaultApplicationArguments) GetOptionNames() []string {
+	return nil
+}
+
+func (arg DefaultApplicationArguments) GetOptionValues(name string) []string {
+	return nil
+}
+
 type ApplicationRunListener interface {
 	starting()
-	environmentPrepared(environment ConfigurableEnvironment)
+	environmentPrepared(environment env.ConfigurableEnvironment)
 	contextPrepared(context ConfigurableApplicationContext)
 	contextLoaded(context ConfigurableApplicationContext)
 	started(context ConfigurableApplicationContext)
@@ -36,7 +53,7 @@ func (appListeners ApplicationRunListeners) Starting() {
 	}
 }
 
-func (appListeners ApplicationRunListeners) EnvironmentPrepared(environment ConfigurableEnvironment) {
+func (appListeners ApplicationRunListeners) EnvironmentPrepared(environment env.ConfigurableEnvironment) {
 	for _, listener := range appListeners.listeners {
 		listener.environmentPrepared(environment)
 	}

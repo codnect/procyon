@@ -2,6 +2,7 @@ package procyon
 
 import (
 	"procyon/app"
+	"procyon/env"
 	"procyon/util"
 )
 
@@ -37,13 +38,13 @@ func (procyonApp *Application) Run() {
 	procyonApp.startupLogger.LogStarted(taskWatch)
 }
 
-func (procyonApp *Application) prepareEnvironment(arguments app.ApplicationArguments) app.Environment {
+func (procyonApp *Application) prepareEnvironment(arguments app.ApplicationArguments) env.Environment {
 	environment := procyonApp.createEnvironment()
 	procyonApp.appRunListeners.EnvironmentPrepared(environment)
 	return environment
 }
 
-func (procyonApp *Application) createEnvironment() app.ConfigurableEnvironment {
+func (procyonApp *Application) createEnvironment() env.ConfigurableEnvironment {
 	return nil
 }
 
@@ -52,7 +53,7 @@ func (procyonApp *Application) createApplicationContext() app.ConfigurableApplic
 }
 
 func (procyonApp *Application) prepareContext(context app.ConfigurableApplicationContext,
-	environment app.ConfigurableEnvironment,
+	environment env.ConfigurableEnvironment,
 	arguments app.ApplicationArguments) {
 	procyonApp.startupLogger.LogStarting()
 	procyonApp.appRunListeners.ContextPrepared(context)

@@ -1,6 +1,9 @@
 package app
 
-import "procyon/server"
+import (
+	"procyon/env"
+	"procyon/server"
+)
 
 type ApplicationContext interface {
 	GetApplicationName() string
@@ -12,8 +15,8 @@ type WebApplicationContext interface {
 }
 
 type ConfigurableApplicationContext interface {
-	SetEnvironment(environment ConfigurableEnvironment)
-	GetEnvironment() ConfigurableEnvironment
+	SetEnvironment(environment env.ConfigurableEnvironment)
+	GetEnvironment() env.ConfigurableEnvironment
 }
 
 type WebServerApplicationContext struct {
