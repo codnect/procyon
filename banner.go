@@ -24,5 +24,4 @@ func (banner ProcyonBanner) printBanner() {
 	for _, line := range bannerText {
 		log.Print(line)
 	}
-	log.Println(procyonAppText + " " + Version)
 }
