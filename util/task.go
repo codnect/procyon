@@ -6,9 +6,9 @@ import (
 )
 
 type TaskWatch struct {
-	taskName             string
-	startTimeNanoSeconds int
-	totalTimeNanoSeconds int
+	taskName  string
+	startTime int64
+	totalTime int64
 }
 
 func NewTaskWatch() *TaskWatch {
@@ -24,10 +24,10 @@ func NewTaskWatchWithName(taskName string) *TaskWatch {
 }
 
 func (watch *TaskWatch) Start() error {
-	if watch.taskName != "" {
+	if watch.taskName != "" && watch.startTime != 0 {
 		return errors.New("TaskWatch is already running")
 	}
-	watch.startTimeNanoSeconds = time.Now().Nanosecond()
+	watch.startTime = time.Now().Unix()
 	return nil
 }
 
@@ -35,7 +35,7 @@ func (watch *TaskWatch) Stop() error {
 	if watch.taskName == "" {
 		return errors.New("TaskWatch is not running")
 	}
-	watch.totalTimeNanoSeconds = time.Now().Nanosecond() - watch.startTimeNanoSeconds
+	watch.totalTime = time.Now().Unix() - watch.startTime
 	watch.taskName = ""
 	return nil
 }
@@ -44,6 +44,6 @@ func (watch *TaskWatch) IsRunning() bool {
 	return watch.taskName != ""
 }
 
-func (watch *TaskWatch) GetTotalTimeNanoSeconds() int {
-	return watch.totalTimeNanoSeconds
+func (watch *TaskWatch) GetTotalTime() int64 {
+	return watch.totalTime
 }

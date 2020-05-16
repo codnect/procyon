@@ -1,6 +1,7 @@
 package procyon
 
 import (
+	"os"
 	"procyon/app"
 	"procyon/env"
 	"procyon/util"
@@ -8,12 +9,12 @@ import (
 
 type Application struct {
 	appRunListeners app.ApplicationRunListeners
-	startupLogger   app.AppStartupLogger
+	startupLogger   app.StartupLogger
 }
 
 func NewProcyonApplication() *Application {
 	return &Application{
-		startupLogger: app.NewAppStartupLogger(),
+		startupLogger: app.NewStartupLogger(),
 	}
 }
 
@@ -26,7 +27,7 @@ func (procyonApp *Application) Run() {
 	_ = taskWatch.Start()
 	procyonApp.appRunListeners.Starting()
 	// prepare environment
-	appArguments := app.NewDefaultApplicationArguments()
+	appArguments := app.NewDefaultApplicationArguments(os.Args)
 	environment := procyonApp.prepareEnvironment(appArguments)
 	// print banner
 	app.ProcyonBanner{}.PrintBanner()
