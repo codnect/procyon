@@ -1,76 +1,60 @@
 package procyon
 
 import (
-	"log"
+	"procyon/app"
+	"procyon/util"
 )
 
 type Application struct {
-	appRunListeners ApplicationRunListeners
-	startupLogger   AppStartupLogger
+	appRunListeners app.ApplicationRunListeners
+	startupLogger   app.AppStartupLogger
 }
 
 func NewProcyonApplication() *Application {
 	return &Application{
-		startupLogger: NewAppStartupLogger(),
+		startupLogger: app.NewAppStartupLogger(),
 	}
 }
 
-func (app *Application) SetApplicationRunListeners(listeners ...ApplicationRunListener) {
-	app.appRunListeners = newApplicationRunListeners(listeners)
+func (procyonApp *Application) SetApplicationRunListeners(listeners ...app.ApplicationRunListener) {
+	procyonApp.appRunListeners = app.NewApplicationRunListeners(listeners)
 }
 
-func (app *Application) Run() {
-	taskWatch := NewTaskWatch()
+func (procyonApp *Application) Run() {
+	taskWatch := util.NewTaskWatch()
 	_ = taskWatch.Start()
-	app.appRunListeners.starting()
+	procyonApp.appRunListeners.Starting()
 	// prepare environment
-	appArguments := NewDefaultApplicationArguments()
-	environment := app.prepareEnvironment(appArguments)
+	appArguments := app.NewDefaultApplicationArguments()
+	environment := procyonApp.prepareEnvironment(appArguments)
 	// print banner
-	ProcyonBanner{}.printBanner()
-	context := app.createApplicationContext()
-	app.prepareContext(context, environment, appArguments)
-	app.appRunListeners.started(context)
-	app.appRunListeners.running(context)
+	app.ProcyonBanner{}.PrintBanner()
+	context := procyonApp.createApplicationContext()
+	procyonApp.prepareContext(context, environment, appArguments)
+	procyonApp.appRunListeners.Started(context)
+	procyonApp.appRunListeners.Running(context)
 	_ = taskWatch.Stop()
-	app.startupLogger.logStarted(taskWatch)
+	procyonApp.startupLogger.LogStarted(taskWatch)
 }
 
-func (app *Application) prepareEnvironment(arguments ApplicationArguments) Environment {
-	environment := app.createEnvironment()
-	app.appRunListeners.environmentPrepared(environment)
+func (procyonApp *Application) prepareEnvironment(arguments app.ApplicationArguments) app.Environment {
+	environment := procyonApp.createEnvironment()
+	procyonApp.appRunListeners.EnvironmentPrepared(environment)
 	return environment
 }
 
-func (app *Application) createEnvironment() ConfigurableEnvironment {
+func (procyonApp *Application) createEnvironment() app.ConfigurableEnvironment {
 	return nil
 }
 
-func (app *Application) createApplicationContext() ConfigurableApplicationContext {
+func (procyonApp *Application) createApplicationContext() app.ConfigurableApplicationContext {
 	return nil
 }
 
-func (app *Application) prepareContext(context ConfigurableApplicationContext,
-	environment ConfigurableEnvironment,
-	arguments ApplicationArguments) {
-	app.startupLogger.logStarting()
-	app.appRunListeners.contextPrepared(context)
-	app.appRunListeners.contextLoaded(context)
-}
-
-type AppStartupLogger struct {
-}
-
-func NewAppStartupLogger() AppStartupLogger {
-	return AppStartupLogger{}
-}
-
-func (logger AppStartupLogger) logStarting() {
-	log.Println("Starting...")
-	log.Println("Running with Procyon, Procyon " + Version)
-}
-
-func (logger AppStartupLogger) logStarted(watch *TaskWatch) {
-	lastTime := float32(watch.totalTimeNanoSeconds) / 1e9
-	log.Printf("Started in %.2f second(s)\n", lastTime)
+func (procyonApp *Application) prepareContext(context app.ConfigurableApplicationContext,
+	environment app.ConfigurableEnvironment,
+	arguments app.ApplicationArguments) {
+	procyonApp.startupLogger.LogStarting()
+	procyonApp.appRunListeners.ContextPrepared(context)
+	procyonApp.appRunListeners.ContextLoaded(context)
 }

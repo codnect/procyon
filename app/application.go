@@ -1,4 +1,4 @@
-package procyon
+package app
 
 type ApplicationArguments interface {
 }
@@ -24,43 +24,43 @@ type ApplicationRunListeners struct {
 	listeners []ApplicationRunListener
 }
 
-func newApplicationRunListeners(l []ApplicationRunListener) ApplicationRunListeners {
+func NewApplicationRunListeners(l []ApplicationRunListener) ApplicationRunListeners {
 	return ApplicationRunListeners{
 		listeners: l,
 	}
 }
 
-func (appListeners ApplicationRunListeners) starting() {
+func (appListeners ApplicationRunListeners) Starting() {
 	for _, listener := range appListeners.listeners {
 		listener.starting()
 	}
 }
 
-func (appListeners ApplicationRunListeners) environmentPrepared(environment ConfigurableEnvironment) {
+func (appListeners ApplicationRunListeners) EnvironmentPrepared(environment ConfigurableEnvironment) {
 	for _, listener := range appListeners.listeners {
 		listener.environmentPrepared(environment)
 	}
 }
 
-func (appListeners ApplicationRunListeners) contextPrepared(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) ContextPrepared(context ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.contextPrepared(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) contextLoaded(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) ContextLoaded(context ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.contextLoaded(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) started(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) Started(context ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.started(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) running(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) Running(context ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.running(context)
 	}

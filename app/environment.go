@@ -1,4 +1,4 @@
-package procyon
+package app
 
 type Environment interface {
 }

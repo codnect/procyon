@@ -1,4 +1,4 @@
-package procyon
+package app
 
 import "log"
 
@@ -20,7 +20,7 @@ var bannerText = []string{"",
 	"                            |___/",
 }
 
-func (banner ProcyonBanner) printBanner() {
+func (banner ProcyonBanner) PrintBanner() {
 	for _, line := range bannerText {
 		log.Print(line)
 	}

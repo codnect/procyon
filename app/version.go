@@ -1,3 +1,3 @@
-package procyon
+package app
 
 const Version = "0.0.1-dev"

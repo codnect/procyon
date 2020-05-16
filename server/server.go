@@ -1,4 +1,4 @@
-package procyon
+package server
 
 type WebServerException struct {
 	message string
