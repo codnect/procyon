@@ -85,21 +85,21 @@ func SimpleCommandLinePropertySourceWithName(name string, args []string) SimpleC
 }
 
 func (source SimpleCommandLinePropertySource) ContainsOption(name string) bool {
-	cmdLineArgs := source.Source.(CommandLineArgs)
+	cmdLineArgs := source.GetSource().(CommandLineArgs)
 	return cmdLineArgs.containsOption(name)
 }
 
 func (source SimpleCommandLinePropertySource) GetOptionValues(name string) []string {
-	cmdLineArgs := source.Source.(CommandLineArgs)
+	cmdLineArgs := source.GetSource().(CommandLineArgs)
 	return cmdLineArgs.getOptionValues(name)
 }
 
 func (source SimpleCommandLinePropertySource) GetNonOptionArgs() []string {
-	cmdLineArgs := source.Source.(CommandLineArgs)
+	cmdLineArgs := source.GetSource().(CommandLineArgs)
 	return cmdLineArgs.getNonOptionArgs()
 }
 
 func (source SimpleCommandLinePropertySource) GetPropertyNames() []string {
-	cmdLineArgs := source.Source.(CommandLineArgs)
+	cmdLineArgs := source.GetSource().(CommandLineArgs)
 	return cmdLineArgs.getOptionNames()
 }

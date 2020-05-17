@@ -32,7 +32,10 @@ func (procyonApp *Application) Run() {
 	// print banner
 	app.ProcyonBanner{}.PrintBanner()
 	context := procyonApp.createApplicationContext()
-	procyonApp.prepareContext(context, environment, appArguments)
+	if environment != nil {
+
+	}
+	procyonApp.prepareContext(context, environment.(env.ConfigurableEnvironment), appArguments)
 	procyonApp.appRunListeners.Started(context)
 	procyonApp.appRunListeners.Running(context)
 	_ = taskWatch.Stop()
@@ -46,7 +49,7 @@ func (procyonApp *Application) prepareEnvironment(arguments app.ApplicationArgum
 }
 
 func (procyonApp *Application) createEnvironment() env.ConfigurableEnvironment {
-	return nil
+	return env.NewStandardEnvironment()
 }
 
 func (procyonApp *Application) createApplicationContext() app.ConfigurableApplicationContext {
