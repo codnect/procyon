@@ -5,26 +5,21 @@ type PropertySource interface {
 	ContainsProperty(name string) bool
 }
 
-type BasePropertySource struct {
+type AbstractPropertySource struct {
 	PropertySource
 	Name   string
 	Source interface{}
 }
 
-func NewPropertySource(name string) *BasePropertySource {
-	return &BasePropertySource{
-		Name: name,
-	}
-}
-
-func NewPropertySourceWithSource(name string, source interface{}) *BasePropertySource {
-	return &BasePropertySource{
+func NewAbstractPropertySourceWithSource(name string, source interface{}) AbstractPropertySource {
+	propertySource := AbstractPropertySource{
 		Name:   name,
 		Source: source,
 	}
+	return propertySource
 }
 
-func (source *BasePropertySource) ContainsProperty(name string) bool {
+func (source AbstractPropertySource) ContainsProperty(name string) bool {
 	return source.GetProperty(name) != nil
 }
 
@@ -32,24 +27,20 @@ type EnumerablePropertySource interface {
 	GetPropertyNames() []string
 }
 
-type BaseEnumerablePropertySource struct {
+type AbstractEnumerablePropertySource struct {
 	EnumerablePropertySource
-	*BasePropertySource
+	AbstractPropertySource
 }
 
-func NewEnumerablePropertySource(name string) *BaseEnumerablePropertySource {
-	return &BaseEnumerablePropertySource{
-		BasePropertySource: NewPropertySource(name),
+func NewAbstractEnumerablePropertySourceWithSource(name string, source interface{}) AbstractEnumerablePropertySource {
+	propertySource := AbstractEnumerablePropertySource{
+		AbstractPropertySource: NewAbstractPropertySourceWithSource(name, source),
 	}
+	propertySource.PropertySource = propertySource
+	return propertySource
 }
 
-func NewEnumerablePropertySourceWithSource(name string, source interface{}) *BaseEnumerablePropertySource {
-	return &BaseEnumerablePropertySource{
-		BasePropertySource: NewPropertySourceWithSource(name, source),
-	}
-}
-
-func (source *BaseEnumerablePropertySource) ContainsProperty(name string) bool {
+func (source AbstractEnumerablePropertySource) ContainsProperty(name string) bool {
 	for _, propertyName := range source.GetPropertyNames() {
 		if propertyName == name {
 			return true

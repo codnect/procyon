@@ -13,39 +13,43 @@ type CommandLinePropertySource interface {
 	GetNonOptionArgs() []string
 }
 
-type BaseCommandLinePropertySource struct {
+type AbstractCommandLinePropertySource struct {
 	CommandLinePropertySource
-	*BaseEnumerablePropertySource
+	AbstractEnumerablePropertySource
 }
 
-func NewCommandLinePropertySource(source interface{}) *BaseCommandLinePropertySource {
-	return &BaseCommandLinePropertySource{
-		BaseEnumerablePropertySource: NewEnumerablePropertySourceWithSource(CmdlinePropertySourceName, source),
+func NewCommandLinePropertySource(source interface{}) AbstractCommandLinePropertySource {
+	cmdLinePropertySource := AbstractCommandLinePropertySource{
+		AbstractEnumerablePropertySource: NewAbstractEnumerablePropertySourceWithSource(CmdlinePropertySourceName, source),
 	}
+	cmdLinePropertySource.EnumerablePropertySource = cmdLinePropertySource
+	return cmdLinePropertySource
 }
 
-func NewCommandLinePropertySourceWithName(name string, source interface{}) *BaseCommandLinePropertySource {
-	return &BaseCommandLinePropertySource{
-		BaseEnumerablePropertySource: NewEnumerablePropertySourceWithSource(name, source),
+func NewCommandLinePropertySourceWithName(name string, source interface{}) AbstractCommandLinePropertySource {
+	cmdLinePropertySource := AbstractCommandLinePropertySource{
+		AbstractEnumerablePropertySource: NewAbstractEnumerablePropertySourceWithSource(name, source),
 	}
+	cmdLinePropertySource.EnumerablePropertySource = cmdLinePropertySource
+	return cmdLinePropertySource
 }
 
-func (source *BaseCommandLinePropertySource) ContainsProperty(name string) bool {
+func (source AbstractCommandLinePropertySource) ContainsProperty(name string) bool {
 	if NonOptionArgsPropertyName == name {
-		return len(source.GetNonOptionArgs()) != 0
+		return len(source.CommandLinePropertySource.GetNonOptionArgs()) != 0
 	}
-	return source.ContainsOption(name)
+	return source.CommandLinePropertySource.ContainsOption(name)
 }
 
-func (source *BaseCommandLinePropertySource) GetProperty(name string) interface{} {
+func (source AbstractCommandLinePropertySource) GetProperty(name string) interface{} {
 	if NonOptionArgsPropertyName == name {
-		nonOptValues := source.GetNonOptionArgs()
+		nonOptValues := source.CommandLinePropertySource.GetNonOptionArgs()
 		if nonOptValues != nil {
 			return strings.Join(nonOptValues, ",")
 		}
 		return nil
 	}
-	optValues := source.GetOptionValues(name)
+	optValues := source.CommandLinePropertySource.GetOptionValues(name)
 	if optValues != nil {
 		return strings.Join(optValues, ",")
 	}
@@ -53,21 +57,31 @@ func (source *BaseCommandLinePropertySource) GetProperty(name string) interface{
 }
 
 type SimpleCommandLinePropertySource struct {
-	*BaseCommandLinePropertySource
+	AbstractCommandLinePropertySource
 }
 
 func NewSimpleCommandLinePropertySource(args []string) SimpleCommandLinePropertySource {
-	parser := NewCommandLineArgsParser()
-	return SimpleCommandLinePropertySource{
-		BaseCommandLinePropertySource: NewCommandLinePropertySource(parser.Parse(args)),
+	cmdLineArgs, err := NewCommandLineArgsParser().Parse(args)
+	if err != nil {
+		panic(err)
 	}
+	cmdlinePropertySource := SimpleCommandLinePropertySource{
+		AbstractCommandLinePropertySource: NewCommandLinePropertySource(cmdLineArgs),
+	}
+	cmdlinePropertySource.AbstractCommandLinePropertySource.CommandLinePropertySource = cmdlinePropertySource
+	return cmdlinePropertySource
 }
 
 func SimpleCommandLinePropertySourceWithName(name string, args []string) SimpleCommandLinePropertySource {
-	parser := NewCommandLineArgsParser()
-	return SimpleCommandLinePropertySource{
-		BaseCommandLinePropertySource: NewCommandLinePropertySourceWithName(name, parser.Parse(args)),
+	cmdLineArgs, err := NewCommandLineArgsParser().Parse(args)
+	if err != nil {
+		panic(err)
 	}
+	cmdlinePropertySource := SimpleCommandLinePropertySource{
+		AbstractCommandLinePropertySource: NewCommandLinePropertySourceWithName(name, cmdLineArgs),
+	}
+	cmdlinePropertySource.AbstractCommandLinePropertySource.CommandLinePropertySource = cmdlinePropertySource
+	return cmdlinePropertySource
 }
 
 func (source SimpleCommandLinePropertySource) ContainsOption(name string) bool {

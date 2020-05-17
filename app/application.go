@@ -17,12 +17,13 @@ type DefaultApplicationArguments struct {
 
 func NewDefaultApplicationArguments(args []string) ApplicationArguments {
 	return &DefaultApplicationArguments{
+		args:   args,
 		source: env.NewSimpleCommandLinePropertySource(args),
 	}
 }
 
 func (arg DefaultApplicationArguments) ContainsOption(name string) bool {
-	return arg.ContainsOption(name)
+	return arg.source.ContainsOption(name)
 }
 
 func (arg DefaultApplicationArguments) GetOptionNames() []string {
