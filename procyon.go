@@ -3,7 +3,8 @@ package procyon
 import (
 	"os"
 	"procyon/app"
-	"procyon/env"
+	"procyon/context"
+	"procyon/core"
 	"procyon/util"
 )
 
@@ -35,29 +36,29 @@ func (procyonApp *Application) Run() {
 	if environment != nil {
 
 	}
-	procyonApp.prepareContext(context, environment.(env.ConfigurableEnvironment), appArguments)
+	procyonApp.prepareContext(context, environment.(core.ConfigurableEnvironment), appArguments)
 	procyonApp.appRunListeners.Started(context)
 	procyonApp.appRunListeners.Running(context)
 	_ = taskWatch.Stop()
 	procyonApp.startupLogger.LogStarted(taskWatch)
 }
 
-func (procyonApp *Application) prepareEnvironment(arguments app.ApplicationArguments) env.Environment {
+func (procyonApp *Application) prepareEnvironment(arguments app.ApplicationArguments) core.Environment {
 	environment := procyonApp.createEnvironment()
 	procyonApp.appRunListeners.EnvironmentPrepared(environment)
 	return environment
 }
 
-func (procyonApp *Application) createEnvironment() env.ConfigurableEnvironment {
-	return env.NewStandardEnvironment()
+func (procyonApp *Application) createEnvironment() core.ConfigurableEnvironment {
+	return core.NewStandardEnvironment()
 }
 
-func (procyonApp *Application) createApplicationContext() app.ConfigurableApplicationContext {
+func (procyonApp *Application) createApplicationContext() context.ConfigurableApplicationContext {
 	return nil
 }
 
-func (procyonApp *Application) prepareContext(context app.ConfigurableApplicationContext,
-	environment env.ConfigurableEnvironment,
+func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
+	environment core.ConfigurableEnvironment,
 	arguments app.ApplicationArguments) {
 	procyonApp.startupLogger.LogStarting()
 	procyonApp.appRunListeners.ContextPrepared(context)

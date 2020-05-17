@@ -1,6 +1,9 @@
 package app
 
-import "procyon/env"
+import (
+	"procyon/context"
+	"procyon/core"
+)
 
 type ApplicationArguments interface {
 	ContainsOption(name string) bool
@@ -11,14 +14,14 @@ type ApplicationArguments interface {
 }
 
 type DefaultApplicationArguments struct {
-	source env.SimpleCommandLinePropertySource
+	source core.SimpleCommandLinePropertySource
 	args   []string
 }
 
 func NewDefaultApplicationArguments(args []string) ApplicationArguments {
 	return &DefaultApplicationArguments{
 		args:   args,
-		source: env.NewSimpleCommandLinePropertySource(args),
+		source: core.NewSimpleCommandLinePropertySource(args),
 	}
 }
 
@@ -44,12 +47,12 @@ func (arg DefaultApplicationArguments) GetNonOptionArgs() []string {
 
 type ApplicationRunListener interface {
 	starting()
-	environmentPrepared(environment env.ConfigurableEnvironment)
-	contextPrepared(context ConfigurableApplicationContext)
-	contextLoaded(context ConfigurableApplicationContext)
-	started(context ConfigurableApplicationContext)
-	running(context ConfigurableApplicationContext)
-	failed(context ConfigurableApplicationContext, err error)
+	environmentPrepared(environment core.ConfigurableEnvironment)
+	contextPrepared(context context.ConfigurableApplicationContext)
+	contextLoaded(context context.ConfigurableApplicationContext)
+	started(context context.ConfigurableApplicationContext)
+	running(context context.ConfigurableApplicationContext)
+	failed(context context.ConfigurableApplicationContext, err error)
 }
 
 type ApplicationRunListeners struct {
@@ -68,37 +71,37 @@ func (appListeners ApplicationRunListeners) Starting() {
 	}
 }
 
-func (appListeners ApplicationRunListeners) EnvironmentPrepared(environment env.ConfigurableEnvironment) {
+func (appListeners ApplicationRunListeners) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
 	for _, listener := range appListeners.listeners {
 		listener.environmentPrepared(environment)
 	}
 }
 
-func (appListeners ApplicationRunListeners) ContextPrepared(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) ContextPrepared(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.contextPrepared(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) ContextLoaded(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) ContextLoaded(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.contextLoaded(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) Started(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) Started(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.started(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) Running(context ConfigurableApplicationContext) {
+func (appListeners ApplicationRunListeners) Running(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.running(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) failed(context ConfigurableApplicationContext, err error) {
+func (appListeners ApplicationRunListeners) failed(context context.ConfigurableApplicationContext, err error) {
 	for _, listener := range appListeners.listeners {
 		listener.failed(context, err)
 	}

@@ -1,4 +1,4 @@
-package env
+package core
 
 type PropertyResolver interface {
 	ContainsProperty(name string) bool
