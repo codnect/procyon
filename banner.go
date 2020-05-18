@@ -1,4 +1,4 @@
-package app
+package procyon
 
 import "log"
 
@@ -6,7 +6,7 @@ type Banner interface {
 	printBanner()
 }
 
-type ProcyonBanner struct {
+type ApplicationBanner struct {
 }
 
 const procyonAppText = " :: Procyon :: "
@@ -20,7 +20,7 @@ var bannerText = []string{"",
 	"                            |___/",
 }
 
-func (banner ProcyonBanner) PrintBanner() {
+func (banner ApplicationBanner) PrintBanner() {
 	for _, line := range bannerText {
 		log.Print(line)
 	}

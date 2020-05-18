@@ -1,37 +1,35 @@
 package procyon
 
 import (
+	"github.com/Rollcomp/procyon-context"
+	"github.com/Rollcomp/procyon-core"
 	"os"
-	"procyon/app"
-	"procyon/context"
-	"procyon/core"
-	"procyon/util"
 )
 
 type Application struct {
-	appRunListeners app.ApplicationRunListeners
-	startupLogger   app.StartupLogger
+	appRunListeners ApplicationRunListeners
+	startupLogger   StartupLogger
 }
 
 func NewProcyonApplication() *Application {
 	return &Application{
-		startupLogger: app.NewStartupLogger(),
+		startupLogger: NewStartupLogger(),
 	}
 }
 
-func (procyonApp *Application) SetApplicationRunListeners(listeners ...app.ApplicationRunListener) {
-	procyonApp.appRunListeners = app.NewApplicationRunListeners(listeners)
+func (procyonApp *Application) SetApplicationRunListeners(listeners ...ApplicationRunListener) {
+	procyonApp.appRunListeners = NewApplicationRunListeners(listeners)
 }
 
 func (procyonApp *Application) Run() {
-	taskWatch := util.NewTaskWatch()
+	taskWatch := core.NewTaskWatch()
 	_ = taskWatch.Start()
 	procyonApp.appRunListeners.Starting()
 	// prepare environment
-	appArguments := app.NewDefaultApplicationArguments(os.Args)
+	appArguments := NewDefaultApplicationArguments(os.Args)
 	environment := procyonApp.prepareEnvironment(appArguments)
 	// print banner
-	app.ProcyonBanner{}.PrintBanner()
+	ApplicationBanner{}.PrintBanner()
 	context := procyonApp.createApplicationContext()
 	if environment != nil {
 
@@ -43,7 +41,7 @@ func (procyonApp *Application) Run() {
 	procyonApp.startupLogger.LogStarted(taskWatch)
 }
 
-func (procyonApp *Application) prepareEnvironment(arguments app.ApplicationArguments) core.Environment {
+func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments) core.Environment {
 	environment := procyonApp.createEnvironment()
 	procyonApp.appRunListeners.EnvironmentPrepared(environment)
 	return environment
@@ -59,7 +57,7 @@ func (procyonApp *Application) createApplicationContext() context.ConfigurableAp
 
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
-	arguments app.ApplicationArguments) {
+	arguments ApplicationArguments) {
 	procyonApp.startupLogger.LogStarting()
 	procyonApp.appRunListeners.ContextPrepared(context)
 	procyonApp.appRunListeners.ContextLoaded(context)
