@@ -18,7 +18,7 @@ type DefaultApplicationArguments struct {
 	args   []string
 }
 
-func NewDefaultApplicationArguments(args []string) ApplicationArguments {
+func GetApplicationArguments(args []string) ApplicationArguments {
 	return &DefaultApplicationArguments{
 		args:   args,
 		source: core.NewSimpleCommandLinePropertySource(args),
