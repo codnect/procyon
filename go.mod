@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Rollcomp/procyon-context v0.0.0-20200519223205-6438a266c10e
-	github.com/Rollcomp/procyon-core v0.0.0-20200519191228-4bb4aac9c2d5
+	github.com/Rollcomp/procyon-core v0.0.0-20200520230356-6dfa4d583b9d
 	github.com/Rollcomp/procyon-web v0.0.0-20200519131804-1ffe1e6425ef
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect

@@ -6,6 +6,8 @@ github.com/Rollcomp/procyon-core v0.0.0-20200518190211-05f19133892b h1:LwhXjWyY8
 github.com/Rollcomp/procyon-core v0.0.0-20200518190211-05f19133892b/go.mod h1:90quWZ0567Mhvv2SofDr4Fh97CTcwWi+V2LUJnHRlCQ=
 github.com/Rollcomp/procyon-core v0.0.0-20200519191228-4bb4aac9c2d5 h1:59dOa+4Gt5Atq2jHZeaxRPSUo7ZfiCxDmCsKcexgDgQ=
 github.com/Rollcomp/procyon-core v0.0.0-20200519191228-4bb4aac9c2d5/go.mod h1:Shwe+eVx11TOoj/50ri3H2WNyUrZ95bZ39M2lIoCHsk=
+github.com/Rollcomp/procyon-core v0.0.0-20200520230356-6dfa4d583b9d h1:cViXpA5XiwhueoDdpGCP4lV4ppiSUHbZY+FCPnFJNi4=
+github.com/Rollcomp/procyon-core v0.0.0-20200520230356-6dfa4d583b9d/go.mod h1:LaTBuiIRx4nQs22NG11YLhP/1Ad+APfI90lzKGx0OtA=
 github.com/Rollcomp/procyon-web v0.0.0-20200518192228-ea76f20fadab h1:O2etBSVeLc3wb4gS9SHFHnYUoQYKfC/LIX4nWZt1fOY=
 github.com/Rollcomp/procyon-web v0.0.0-20200518192228-ea76f20fadab/go.mod h1:RkTA7ig0SKnccJgtFh1aJtT2b09m7caCF+m5FWp/cWk=
 github.com/Rollcomp/procyon-web v0.0.0-20200519131804-1ffe1e6425ef h1:OYzXdS8lBwzxdDhEAe1iXzBMI92ZOuVJItv9Ltb548M=
