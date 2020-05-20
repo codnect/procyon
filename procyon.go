@@ -14,12 +14,9 @@ type Application struct {
 
 func NewProcyonApplication() *Application {
 	return &Application{
-		startupLogger: NewStartupLogger(),
+		startupLogger:   NewStartupLogger(),
+		appRunListeners: NewApplicationRunListeners(appRunListeners),
 	}
-}
-
-func (procyonApp *Application) SetApplicationRunListeners(listeners ...ApplicationRunListener) {
-	procyonApp.appRunListeners = NewApplicationRunListeners(listeners)
 }
 
 func (procyonApp *Application) Run() {
@@ -70,4 +67,12 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	procyonApp.startupLogger.LogStarting()
 	procyonApp.appRunListeners.ContextPrepared(context)
 	procyonApp.appRunListeners.ContextLoaded(context)
+}
+
+var (
+	appRunListeners = make([]ApplicationRunListener, 0)
+)
+
+func RegisterAppRunListener(appRunListener ...ApplicationRunListener) {
+	appRunListeners = append(appRunListeners, appRunListener...)
 }

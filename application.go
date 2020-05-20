@@ -46,13 +46,13 @@ func (arg DefaultApplicationArguments) GetNonOptionArgs() []string {
 }
 
 type ApplicationRunListener interface {
-	starting()
-	environmentPrepared(environment core.ConfigurableEnvironment)
-	contextPrepared(context context.ConfigurableApplicationContext)
-	contextLoaded(context context.ConfigurableApplicationContext)
-	started(context context.ConfigurableApplicationContext)
-	running(context context.ConfigurableApplicationContext)
-	failed(context context.ConfigurableApplicationContext, err error)
+	Starting()
+	EnvironmentPrepared(environment core.ConfigurableEnvironment)
+	ContextPrepared(context context.ConfigurableApplicationContext)
+	ContextLoaded(context context.ConfigurableApplicationContext)
+	Started(context context.ConfigurableApplicationContext)
+	Running(context context.ConfigurableApplicationContext)
+	Failed(context context.ConfigurableApplicationContext, err error)
 }
 
 type ApplicationRunListeners struct {
@@ -67,42 +67,42 @@ func NewApplicationRunListeners(l []ApplicationRunListener) ApplicationRunListen
 
 func (appListeners ApplicationRunListeners) Starting() {
 	for _, listener := range appListeners.listeners {
-		listener.starting()
+		listener.Starting()
 	}
 }
 
 func (appListeners ApplicationRunListeners) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
 	for _, listener := range appListeners.listeners {
-		listener.environmentPrepared(environment)
+		listener.EnvironmentPrepared(environment)
 	}
 }
 
 func (appListeners ApplicationRunListeners) ContextPrepared(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
-		listener.contextPrepared(context)
+		listener.ContextPrepared(context)
 	}
 }
 
 func (appListeners ApplicationRunListeners) ContextLoaded(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
-		listener.contextLoaded(context)
+		listener.ContextLoaded(context)
 	}
 }
 
 func (appListeners ApplicationRunListeners) Started(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
-		listener.started(context)
+		listener.Started(context)
 	}
 }
 
 func (appListeners ApplicationRunListeners) Running(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
-		listener.running(context)
+		listener.Running(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) failed(context context.ConfigurableApplicationContext, err error) {
+func (appListeners ApplicationRunListeners) Failed(context context.ConfigurableApplicationContext, err error) {
 	for _, listener := range appListeners.listeners {
-		listener.failed(context, err)
+		listener.Failed(context, err)
 	}
 }
