@@ -5,11 +5,11 @@ import (
 	"log"
 )
 
-type StartupLogger struct {
-}
+var (
+	startupLogger = StartupLogger{}
+)
 
-func NewStartupLogger() StartupLogger {
-	return StartupLogger{}
+type StartupLogger struct {
 }
 
 func (logger StartupLogger) LogStarting() {

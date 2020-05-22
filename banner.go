@@ -6,10 +6,12 @@ type Banner interface {
 	printBanner()
 }
 
+var (
+	appBanner = ApplicationBanner{}
+)
+
 type ApplicationBanner struct {
 }
-
-const procyonAppText = " :: Procyon :: "
 
 var bannerText = []string{"",
 	"   ___",

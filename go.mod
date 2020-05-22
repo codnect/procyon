@@ -1,4 +1,4 @@
-module procyon
+module github.com/Rollcomp/procyon
 
 go 1.13
 

@@ -9,12 +9,10 @@ import (
 
 type Application struct {
 	appRunListeners ApplicationRunListeners
-	startupLogger   StartupLogger
 }
 
 func NewProcyonApplication() *Application {
 	return &Application{
-		startupLogger:   NewStartupLogger(),
 		appRunListeners: NewApplicationRunListeners(appRunListeners),
 	}
 }
@@ -27,16 +25,13 @@ func (procyonApp *Application) Run() {
 	appArguments := GetApplicationArguments(os.Args)
 	environment := procyonApp.prepareEnvironment(appArguments)
 	// print banner
-	ApplicationBanner{}.PrintBanner()
+	appBanner.PrintBanner()
 	applicationContext := procyonApp.createApplicationContext()
-	if environment != nil {
-
-	}
 	procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments)
 	procyonApp.appRunListeners.Started(applicationContext)
 	procyonApp.appRunListeners.Running(applicationContext)
 	_ = taskWatch.Stop()
-	procyonApp.startupLogger.LogStarted(taskWatch)
+	startupLogger.LogStarted(taskWatch)
 }
 
 func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments) core.Environment {
@@ -64,7 +59,7 @@ func (procyonApp *Application) createApplicationContext() context.ConfigurableAp
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments) {
-	procyonApp.startupLogger.LogStarting()
+	startupLogger.LogStarting()
 	procyonApp.appRunListeners.ContextPrepared(context)
 	procyonApp.appRunListeners.ContextLoaded(context)
 }
