@@ -2,6 +2,8 @@ github.com/Rollcomp/procyon-context v0.0.0-20200518193116-e3dda58cc876 h1:oNrY9y
 github.com/Rollcomp/procyon-context v0.0.0-20200518193116-e3dda58cc876/go.mod h1:nX+YGwB6Hzy5S1oE3+HDgMrLE0TeFjtiVzlcfZp/+7A=
 github.com/Rollcomp/procyon-context v0.0.0-20200519223205-6438a266c10e h1:/gE5Nwj0OvzccevqStp50RkbAjio2NKF90+qGIf/uYQ=
 github.com/Rollcomp/procyon-context v0.0.0-20200519223205-6438a266c10e/go.mod h1:A5qQax7dTsLwBOgDR/SToA4DjukbeW4z9qPGGvamLGY=
+github.com/Rollcomp/procyon-context v0.0.0-20200523211331-8de441e11d53 h1:K05M2ipK9asstDVR+NMFu7qyMsNWIkXO501kbBSEVqM=
+github.com/Rollcomp/procyon-context v0.0.0-20200523211331-8de441e11d53/go.mod h1:A5qQax7dTsLwBOgDR/SToA4DjukbeW4z9qPGGvamLGY=
 github.com/Rollcomp/procyon-core v0.0.0-20200518190211-05f19133892b h1:LwhXjWyY82dgVqGoAzvTQAY8ZHAkxyxMyobiXwv0BxI=
 github.com/Rollcomp/procyon-core v0.0.0-20200518190211-05f19133892b/go.mod h1:90quWZ0567Mhvv2SofDr4Fh97CTcwWi+V2LUJnHRlCQ=
 github.com/Rollcomp/procyon-core v0.0.0-20200519191228-4bb4aac9c2d5 h1:59dOa+4Gt5Atq2jHZeaxRPSUo7ZfiCxDmCsKcexgDgQ=
@@ -12,6 +14,8 @@ github.com/Rollcomp/procyon-web v0.0.0-20200518192228-ea76f20fadab h1:O2etBSVeLc
 github.com/Rollcomp/procyon-web v0.0.0-20200518192228-ea76f20fadab/go.mod h1:RkTA7ig0SKnccJgtFh1aJtT2b09m7caCF+m5FWp/cWk=
 github.com/Rollcomp/procyon-web v0.0.0-20200519131804-1ffe1e6425ef h1:OYzXdS8lBwzxdDhEAe1iXzBMI92ZOuVJItv9Ltb548M=
 github.com/Rollcomp/procyon-web v0.0.0-20200519131804-1ffe1e6425ef/go.mod h1:8Gd4E/ZR85Gpy10Bld7rgYqgGwskDhFYAKGbACFoDpU=
+github.com/Rollcomp/procyon-web v0.0.0-20200523232737-95a07f069941 h1:zZZ2bfRFixWdUCQP4A+75iByzhpaEEsXqK65uI0sC14=
+github.com/Rollcomp/procyon-web v0.0.0-20200523232737-95a07f069941/go.mod h1:u/ebFI6eQWRJBvNIEqwSTr/E7+Y/QHDq1qDXr6qe+YI=
 github.com/codnect/go-one v0.0.0-20200119222923-a2229e1e905b h1:jyGKyFxQuUnKEvAS3ljhH/UOSQ9drm5iaiu1ambHcqM=
 github.com/codnect/go-one v0.0.0-20200119222923-a2229e1e905b/go.mod h1:HNA7tG2YZZVRFjlRD6MaYWZrzIMANR4z9Wq/wuZZDJI=
 github.com/codnect/go-reflect v0.0.0-20200128204814-2eb4070700ed h1:PEkp4HpFmGb6XX4TfxkUHs9b9k2EDWvtJs3Eizo4Pzc=

@@ -3,7 +3,7 @@ package procyon
 import (
 	"github.com/Rollcomp/procyon-context"
 	"github.com/Rollcomp/procyon-core"
-	web "github.com/Rollcomp/procyon-web"
+	"github.com/Rollcomp/procyon-web"
 	"os"
 )
 
@@ -53,13 +53,14 @@ func (procyonApp *Application) configureEnvironment(environment core.Configurabl
 }
 
 func (procyonApp *Application) createApplicationContext() context.ConfigurableApplicationContext {
-	return nil
+	return web.NewProcyonServerApplicationContext()
 }
 
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments) {
 	startupLogger.LogStarting()
+	context.SetEnvironment(environment)
 	procyonApp.appRunListeners.ContextPrepared(context)
 	procyonApp.appRunListeners.ContextLoaded(context)
 }
