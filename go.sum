@@ -1,7 +1,12 @@
+github.com/Rollcomp/procyon-configure v0.0.0-20200522005623-69b3eda4cc83 h1:AhhntTZb3ol9PFNfX5YGiMLLT+5BtX4DzBV7xBu1gnc=
+github.com/Rollcomp/procyon-configure v0.0.0-20200522005623-69b3eda4cc83/go.mod h1:8eiXgMA5olNZ0leQfMDQmrCi8ad0ACrQEGXqxU09kNw=
+github.com/Rollcomp/procyon-configure v0.0.0-20200524014020-d15124c98e98 h1:ncgo/5cjZfAILEx6pXkir1yIIuabNIjHLqQnYVj44fM=
+github.com/Rollcomp/procyon-configure v0.0.0-20200524014020-d15124c98e98/go.mod h1:8eiXgMA5olNZ0leQfMDQmrCi8ad0ACrQEGXqxU09kNw=
 github.com/Rollcomp/procyon-context v0.0.0-20200518193116-e3dda58cc876 h1:oNrY9y/7+NS1u7cwM1PtB85sV5686smkifjVrMBKVV4=
 github.com/Rollcomp/procyon-context v0.0.0-20200518193116-e3dda58cc876/go.mod h1:nX+YGwB6Hzy5S1oE3+HDgMrLE0TeFjtiVzlcfZp/+7A=
 github.com/Rollcomp/procyon-context v0.0.0-20200519223205-6438a266c10e h1:/gE5Nwj0OvzccevqStp50RkbAjio2NKF90+qGIf/uYQ=
 github.com/Rollcomp/procyon-context v0.0.0-20200519223205-6438a266c10e/go.mod h1:A5qQax7dTsLwBOgDR/SToA4DjukbeW4z9qPGGvamLGY=
+github.com/Rollcomp/procyon-context v0.0.0-20200522004933-00018a90c862/go.mod h1:A5qQax7dTsLwBOgDR/SToA4DjukbeW4z9qPGGvamLGY=
 github.com/Rollcomp/procyon-context v0.0.0-20200523211331-8de441e11d53 h1:K05M2ipK9asstDVR+NMFu7qyMsNWIkXO501kbBSEVqM=
 github.com/Rollcomp/procyon-context v0.0.0-20200523211331-8de441e11d53/go.mod h1:A5qQax7dTsLwBOgDR/SToA4DjukbeW4z9qPGGvamLGY=
 github.com/Rollcomp/procyon-core v0.0.0-20200518190211-05f19133892b h1:LwhXjWyY82dgVqGoAzvTQAY8ZHAkxyxMyobiXwv0BxI=

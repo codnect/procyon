@@ -3,6 +3,7 @@ module github.com/Rollcomp/procyon
 go 1.13
 
 require (
+	github.com/Rollcomp/procyon-configure v0.0.0-20200524014020-d15124c98e98
 	github.com/Rollcomp/procyon-context v0.0.0-20200523211331-8de441e11d53
 	github.com/Rollcomp/procyon-core v0.0.0-20200520230356-6dfa4d583b9d
 	github.com/Rollcomp/procyon-web v0.0.0-20200523232737-95a07f069941
