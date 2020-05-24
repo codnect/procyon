@@ -1,14 +1,15 @@
 package procyon
 
 import (
-	"github.com/Rollcomp/procyon-configure"
+	configure "github.com/Rollcomp/procyon-configure"
+	core "github.com/Rollcomp/procyon-core"
 )
 
 func init() {
 	/* Application Run Listeners */
-	Register(NewEventPublishRunListener)
+	core.Register(NewEventPublishRunListener)
 	/* Configuration Properties */
-	Register(
+	core.Register(
 		configure.NewServerConfiguration,
 		configure.NewDataSourceConfiguration,
 	)

@@ -1,9 +1,9 @@
 package procyon
 
 import (
-	"github.com/Rollcomp/procyon-context"
-	"github.com/Rollcomp/procyon-core"
-	"github.com/Rollcomp/procyon-web"
+	context "github.com/Rollcomp/procyon-context"
+	core "github.com/Rollcomp/procyon-core"
+	web "github.com/Rollcomp/procyon-web"
 	"os"
 )
 
