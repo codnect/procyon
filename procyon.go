@@ -4,40 +4,39 @@ import (
 	context "github.com/Rollcomp/procyon-context"
 	core "github.com/Rollcomp/procyon-core"
 	web "github.com/Rollcomp/procyon-web"
+	"log"
 	"os"
 )
 
 type Application struct {
-	appRunListeners ApplicationRunListeners
 }
 
 func NewProcyonApplication() *Application {
-	return &Application{
-		appRunListeners: NewApplicationRunListeners(appRunListeners),
-	}
+	return &Application{}
 }
 
 func (procyonApp *Application) Run() {
 	taskWatch := core.NewTaskWatch()
+	listeners := procyonApp.getAppRunListeners()
 	_ = taskWatch.Start()
-	procyonApp.appRunListeners.Starting()
+	listeners.Starting()
 	// prepare environment
 	appArguments := GetApplicationArguments(os.Args)
-	environment := procyonApp.prepareEnvironment(appArguments)
+	environment := procyonApp.prepareEnvironment(appArguments, listeners)
 	// print banner
 	appBanner.PrintBanner()
 	applicationContext := procyonApp.createApplicationContext()
-	procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments)
-	procyonApp.appRunListeners.Started(applicationContext)
-	procyonApp.appRunListeners.Running(applicationContext)
+	procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments, listeners)
+	listeners.Started(applicationContext)
+	listeners.Running(applicationContext)
 	_ = taskWatch.Stop()
 	startupLogger.LogStarted(taskWatch)
 }
 
-func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments) core.Environment {
+func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments, listeners ApplicationRunListeners) core.Environment {
 	environment := procyonApp.createEnvironment()
 	procyonApp.configureEnvironment(environment, arguments)
-	procyonApp.appRunListeners.EnvironmentPrepared(environment)
+	listeners.EnvironmentPrepared(environment)
 	return environment
 }
 
@@ -58,17 +57,15 @@ func (procyonApp *Application) createApplicationContext() context.ConfigurableAp
 
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
-	arguments ApplicationArguments) {
+	arguments ApplicationArguments, listeners ApplicationRunListeners) {
 	startupLogger.LogStarting()
 	context.SetEnvironment(environment)
-	procyonApp.appRunListeners.ContextPrepared(context)
-	procyonApp.appRunListeners.ContextLoaded(context)
+	listeners.ContextPrepared(context)
+	listeners.ContextLoaded(context)
 }
 
-var (
-	appRunListeners = make([]ApplicationRunListener, 0)
-)
-
-func RegisterAppRunListener(appRunListener ...ApplicationRunListener) {
-	appRunListeners = append(appRunListeners, appRunListener...)
+func (procyonApp *Application) getAppRunListeners() ApplicationRunListeners {
+	listeners := core.GetComponentTypes(core.GetType((*ApplicationRunListener)(nil)))
+	log.Print(listeners)
+	return NewApplicationRunListeners(nil)
 }
