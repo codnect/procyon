@@ -29,6 +29,7 @@ func (procyonApp *Application) Run() {
 	procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments, listeners)
 	listeners.Started(applicationContext)
 	listeners.Running(applicationContext)
+	procyonApp.configureContext(applicationContext)
 	_ = taskWatch.Stop()
 	startupLogger.LogStarted(taskWatch)
 }
@@ -68,4 +69,15 @@ func (procyonApp *Application) getAppRunListeners() ApplicationRunListeners {
 	listeners := core.GetComponentTypes(core.GetType((*ApplicationRunListener)(nil)))
 	log.Print(listeners)
 	return NewApplicationRunListeners(nil)
+}
+
+func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicationContext) {
+	if ctx == nil {
+		panic("Context must not be null")
+	}
+	if configurableContextAdapter, ok := ctx.(context.ConfigurableContextAdapter); ok {
+		configurableContextAdapter.Configure()
+	} else {
+		panic("context.ConfigurableContextAdapter methods must be implemented in your context struct")
+	}
 }
