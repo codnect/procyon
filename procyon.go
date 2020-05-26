@@ -21,7 +21,7 @@ func NewProcyonApplication() *Application {
 func (procyonApp *Application) Run(args ...string) {
 	taskWatch := core.NewTaskWatch()
 	procyonApp.initApplicationListenerInstances()
-	listeners := procyonApp.getAppRunListeners()
+	listeners := procyonApp.getAppRunListenerInstances()
 	_ = taskWatch.Start()
 	listeners.Starting()
 	// prepare environment
@@ -69,7 +69,7 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	listeners.ContextLoaded(context)
 }
 
-func (procyonApp *Application) getAppRunListeners() ApplicationRunListeners {
+func (procyonApp *Application) getAppRunListenerInstances() ApplicationRunListeners {
 	instances := procyonApp.getInstancesWithParamTypes(core.GetType((*ApplicationRunListener)(nil)),
 		[]*core.Type{core.GetType((*Application)(nil))},
 		[]interface{}{procyonApp})
@@ -78,6 +78,10 @@ func (procyonApp *Application) getAppRunListeners() ApplicationRunListeners {
 		listeners = append(listeners, instance.(ApplicationRunListener))
 	}
 	return NewApplicationRunListeners(listeners)
+}
+
+func (procyonApp *Application) getAppListeners() []context.ApplicationListener {
+	return procyonApp.listeners
 }
 
 func (procyonApp *Application) initApplicationListenerInstances() {
