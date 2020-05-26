@@ -3,40 +3,58 @@ package procyon
 import (
 	context "github.com/Rollcomp/procyon-context"
 	core "github.com/Rollcomp/procyon-core"
-	"log"
 )
 
+type BootstrapListener struct {
+}
+
+func NewBootstrapListener() BootstrapListener {
+	return BootstrapListener{}
+}
+
+func (listener BootstrapListener) SubscribeEvents() []context.ApplicationEvent {
+	return []context.ApplicationEvent{}
+}
+
+func (listener BootstrapListener) OnApplicationEvent(event context.ApplicationEvent) {
+
+}
+
 type EventPublishRunListener struct {
+	app         *Application
+	broadcaster context.ApplicationEventBroadcaster
 }
 
-func NewEventPublishRunListener() EventPublishRunListener {
-	return EventPublishRunListener{}
+func NewEventPublishRunListener(app *Application) EventPublishRunListener {
+	return EventPublishRunListener{
+		app: app,
+	}
 }
 
-func (publishRunListener EventPublishRunListener) Starting() {
-	log.Print("Starting")
+func (listener EventPublishRunListener) Starting() {
+	listener.broadcaster.BroadcastEvent(nil)
 }
 
-func (publishRunListener EventPublishRunListener) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
-	log.Print("EnvironmentPrepared")
+func (listener EventPublishRunListener) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
+	listener.broadcaster.BroadcastEvent(nil)
 }
 
-func (publishRunListener EventPublishRunListener) ContextPrepared(context context.ConfigurableApplicationContext) {
-	log.Print("ContextPrepared")
+func (listener EventPublishRunListener) ContextPrepared(ctx context.ConfigurableApplicationContext) {
+	listener.broadcaster.BroadcastEvent(nil)
 }
 
-func (publishRunListener EventPublishRunListener) ContextLoaded(context context.ConfigurableApplicationContext) {
-	log.Print("ContextLoaded")
+func (listener EventPublishRunListener) ContextLoaded(ctx context.ConfigurableApplicationContext) {
+	listener.broadcaster.BroadcastEvent(nil)
 }
 
-func (publishRunListener EventPublishRunListener) Started(context context.ConfigurableApplicationContext) {
-	log.Print("Started")
+func (listener EventPublishRunListener) Started(ctx context.ConfigurableApplicationContext) {
+	listener.broadcaster.BroadcastEvent(nil)
 }
 
-func (publishRunListener EventPublishRunListener) Running(context context.ConfigurableApplicationContext) {
-	log.Print("Running")
+func (listener EventPublishRunListener) Running(ctx context.ConfigurableApplicationContext) {
+	listener.broadcaster.BroadcastEvent(nil)
 }
 
-func (publishRunListener EventPublishRunListener) Failed(context context.ConfigurableApplicationContext, err error) {
-	log.Print("Failed")
+func (listener EventPublishRunListener) Failed(context context.ConfigurableApplicationContext, err error) {
+	listener.broadcaster.BroadcastEvent(nil)
 }

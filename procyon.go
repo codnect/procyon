@@ -3,20 +3,24 @@ package procyon
 import (
 	context "github.com/Rollcomp/procyon-context"
 	core "github.com/Rollcomp/procyon-core"
+	peas "github.com/Rollcomp/procyon-peas"
 	web "github.com/Rollcomp/procyon-web"
-	"log"
 	"os"
 )
 
 type Application struct {
+	listeners []context.ApplicationListener
 }
 
 func NewProcyonApplication() *Application {
-	return &Application{}
+	return &Application{
+		listeners: make([]context.ApplicationListener, 0),
+	}
 }
 
-func (procyonApp *Application) Run() {
+func (procyonApp *Application) Run(args ...string) {
 	taskWatch := core.NewTaskWatch()
+	procyonApp.initApplicationListenerInstances()
 	listeners := procyonApp.getAppRunListeners()
 	_ = taskWatch.Start()
 	listeners.Starting()
@@ -66,9 +70,43 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 }
 
 func (procyonApp *Application) getAppRunListeners() ApplicationRunListeners {
-	listeners := core.GetComponentTypes(core.GetType((*ApplicationRunListener)(nil)))
-	log.Print(listeners)
-	return NewApplicationRunListeners(nil)
+	instances := procyonApp.getInstancesWithParamTypes(core.GetType((*ApplicationRunListener)(nil)),
+		[]*core.Type{core.GetType((*Application)(nil))},
+		[]interface{}{procyonApp})
+	var listeners []ApplicationRunListener
+	for _, instance := range instances {
+		listeners = append(listeners, instance.(ApplicationRunListener))
+	}
+	return NewApplicationRunListeners(listeners)
+}
+
+func (procyonApp *Application) initApplicationListenerInstances() {
+	instances := procyonApp.getInstances(core.GetType((*context.ApplicationListener)(nil)))
+	listenerInstances := make([]context.ApplicationListener, len(instances))
+	for index, instance := range instances {
+		listenerInstances[index] = instance.(context.ApplicationListener)
+	}
+	procyonApp.listeners = listenerInstances
+}
+
+func (procyonApp *Application) getInstances(typ *core.Type) []interface{} {
+	types := core.GetComponentTypes(typ)
+	var instances []interface{}
+	for _, t := range types {
+		instance := peas.CreateInstance(t, []interface{}{})
+		instances = append(instances, instance)
+	}
+	return instances
+}
+
+func (procyonApp *Application) getInstancesWithParamTypes(typ *core.Type, parameterTypes []*core.Type, args []interface{}) []interface{} {
+	types := core.GetComponentTypesWithParam(typ, parameterTypes)
+	var instances []interface{}
+	for _, t := range types {
+		instance := peas.CreateInstance(t, args)
+		instances = append(instances, instance)
+	}
+	return instances
 }
 
 func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicationContext) {

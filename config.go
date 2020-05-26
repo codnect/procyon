@@ -8,6 +8,8 @@ import (
 func init() {
 	/* Application Run Listeners */
 	core.Register(NewEventPublishRunListener)
+	/* Application Listeners */
+	core.Register(NewBootstrapListener)
 	/* Configuration Properties */
 	core.Register(
 		configure.NewServerConfiguration,
