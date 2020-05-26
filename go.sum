@@ -10,6 +10,10 @@ github.com/Rollcomp/procyon-context v0.0.0-20200525020420-d5485b3c8020 h1:fRNZ4P
 github.com/Rollcomp/procyon-context v0.0.0-20200525020420-d5485b3c8020/go.mod h1:kVF+XdhM1wXCtSGayBnaBfRQGRgkAYkUh2rS2N9kEqM=
 github.com/Rollcomp/procyon-context v0.0.0-20200525021042-47dca2dc44a9 h1:S0GKc9PsDNUqObU7fpcjcfKWy4jwHB0ruO3E0gRPeHE=
 github.com/Rollcomp/procyon-context v0.0.0-20200525021042-47dca2dc44a9/go.mod h1:kVF+XdhM1wXCtSGayBnaBfRQGRgkAYkUh2rS2N9kEqM=
+github.com/Rollcomp/procyon-context v0.0.0-20200526005156-601c5ac05d9e h1:aPmMdSPuH4Zi3mJnvH/rmmCsr2buetK2NGmKqsbNyDI=
+github.com/Rollcomp/procyon-context v0.0.0-20200526005156-601c5ac05d9e/go.mod h1:kl175HOU6uTInTjlKv4s1dATQViJ+19PhQIXd4Tx79E=
+github.com/Rollcomp/procyon-context v0.0.0-20200526011014-7faee4964ad1 h1:Q3MrFj26saaJXjQEiqKcn0P90LApJK7vkSPdBl9YvyU=
+github.com/Rollcomp/procyon-context v0.0.0-20200526011014-7faee4964ad1/go.mod h1:kl175HOU6uTInTjlKv4s1dATQViJ+19PhQIXd4Tx79E=
 github.com/Rollcomp/procyon-core v0.0.0-20200518190211-05f19133892b h1:LwhXjWyY82dgVqGoAzvTQAY8ZHAkxyxMyobiXwv0BxI=
 github.com/Rollcomp/procyon-core v0.0.0-20200518190211-05f19133892b/go.mod h1:90quWZ0567Mhvv2SofDr4Fh97CTcwWi+V2LUJnHRlCQ=
 github.com/Rollcomp/procyon-core v0.0.0-20200524152218-3668b36f69a3 h1:sxu9KNx3uGMhWXB/ZNB1bQxtK9DPe8h4jFVNBWvkbG0=
@@ -17,6 +21,8 @@ github.com/Rollcomp/procyon-core v0.0.0-20200524152218-3668b36f69a3/go.mod h1:ez
 github.com/Rollcomp/procyon-core v0.0.0-20200524164608-a02fee231698/go.mod h1:ezcPFnpBC6fpM3KQP002VKzkaJwWsN3p0BkAIxI3h9A=
 github.com/Rollcomp/procyon-core v0.0.0-20200524194447-c510dd1b33b4 h1:2SrSo95gbAUI7Mc9z0yq6NQxMlx4JqX1btc7vRsRrmQ=
 github.com/Rollcomp/procyon-core v0.0.0-20200524194447-c510dd1b33b4/go.mod h1:ezcPFnpBC6fpM3KQP002VKzkaJwWsN3p0BkAIxI3h9A=
+github.com/Rollcomp/procyon-core v0.0.0-20200525234021-2d5375c37cea h1:dlv/ymxxgP8JzTlcBdDzU05/3kYaakPDISoqQJuwkik=
+github.com/Rollcomp/procyon-core v0.0.0-20200525234021-2d5375c37cea/go.mod h1:ezcPFnpBC6fpM3KQP002VKzkaJwWsN3p0BkAIxI3h9A=
 github.com/Rollcomp/procyon-peas v0.0.0-20200525000654-2953d3d70dc6 h1:D7VUs14OdDzd1fEeOUGCSDrjWfR0siItSURasew0UZk=
 github.com/Rollcomp/procyon-peas v0.0.0-20200525000654-2953d3d70dc6/go.mod h1:gpVFvytSPTzATe7C4VfFn56b6FxX7XwZN5UPMUYyv3A=
 github.com/Rollcomp/procyon-peas v0.0.0-20200525020014-ddbd4edb589c h1:BSuov6z9oqQw6OjdqB1rg8/OPyIGvYAf/PTBl+m50h8=
