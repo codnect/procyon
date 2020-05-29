@@ -7,10 +7,10 @@ import (
 
 type BaseProcyonApplicationEvent struct {
 	context.BaseApplicationEvent
-	args []string
+	args ApplicationArguments
 }
 
-func NewBaseProcyonApplicationEvent(app *Application, args []string) BaseProcyonApplicationEvent {
+func NewBaseProcyonApplicationEvent(app *Application, args ApplicationArguments) BaseProcyonApplicationEvent {
 	return BaseProcyonApplicationEvent{
 		context.NewBaseApplicationEvent(app),
 		args,
@@ -21,7 +21,7 @@ func (e BaseProcyonApplicationEvent) GetProcyonApplication() *Application {
 	return e.GetSource().(*Application)
 }
 
-func (e BaseProcyonApplicationEvent) GetArgs() []string {
+func (e BaseProcyonApplicationEvent) GetArgs() ApplicationArguments {
 	return e.args
 }
 
@@ -29,7 +29,7 @@ type ApplicationStartingEvent struct {
 	BaseProcyonApplicationEvent
 }
 
-func NewApplicationStarting(app *Application, args []string) ApplicationStartingEvent {
+func NewApplicationStarting(app *Application, args ApplicationArguments) ApplicationStartingEvent {
 	return ApplicationStartingEvent{
 		NewBaseProcyonApplicationEvent(app, args),
 	}
@@ -40,7 +40,7 @@ type ApplicationEnvironmentPreparedEvent struct {
 	environment core.ConfigurableEnvironment
 }
 
-func NewApplicationEnvironmentPreparedEvent(app *Application, args []string, env core.ConfigurableEnvironment) ApplicationEnvironmentPreparedEvent {
+func NewApplicationEnvironmentPreparedEvent(app *Application, args ApplicationArguments, env core.ConfigurableEnvironment) ApplicationEnvironmentPreparedEvent {
 	return ApplicationEnvironmentPreparedEvent{
 		NewBaseProcyonApplicationEvent(app, args),
 		env,
@@ -56,7 +56,7 @@ type ApplicationContextInitializedEvent struct {
 	context context.ConfigurableApplicationContext
 }
 
-func NewApplicationContextInitializedEvent(app *Application, args []string, ctx context.ConfigurableApplicationContext) ApplicationContextInitializedEvent {
+func NewApplicationContextInitializedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationContextInitializedEvent {
 	return ApplicationContextInitializedEvent{
 		NewBaseProcyonApplicationEvent(app, args),
 		ctx,
@@ -72,7 +72,7 @@ type ApplicationPreparedEvent struct {
 	context context.ConfigurableApplicationContext
 }
 
-func NewApplicationPreparedEvent(app *Application, args []string, ctx context.ConfigurableApplicationContext) ApplicationPreparedEvent {
+func NewApplicationPreparedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationPreparedEvent {
 	return ApplicationPreparedEvent{
 		NewBaseProcyonApplicationEvent(app, args),
 		ctx,
@@ -88,7 +88,7 @@ type ApplicationStartedEvent struct {
 	context context.ConfigurableApplicationContext
 }
 
-func NewApplicationStartedEvent(app *Application, args []string, ctx context.ConfigurableApplicationContext) ApplicationStartedEvent {
+func NewApplicationStartedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationStartedEvent {
 	return ApplicationStartedEvent{
 		NewBaseProcyonApplicationEvent(app, args),
 		ctx,
@@ -104,7 +104,7 @@ type ApplicationReadyEvent struct {
 	context context.ConfigurableApplicationContext
 }
 
-func NewApplicationReadyEvent(app *Application, args []string, ctx context.ConfigurableApplicationContext) ApplicationReadyEvent {
+func NewApplicationReadyEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationReadyEvent {
 	return ApplicationReadyEvent{
 		NewBaseProcyonApplicationEvent(app, args),
 		ctx,
@@ -121,7 +121,7 @@ type ApplicationFailedEvent struct {
 	err     error
 }
 
-func NewApplicationFailedEvent(app *Application, args []string, ctx context.ConfigurableApplicationContext, err error) ApplicationFailedEvent {
+func NewApplicationFailedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext, err error) ApplicationFailedEvent {
 	return ApplicationFailedEvent{
 		NewBaseProcyonApplicationEvent(app, args),
 		ctx,

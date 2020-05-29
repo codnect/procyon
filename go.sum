@@ -53,6 +53,10 @@ github.com/Rollcomp/procyon-core v0.0.0-20200526155212-eb09bef10665 h1:lK/uW31ux
 github.com/Rollcomp/procyon-core v0.0.0-20200526155212-eb09bef10665/go.mod h1:ezcPFnpBC6fpM3KQP002VKzkaJwWsN3p0BkAIxI3h9A=
 github.com/Rollcomp/procyon-core v0.0.0-20200526155826-8713b181d017 h1:qnTXop8YWx71hHVrD3DYim4WHquSi3g+xCp7JFV2PzQ=
 github.com/Rollcomp/procyon-core v0.0.0-20200526155826-8713b181d017/go.mod h1:ezcPFnpBC6fpM3KQP002VKzkaJwWsN3p0BkAIxI3h9A=
+github.com/Rollcomp/procyon-core v0.0.0-20200527171254-c55c9e75f897 h1:uhcRBKIkcli1QjojH1KyzO1bQCRmx6Ah02IosYAW+SY=
+github.com/Rollcomp/procyon-core v0.0.0-20200527171254-c55c9e75f897/go.mod h1:ezcPFnpBC6fpM3KQP002VKzkaJwWsN3p0BkAIxI3h9A=
+github.com/Rollcomp/procyon-core v0.0.0-20200527171738-9aebe19476ba h1:q1e4BL0BclJt7leOosrAAxKIDCqDG8+GsQJwBXjKJoo=
+github.com/Rollcomp/procyon-core v0.0.0-20200527171738-9aebe19476ba/go.mod h1:ezcPFnpBC6fpM3KQP002VKzkaJwWsN3p0BkAIxI3h9A=
 github.com/Rollcomp/procyon-peas v0.0.0-20200525000654-2953d3d70dc6 h1:D7VUs14OdDzd1fEeOUGCSDrjWfR0siItSURasew0UZk=
 github.com/Rollcomp/procyon-peas v0.0.0-20200525000654-2953d3d70dc6/go.mod h1:gpVFvytSPTzATe7C4VfFn56b6FxX7XwZN5UPMUYyv3A=
 github.com/Rollcomp/procyon-peas v0.0.0-20200525020014-ddbd4edb589c h1:BSuov6z9oqQw6OjdqB1rg8/OPyIGvYAf/PTBl+m50h8=
@@ -71,6 +75,12 @@ github.com/Rollcomp/procyon-web v0.0.0-20200525014948-dbba19d57612 h1:UDDsQQ/iOn
 github.com/Rollcomp/procyon-web v0.0.0-20200525014948-dbba19d57612/go.mod h1:krVc+OSCuqB214L84FaI5AuDNvg9AsohI4bPZ6avKo0=
 github.com/Rollcomp/procyon-web v0.0.0-20200525021154-12f57d3926f2 h1:N/mZ+XwGfZgHFhpmYccvOPtzc6XbgS0NubLnVGnRa6Y=
 github.com/Rollcomp/procyon-web v0.0.0-20200525021154-12f57d3926f2/go.mod h1:FnaLc8skrpr/8VahANZCOb4JQmIwer/SrUnMdW6FGMU=
+github.com/Rollcomp/procyon-web v0.0.0-20200527163652-ba7fe7bb600e h1:0n1M9wbeMrJ25sZmvOkyFlKZ0NayKqx+E9pbyPqvibk=
+github.com/Rollcomp/procyon-web v0.0.0-20200527163652-ba7fe7bb600e/go.mod h1:FnaLc8skrpr/8VahANZCOb4JQmIwer/SrUnMdW6FGMU=
+github.com/Rollcomp/procyon-web v0.0.0-20200527171530-c6576f10d695 h1:I2FROQEF39wk8fnyiXy/e0qwzjRs/r0DEkPMFYSBynM=
+github.com/Rollcomp/procyon-web v0.0.0-20200527171530-c6576f10d695/go.mod h1:cyo1fB+UnW6S97ytAfxuoiv2ET5Z3aXiRp6XKf3JJp4=
+github.com/Rollcomp/procyon-web v0.0.0-20200527171830-72429f1c731e h1:Lp0ZsJgeoXudJnZFLRsM/oGC0yeg3gL1AF0csG+OI30=
+github.com/Rollcomp/procyon-web v0.0.0-20200527171830-72429f1c731e/go.mod h1:bfYq7h9IMqdb/x4djkIbtqkJpBvk48oWNvEL/WmU6d4=
 github.com/codnect/go-one v0.0.0-20200119222923-a2229e1e905b h1:jyGKyFxQuUnKEvAS3ljhH/UOSQ9drm5iaiu1ambHcqM=
 github.com/codnect/go-one v0.0.0-20200119222923-a2229e1e905b/go.mod h1:HNA7tG2YZZVRFjlRD6MaYWZrzIMANR4z9Wq/wuZZDJI=
 github.com/codnect/go-reflect v0.0.0-20200128204814-2eb4070700ed h1:PEkp4HpFmGb6XX4TfxkUHs9b9k2EDWvtJs3Eizo4Pzc=
