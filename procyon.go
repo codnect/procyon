@@ -65,7 +65,12 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	arguments ApplicationArguments, listeners ApplicationRunListeners) {
 	startupLogger.LogStarting()
 	context.SetEnvironment(environment)
+	// broadcast an event to notify that context is prepared
 	listeners.ContextPrepared(context)
+	// register application arguments as shared pea
+	factory := context.GetPeaFactory()
+	factory.RegisterSharedPea("procyonApplicationArguments", arguments)
+	// broadcast an event to notify that context is loaded
 	listeners.ContextLoaded(context)
 }
 
