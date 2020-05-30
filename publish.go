@@ -58,6 +58,12 @@ func (listener EventPublishRunListener) ContextPrepared(ctx context.Configurable
 }
 
 func (listener EventPublishRunListener) ContextLoaded(ctx context.ConfigurableApplicationContext) {
+	// when context is loaded, add application listeners registered
+	appListeners := listener.app.getAppListeners()
+	for _, appListener := range appListeners {
+		ctx.AddApplicationListener(appListener)
+	}
+	// after that, broadcast an event to notify all listeners that app is prepared
 	listener.broadcaster.BroadcastEvent(NewApplicationPreparedEvent(listener.app, listener.args, ctx))
 }
 
