@@ -1,11 +1,11 @@
-module github.com/Rollcomp/procyon
+module github.com/procyon-projects/procyon
 
 go 1.13
 
 require (
-	github.com/Rollcomp/procyon-configure v0.0.0-20200524153318-192287148c56
-	github.com/Rollcomp/procyon-context v0.0.0-20200530230748-b2cd4b5be27c
-	github.com/Rollcomp/procyon-core v0.0.0-20200530225404-04c954bf0d03
-	github.com/Rollcomp/procyon-peas v0.0.0-20200530210444-e357aa8e9fdc
-	github.com/Rollcomp/procyon-web v0.0.0-20200527171830-72429f1c731e
+	github.com/procyon-projects/procyon-configure v0.0.0-20200608191434-6952f10ca1a1
+	github.com/procyon-projects/procyon-context v0.0.0-20200608190657-b61daf0cca3b
+	github.com/procyon-projects/procyon-core v0.0.0-20200608185616-c7f7d669d199
+	github.com/procyon-projects/procyon-peas v0.0.0-20200608185909-b885d552179d
+	github.com/procyon-projects/procyon-web v0.0.0-20200608191122-7216f4718322
 )

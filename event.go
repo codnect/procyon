@@ -1,8 +1,8 @@
 package procyon
 
 import (
-	context "github.com/Rollcomp/procyon-context"
-	core "github.com/Rollcomp/procyon-core"
+	context "github.com/procyon-projects/procyon-context"
+	core "github.com/procyon-projects/procyon-core"
 )
 
 type BaseProcyonApplicationEvent struct {

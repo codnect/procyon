@@ -1,8 +1,8 @@
 package procyon
 
 import (
-	"github.com/Rollcomp/procyon-context"
-	"github.com/Rollcomp/procyon-core"
+	"github.com/procyon-projects/procyon-context"
+	"github.com/procyon-projects/procyon-core"
 )
 
 type ApplicationArguments interface {

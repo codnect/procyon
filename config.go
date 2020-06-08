@@ -1,9 +1,9 @@
 package procyon
 
 import (
-	configure "github.com/Rollcomp/procyon-configure"
-	context "github.com/Rollcomp/procyon-context"
-	core "github.com/Rollcomp/procyon-core"
+	configure "github.com/procyon-projects/procyon-configure"
+	context "github.com/procyon-projects/procyon-context"
+	core "github.com/procyon-projects/procyon-core"
 )
 
 func init() {
