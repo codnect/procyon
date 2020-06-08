@@ -1,5 +1,9 @@
 # Procyon Framework
-Procyon is the http framework written in Go
+Procyon is the http framework written in Go. 
+
+* It makes it easy to create production-grade applications. 
+* It aims to ease to build, develop and deploy your web applications quickly in GO.
+
 
 # Modules
 There are a number of modules in Procyon Framework :
