@@ -30,3 +30,5 @@ This provides ORM support for database connection. It only supports GORM library
 This provides pea containers to manage your instances which are created in Procyon application. Peas are very similar to Java Beans.
 They can be called as Go Beans :)
 
+# License
+The Procyon Framework is released under version 2.0 of the Apache License.
