@@ -21,9 +21,6 @@ func (listener BootstrapListener) SubscribeEvents() []context.ApplicationEvent {
 func (listener BootstrapListener) OnApplicationEvent(event context.ApplicationEvent) {
 	//source := event.GetSource()
 	//timestamp := event.GetTimestamp()
-	appEvent := event.(ApplicationStartingEvent)
-	r := appEvent.GetArgs().ContainsOption("-test.vrun")
-	panic(r)
 }
 
 type EventPublishRunListener struct {
