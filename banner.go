@@ -1,6 +1,8 @@
 package procyon
 
-import "log"
+import (
+	"fmt"
+)
 
 type Banner interface {
 	printBanner()
@@ -24,6 +26,6 @@ var bannerText = []string{"",
 
 func (banner ApplicationBanner) PrintBanner() {
 	for _, line := range bannerText {
-		log.Print(line)
+		fmt.Println(line)
 	}
 }
