@@ -13,6 +13,7 @@ type StartupLogger struct {
 
 func (logger StartupLogger) LogStarting() {
 	core.Logger.Info("Starting...")
+	core.Logger.Info("Application Id : ", core.GetApplicationId())
 	core.Logger.Info("Running with Procyon, Procyon " + Version)
 }
 
