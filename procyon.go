@@ -21,7 +21,7 @@ func NewProcyonApplication() *Application {
 
 func (procyonApp *Application) Run() {
 	// set log level
-	core.Logger.SetLevel(logrus.InfoLevel)
+	core.Log.SetLevel(logrus.InfoLevel)
 	taskWatch := core.NewTaskWatch()
 	_ = taskWatch.Start()
 	// print banner
@@ -45,7 +45,7 @@ func (procyonApp *Application) Run() {
 }
 
 func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments, listeners ApplicationRunListeners) core.Environment {
-	core.Logger.Debug("Started to prepare the application environment.")
+	core.Log.Debug("Started to prepare the application environment.")
 	environment := procyonApp.createEnvironment()
 	procyonApp.configureEnvironment(environment, arguments)
 	listeners.EnvironmentPrepared(environment)
@@ -57,7 +57,7 @@ func (procyonApp *Application) createEnvironment() core.ConfigurableEnvironment 
 }
 
 func (procyonApp *Application) configureEnvironment(environment core.ConfigurableEnvironment, arguments ApplicationArguments) {
-	core.Logger.Debug("Configuring the environment.")
+	core.Log.Debug("Configuring the environment.")
 	propertySources := environment.GetPropertySources()
 	if arguments != nil && len(arguments.GetSourceArgs()) > 0 {
 		propertySources.Add(core.NewSimpleCommandLinePropertySource(arguments.GetSourceArgs()))
@@ -71,7 +71,7 @@ func (procyonApp *Application) createApplicationContext() context.ConfigurableAp
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments, listeners ApplicationRunListeners) {
-	core.Logger.Debug("Started to prepare the application context.")
+	core.Log.Debug("Started to prepare the application context.")
 	context.SetEnvironment(environment)
 	// broadcast an event to notify that context is prepared
 	listeners.ContextPrepared(context)
@@ -127,13 +127,13 @@ func (procyonApp *Application) getInstancesWithParamTypes(typ *core.Type, parame
 }
 
 func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicationContext) {
-	core.Logger.Debug("Configuring the application context.")
+	core.Log.Debug("Configuring the application context.")
 	if ctx == nil {
-		core.Logger.Panic("Context must not be null")
+		core.Log.Panic("Context must not be null")
 	}
 	if configurableContextAdapter, ok := ctx.(context.ConfigurableContextAdapter); ok {
 		configurableContextAdapter.Configure()
 	} else {
-		core.Logger.Panic("context.ConfigurableContextAdapter methods must be implemented in your context struct")
+		core.Log.Panic("context.ConfigurableContextAdapter methods must be implemented in your context struct")
 	}
 }

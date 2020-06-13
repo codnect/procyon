@@ -1,6 +1,7 @@
 package procyon
 
 import (
+	"fmt"
 	core "github.com/procyon-projects/procyon-core"
 )
 
@@ -12,12 +13,13 @@ type StartupLogger struct {
 }
 
 func (logger StartupLogger) LogStarting() {
-	core.Logger.Info("Starting...")
-	core.Logger.Info("Application Id : ", core.GetApplicationId())
-	core.Logger.Info("Running with Procyon, Procyon " + Version)
+	core.Log.Info("Starting...")
+	core.Log.Info("Application Id : ", core.GetApplicationId())
+	core.Log.Info("Running with Procyon, Procyon " + Version)
 }
 
 func (logger StartupLogger) LogStarted(watch *core.TaskWatch) {
 	lastTime := float32(watch.GetTotalTime()) / 1e9
-	core.Logger.Infof("Started in %.2f second(s)\n", lastTime)
+	formattedText := fmt.Sprintf("Started in %.2f second(s)\n", lastTime)
+	core.Log.Info(formattedText)
 }
