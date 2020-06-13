@@ -20,8 +20,6 @@ func NewProcyonApplication() *Application {
 }
 
 func (procyonApp *Application) Run() {
-	// set log level
-	core.Log.SetLevel(logrus.InfoLevel)
 	taskWatch := core.NewTaskWatch()
 	_ = taskWatch.Start()
 	// print banner
