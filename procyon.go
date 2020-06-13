@@ -5,7 +5,6 @@ import (
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"
 	web "github.com/procyon-projects/procyon-web"
-	"github.com/sirupsen/logrus"
 	"os"
 )
 
