@@ -69,11 +69,16 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments, listeners ApplicationRunListeners) {
 	core.Log.Debug("Started to prepare the application context.")
+	// set logger
+	context.SetLogger(core.Log)
+	// set environment
 	context.SetEnvironment(environment)
+	factory := context.GetPeaFactory()
+	// register logger, you cannot use core.Log in your transactions and goroutines
+	factory.RegisterSharedPea("procyonLogger", core.Log)
 	// broadcast an event to notify that context is prepared
 	listeners.ContextPrepared(context)
 	// register application arguments as shared pea
-	factory := context.GetPeaFactory()
 	factory.RegisterSharedPea("procyonApplicationArguments", arguments)
 	// broadcast an event to notify that context is loaded
 	listeners.ContextLoaded(context)
