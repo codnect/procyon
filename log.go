@@ -5,21 +5,25 @@ import (
 	core "github.com/procyon-projects/procyon-core"
 )
 
-var (
-	startupLogger = StartupLogger{}
-)
-
 type StartupLogger struct {
+	logger core.Logger
 }
 
-func (logger StartupLogger) LogStarting() {
-	core.Log.Info("Starting...")
-	core.Log.Info("Application Id : ", core.GetApplicationId())
-	core.Log.Info("Running with Procyon, Procyon " + Version)
+func NewStartupLogger(logger core.Logger) StartupLogger {
+	return StartupLogger{
+		logger,
+	}
 }
 
-func (logger StartupLogger) LogStarted(watch *core.TaskWatch) {
+func (startupLogger StartupLogger) LogStarting(appId string, contextId string) {
+	startupLogger.logger.Info("Starting...")
+	startupLogger.logger.Info("Application Id : ", appId)
+	startupLogger.logger.Info("Application Context Id : ", contextId)
+	startupLogger.logger.Info("Running with Procyon, Procyon " + Version)
+}
+
+func (startupLogger StartupLogger) LogStarted(watch *core.TaskWatch) {
 	lastTime := float32(watch.GetTotalTime()) / 1e9
 	formattedText := fmt.Sprintf("Started in %.2f second(s)\n", lastTime)
-	core.Log.Info(formattedText)
+	startupLogger.logger.Info(formattedText)
 }

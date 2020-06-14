@@ -59,49 +59,49 @@ type ApplicationRunListeners struct {
 	listeners []ApplicationRunListener
 }
 
-func NewApplicationRunListeners(l []ApplicationRunListener) ApplicationRunListeners {
-	return ApplicationRunListeners{
+func NewApplicationRunListeners(l []ApplicationRunListener) *ApplicationRunListeners {
+	return &ApplicationRunListeners{
 		listeners: l,
 	}
 }
 
-func (appListeners ApplicationRunListeners) Starting() {
+func (appListeners *ApplicationRunListeners) Starting() {
 	for _, listener := range appListeners.listeners {
 		listener.Starting()
 	}
 }
 
-func (appListeners ApplicationRunListeners) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
+func (appListeners *ApplicationRunListeners) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
 	for _, listener := range appListeners.listeners {
 		listener.EnvironmentPrepared(environment)
 	}
 }
 
-func (appListeners ApplicationRunListeners) ContextPrepared(context context.ConfigurableApplicationContext) {
+func (appListeners *ApplicationRunListeners) ContextPrepared(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.ContextPrepared(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) ContextLoaded(context context.ConfigurableApplicationContext) {
+func (appListeners *ApplicationRunListeners) ContextLoaded(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.ContextLoaded(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) Started(context context.ConfigurableApplicationContext) {
+func (appListeners *ApplicationRunListeners) Started(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.Started(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) Running(context context.ConfigurableApplicationContext) {
+func (appListeners *ApplicationRunListeners) Running(context context.ConfigurableApplicationContext) {
 	for _, listener := range appListeners.listeners {
 		listener.Running(context)
 	}
 }
 
-func (appListeners ApplicationRunListeners) Failed(context context.ConfigurableApplicationContext, err error) {
+func (appListeners *ApplicationRunListeners) Failed(context context.ConfigurableApplicationContext, err error) {
 	for _, listener := range appListeners.listeners {
 		listener.Failed(context, err)
 	}

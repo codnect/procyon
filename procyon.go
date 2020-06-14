@@ -1,6 +1,8 @@
 package procyon
 
 import (
+	"errors"
+	"github.com/google/uuid"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"
@@ -18,124 +20,207 @@ func NewProcyonApplication() *Application {
 	}
 }
 
+func (procyonApp *Application) createApplicationAndContextId() (uuid.UUID, uuid.UUID) {
+	var err error
+	var applicationId uuid.UUID
+	applicationId, err = uuid.NewUUID()
+	if err != nil {
+		panic("Could not application id")
+	}
+	var contextId uuid.UUID
+	contextId, err = uuid.NewUUID()
+	if err != nil {
+		panic("Could not context id")
+	}
+	return applicationId, contextId
+}
+
 func (procyonApp *Application) Run() {
+	// create the application id
+	applicationId, contextId := procyonApp.createApplicationAndContextId()
+
+	// startup logger
+	logger := core.NewSimpleLogger(applicationId.String(), contextId.String())
+	startupLogger := NewStartupLogger(logger)
+
+	// it is executed during panic
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Panic(r)
+		}
+	}()
+
+	// start a new task to watch time which will pass
 	taskWatch := core.NewTaskWatch()
 	_ = taskWatch.Start()
-	// print banner
+
+	// print application banner
 	appBanner.PrintBanner()
+
 	// log starting
-	startupLogger.LogStarting()
+	startupLogger.LogStarting(applicationId.String(), contextId.String())
 	appArguments := GetApplicationArguments(os.Args)
-	procyonApp.initApplicationListenerInstances()
-	listeners := procyonApp.getAppRunListenerInstances(appArguments)
+
+	// application listener
+	err := procyonApp.initApplicationListenerInstances()
+	if err != nil {
+		return
+	}
+
+	// app run listeners
+	var listeners *ApplicationRunListeners
+	listeners, err = procyonApp.getAppRunListenerInstances(appArguments)
+	if err != nil {
+		return
+	}
+
+	// broadcast an event to inform the application is starting
 	listeners.Starting()
+
 	// prepare environment
-	environment := procyonApp.prepareEnvironment(appArguments, listeners)
-	applicationContext := procyonApp.createApplicationContext()
+	var environment core.Environment
+	environment, err = procyonApp.prepareEnvironment(appArguments, listeners)
+	if err != nil {
+		return
+	}
+
+	// create application context
+	var applicationContext context.ConfigurableApplicationContext
+	applicationContext, err = procyonApp.createApplicationContext()
+	if err != nil {
+		return
+	}
+
 	// prepare context
-	procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments, listeners)
+	err = procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments, listeners)
+	if err != nil {
+		return
+	}
+
 	listeners.Started(applicationContext)
 	listeners.Running(applicationContext)
-	procyonApp.configureContext(applicationContext)
+
+	// configure context
+	err = procyonApp.configureContext(applicationContext)
+	if err != nil {
+		return
+	}
 	_ = taskWatch.Stop()
 	startupLogger.LogStarted(taskWatch)
 }
 
-func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments, listeners ApplicationRunListeners) core.Environment {
-	core.Log.Debug("Started to prepare the application environment.")
+func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments, listeners *ApplicationRunListeners) (core.Environment, error) {
 	environment := procyonApp.createEnvironment()
 	procyonApp.configureEnvironment(environment, arguments)
 	listeners.EnvironmentPrepared(environment)
-	return environment
+	return environment, nil
 }
 
 func (procyonApp *Application) createEnvironment() core.ConfigurableEnvironment {
 	return web.NewStandardWebEnvironment()
 }
 
-func (procyonApp *Application) configureEnvironment(environment core.ConfigurableEnvironment, arguments ApplicationArguments) {
-	core.Log.Debug("Configuring the environment.")
+func (procyonApp *Application) configureEnvironment(environment core.ConfigurableEnvironment, arguments ApplicationArguments) error {
 	propertySources := environment.GetPropertySources()
 	if arguments != nil && len(arguments.GetSourceArgs()) > 0 {
 		propertySources.Add(core.NewSimpleCommandLinePropertySource(arguments.GetSourceArgs()))
 	}
+	return nil
 }
 
-func (procyonApp *Application) createApplicationContext() context.ConfigurableApplicationContext {
-	return web.NewProcyonServerApplicationContext()
+func (procyonApp *Application) createApplicationContext() (context.ConfigurableApplicationContext, error) {
+	return web.NewProcyonServerApplicationContext(), nil
 }
 
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
-	arguments ApplicationArguments, listeners ApplicationRunListeners) {
-	core.Log.Debug("Started to prepare the application context.")
-	// set logger
-	context.SetLogger(core.Log)
+	arguments ApplicationArguments, listeners *ApplicationRunListeners) error {
 	// set environment
 	context.SetEnvironment(environment)
 	factory := context.GetPeaFactory()
-	// register logger, you cannot use core.Log in your transactions and goroutines
-	factory.RegisterSharedPea("procyonLogger", core.Log)
 	// broadcast an event to notify that context is prepared
 	listeners.ContextPrepared(context)
 	// register application arguments as shared pea
 	factory.RegisterSharedPea("procyonApplicationArguments", arguments)
 	// broadcast an event to notify that context is loaded
 	listeners.ContextLoaded(context)
+	return nil
 }
 
-func (procyonApp *Application) getAppRunListenerInstances(arguments ApplicationArguments) ApplicationRunListeners {
-	instances := procyonApp.getInstancesWithParamTypes(core.GetType((*ApplicationRunListener)(nil)),
+func (procyonApp *Application) getAppRunListenerInstances(arguments ApplicationArguments) (*ApplicationRunListeners, error) {
+	instances, err := procyonApp.getInstancesWithParamTypes(core.GetType((*ApplicationRunListener)(nil)),
 		[]*core.Type{core.GetType((*Application)(nil)), core.GetType((*ApplicationArguments)(nil))},
 		[]interface{}{procyonApp, arguments})
+	if err != nil {
+		return nil, err
+	}
 	var listeners []ApplicationRunListener
 	for _, instance := range instances {
 		listeners = append(listeners, instance.(ApplicationRunListener))
 	}
-	return NewApplicationRunListeners(listeners)
+	return NewApplicationRunListeners(listeners), nil
 }
 
 func (procyonApp *Application) getAppListeners() []context.ApplicationListener {
 	return procyonApp.listeners
 }
 
-func (procyonApp *Application) initApplicationListenerInstances() {
-	instances := procyonApp.getInstances(core.GetType((*context.ApplicationListener)(nil)))
+func (procyonApp *Application) initApplicationListenerInstances() error {
+	instances, err := procyonApp.getInstances(core.GetType((*context.ApplicationListener)(nil)))
+	if err != nil {
+		return err
+	}
 	listenerInstances := make([]context.ApplicationListener, len(instances))
 	for index, instance := range instances {
 		listenerInstances[index] = instance.(context.ApplicationListener)
 	}
 	procyonApp.listeners = listenerInstances
+	return nil
 }
 
-func (procyonApp *Application) getInstances(typ *core.Type) []interface{} {
-	types := core.GetComponentTypes(typ)
+func (procyonApp *Application) getInstances(typ *core.Type) (result []interface{}, err error) {
+	var types []*core.Type
+	types, err = core.GetComponentTypes(typ)
+	if err != nil {
+		return
+	}
 	var instances []interface{}
 	for _, t := range types {
-		instance := peas.CreateInstance(t, []interface{}{})
-		instances = append(instances, instance)
+		var instance interface{}
+		instance, err = peas.CreateInstance(t, []interface{}{})
+		if err != nil {
+			return
+		}
+		result = append(result, instance)
 	}
-	return instances
+	return instances, nil
 }
 
-func (procyonApp *Application) getInstancesWithParamTypes(typ *core.Type, parameterTypes []*core.Type, args []interface{}) []interface{} {
-	types := core.GetComponentTypesWithParam(typ, parameterTypes)
+func (procyonApp *Application) getInstancesWithParamTypes(typ *core.Type, parameterTypes []*core.Type, args []interface{}) (result []interface{}, err error) {
+	var types []*core.Type
+	types, err = core.GetComponentTypesWithParam(typ, parameterTypes)
+	if err != nil {
+		return
+	}
 	var instances []interface{}
 	for _, t := range types {
-		instance := peas.CreateInstance(t, args)
+		var instance interface{}
+		instance, err = peas.CreateInstance(t, args)
+		if err != nil {
+			return
+		}
 		instances = append(instances, instance)
 	}
-	return instances
+	return instances, nil
 }
 
-func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicationContext) {
-	core.Log.Debug("Configuring the application context.")
+func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicationContext) error {
 	if ctx == nil {
-		core.Log.Panic("Context must not be null")
+		return errors.New("context must not be null")
 	}
 	if configurableContextAdapter, ok := ctx.(context.ConfigurableContextAdapter); ok {
 		configurableContextAdapter.Configure()
-	} else {
-		core.Log.Panic("context.ConfigurableContextAdapter methods must be implemented in your context struct")
+		return nil
 	}
+	return errors.New("context.ConfigurableContextAdapter methods must be implemented in your context struct")
 }
