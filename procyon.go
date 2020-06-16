@@ -64,14 +64,14 @@ func (procyonApp *Application) Run() {
 	// application listener
 	err := procyonApp.initApplicationListenerInstances()
 	if err != nil {
-		return
+		logger.Fatal(err)
 	}
 
 	// app run listeners
 	var listeners *ApplicationRunListeners
 	listeners, err = procyonApp.getAppRunListenerInstances(appArguments)
 	if err != nil {
-		return
+		logger.Fatal(err)
 	}
 
 	// broadcast an event to inform the application is starting
@@ -81,20 +81,20 @@ func (procyonApp *Application) Run() {
 	var environment core.Environment
 	environment, err = procyonApp.prepareEnvironment(appArguments, listeners)
 	if err != nil {
-		return
+		logger.Fatal(err)
 	}
 
 	// create application context
 	var applicationContext context.ConfigurableApplicationContext
 	applicationContext, err = procyonApp.createApplicationContext()
 	if err != nil {
-		return
+		logger.Fatal(err)
 	}
 
 	// prepare context
 	err = procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments, listeners)
 	if err != nil {
-		return
+		logger.Fatal(err)
 	}
 
 	listeners.Started(applicationContext)
@@ -103,7 +103,7 @@ func (procyonApp *Application) Run() {
 	// configure context
 	err = procyonApp.configureContext(applicationContext)
 	if err != nil {
-		return
+		logger.Fatal(err)
 	}
 	_ = taskWatch.Stop()
 	startupLogger.LogStarted(taskWatch)
@@ -111,7 +111,10 @@ func (procyonApp *Application) Run() {
 
 func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments, listeners *ApplicationRunListeners) (core.Environment, error) {
 	environment := procyonApp.createEnvironment()
-	procyonApp.configureEnvironment(environment, arguments)
+	err := procyonApp.configureEnvironment(environment, arguments)
+	if err != nil {
+		return nil, err
+	}
 	listeners.EnvironmentPrepared(environment)
 	return environment, nil
 }
@@ -141,7 +144,10 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	// broadcast an event to notify that context is prepared
 	listeners.ContextPrepared(context)
 	// register application arguments as shared pea
-	factory.RegisterSharedPea("procyonApplicationArguments", arguments)
+	err := factory.RegisterSharedPea("procyonApplicationArguments", arguments)
+	if err != nil {
+		return err
+	}
 	// broadcast an event to notify that context is loaded
 	listeners.ContextLoaded(context)
 	return nil
