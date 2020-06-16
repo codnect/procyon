@@ -37,10 +37,10 @@ func (procyonApp *Application) createApplicationAndContextId() (uuid.UUID, uuid.
 
 func (procyonApp *Application) Run() {
 	// create the application id
-	applicationId, contextId := procyonApp.createApplicationAndContextId()
+	applicationId, mainContextId := procyonApp.createApplicationAndContextId()
 
 	// startup logger
-	logger := core.NewSimpleLogger(applicationId.String(), contextId.String())
+	logger := core.NewSimpleLogger(applicationId.String(), mainContextId.String())
 	startupLogger := NewStartupLogger(logger)
 
 	// it is executed during panic
@@ -58,7 +58,7 @@ func (procyonApp *Application) Run() {
 	appBanner.PrintBanner()
 
 	// log starting
-	startupLogger.LogStarting(applicationId.String(), contextId.String())
+	startupLogger.LogStarting(applicationId.String(), mainContextId.String())
 	appArguments := GetApplicationArguments(os.Args)
 
 	// application listener
@@ -86,7 +86,7 @@ func (procyonApp *Application) Run() {
 
 	// create application context
 	var applicationContext context.ConfigurableApplicationContext
-	applicationContext, err = procyonApp.createApplicationContext()
+	applicationContext, err = procyonApp.createApplicationContext(applicationId, mainContextId)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -131,8 +131,8 @@ func (procyonApp *Application) configureEnvironment(environment core.Configurabl
 	return nil
 }
 
-func (procyonApp *Application) createApplicationContext() (context.ConfigurableApplicationContext, error) {
-	return web.NewProcyonServerApplicationContext(), nil
+func (procyonApp *Application) createApplicationContext(appId uuid.UUID, contextId uuid.UUID) (context.ConfigurableApplicationContext, error) {
+	return web.NewProcyonServerApplicationContext(appId, contextId), nil
 }
 
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
