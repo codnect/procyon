@@ -92,7 +92,11 @@ func (procyonApp *Application) Run() {
 	}
 
 	// prepare context
-	err = procyonApp.prepareContext(applicationContext, environment.(core.ConfigurableEnvironment), appArguments, listeners)
+	err = procyonApp.prepareContext(applicationContext,
+		environment.(core.ConfigurableEnvironment),
+		appArguments,
+		listeners,
+	)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -137,7 +141,8 @@ func (procyonApp *Application) createApplicationContext(appId uuid.UUID, context
 
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
-	arguments ApplicationArguments, listeners *ApplicationRunListeners) error {
+	arguments ApplicationArguments,
+	listeners *ApplicationRunListeners) error {
 	// set environment
 	context.SetEnvironment(environment)
 	factory := context.GetPeaFactory()
