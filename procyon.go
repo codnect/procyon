@@ -40,7 +40,8 @@ func (procyonApp *Application) Run() {
 	applicationId, mainContextId := procyonApp.createApplicationAndContextId()
 
 	// startup logger
-	logger := core.NewSimpleLogger(applicationId.String(), mainContextId.String())
+	simpleLogger := core.NewSimpleLogger()
+	logger := core.NewProxyLogger(simpleLogger, mainContextId)
 	startupLogger := NewStartupLogger(logger)
 
 	// it is executed during panic
@@ -96,6 +97,7 @@ func (procyonApp *Application) Run() {
 		environment.(core.ConfigurableEnvironment),
 		appArguments,
 		listeners,
+		logger,
 	)
 	if err != nil {
 		logger.Fatal(err)
@@ -142,9 +144,12 @@ func (procyonApp *Application) createApplicationContext(appId uuid.UUID, context
 func (procyonApp *Application) prepareContext(context context.ConfigurableApplicationContext,
 	environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments,
-	listeners *ApplicationRunListeners) error {
+	listeners *ApplicationRunListeners,
+	logger core.Logger) error {
 	// set environment
 	context.SetEnvironment(environment)
+	// set logger
+	context.SetLogger(logger)
 	factory := context.GetPeaFactory()
 	// broadcast an event to notify that context is prepared
 	listeners.ContextPrepared(context)
