@@ -2,6 +2,7 @@ package procyon
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
@@ -50,7 +51,6 @@ func (procyonApp *Application) Run() {
 			logger.Panic(r)
 		}
 	}()
-
 	// start a new task to watch time which will pass
 	taskWatch := core.NewTaskWatch()
 	_ = taskWatch.Start()
@@ -60,10 +60,21 @@ func (procyonApp *Application) Run() {
 
 	// log starting
 	startupLogger.LogStarting(applicationId.String(), mainContextId.String())
+
+	// scan components
+	logger.Info("Scanning components...")
+	componentScanner := newComponentScanner()
+	componentCount, err := componentScanner.scan(logger)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	logger.Info(fmt.Sprintf("Found (%d) components.", componentCount))
+
+	// get the application arguments
 	appArguments := GetApplicationArguments(os.Args)
 
 	// application listener
-	err := procyonApp.initApplicationListenerInstances()
+	err = procyonApp.initApplicationListenerInstances()
 	if err != nil {
 		logger.Fatal(err)
 	}
