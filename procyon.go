@@ -62,13 +62,10 @@ func (procyonApp *Application) Run() {
 	startupLogger.LogStarting(applicationId.String(), mainContextId.String())
 
 	// scan components
-	logger.Info("Scanning components...")
-	componentScanner := newComponentScanner()
-	componentCount, err := componentScanner.scan(logger)
+	err := procyonApp.scanComponents(logger)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	logger.Info(fmt.Sprintf("Found (%d) components.", componentCount))
 
 	// get the application arguments
 	appArguments := GetApplicationArguments(os.Args)
@@ -134,6 +131,17 @@ func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments
 	}
 	listeners.EnvironmentPrepared(environment)
 	return environment, nil
+}
+
+func (procyonApp *Application) scanComponents(logger core.Logger) error {
+	logger.Info("Scanning components...")
+	componentScanner := newComponentScanner()
+	componentCount, err := componentScanner.scan(logger)
+	if err != nil {
+		return err
+	}
+	logger.Info(fmt.Sprintf("Found (%d) components.", componentCount))
+	return nil
 }
 
 func (procyonApp *Application) createEnvironment() core.ConfigurableEnvironment {

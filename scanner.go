@@ -23,19 +23,27 @@ func (scanner componentScanner) scan(logger core.Logger) (int, error) {
 	for componentName := range componentMap {
 		component := componentMap[componentName]
 		logger.Trace(fmt.Sprintf("Component : %s", componentName))
-		for _, processorInstance := range processors {
-			if processor, ok := processorInstance.(core.ComponentProcessor); ok {
-				if processor.SupportsComponent(component) {
-					err = processor.ProcessComponent(component)
-					if err != nil {
-						return -1, err
-					}
-				}
-			}
+		err := scanner.checkComponent(component, processors)
+		if err != nil {
+			return -1, err
 		}
 		componentCount++
 	}
 	return componentCount, err
+}
+
+func (scanner componentScanner) checkComponent(componentType *core.Type, processors []interface{}) (err error) {
+	for _, processorInstance := range processors {
+		if processor, ok := processorInstance.(core.ComponentProcessor); ok {
+			if processor.SupportsComponent(componentType) {
+				err = processor.ProcessComponent(componentType)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (scanner componentScanner) getProcessorInstances() ([]interface{}, error) {
