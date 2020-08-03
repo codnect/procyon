@@ -6,6 +6,12 @@ import (
 )
 
 func init() {
+	/* Default Component Processors */
+	core.Register(
+		newRepositoryComponentProcessor,
+		newServiceComponentProcessor,
+		newControllerComponentProcessor,
+	)
 	/* Configuration Properties */
 	core.Register(
 		configure.NewServerConfiguration,
