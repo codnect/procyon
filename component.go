@@ -75,3 +75,30 @@ func (processor repositoryComponentProcessor) ProcessComponent(typ *core.Type) e
 	}
 	return nil
 }
+
+type peaComponentProcessor struct {
+}
+
+func newPeaComponentProcessor() peaComponentProcessor {
+	return peaComponentProcessor{}
+}
+
+func (processor peaComponentProcessor) SupportsComponent(typ *core.Type) bool {
+	return true
+}
+
+func (processor peaComponentProcessor) ProcessComponent(typ *core.Type) error {
+	retType := core.GetFunctionFirstReturnType(typ)
+	numField := core.GetNumField(retType)
+	for index := 0; index < numField; index++ {
+		structField := core.GetStructFieldByIndex(retType, index)
+		_, hasInjectTag := structField.Tag.Lookup("inject")
+		if hasInjectTag {
+			field := core.GetFieldValueByIndex(retType, index)
+			if !field.CanSet() {
+				return errors.New("the tag of inject cannot be used on unexported fields : " + retType.String() + "->" + field.String())
+			}
+		}
+	}
+	return nil
+}
