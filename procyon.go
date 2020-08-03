@@ -61,17 +61,25 @@ func (procyonApp *Application) Run() {
 	// log starting
 	startupLogger.LogStarting(applicationId.String(), mainContextId.String())
 
-	// scan components
-	err := procyonApp.scanComponents(logger)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
 	// get the application arguments
 	appArguments := GetApplicationArguments(os.Args)
 
+	argumentComponentScan := appArguments.GetOptionValues("procyon.component.scan")
+	scanComponents := true
+	if argumentComponentScan != nil && len(argumentComponentScan) == 1 && argumentComponentScan[0] == "false" {
+		scanComponents = false
+	}
+
+	if scanComponents {
+		// scan components
+		err := procyonApp.scanComponents(logger)
+		if err != nil {
+			logger.Fatal(err)
+		}
+	}
+
 	// application listener
-	err = procyonApp.initApplicationListenerInstances()
+	err := procyonApp.initApplicationListenerInstances()
 	if err != nil {
 		logger.Fatal(err)
 	}
