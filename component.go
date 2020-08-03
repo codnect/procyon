@@ -96,7 +96,7 @@ func (processor peaComponentProcessor) ProcessComponent(typ *core.Type) error {
 		if hasInjectTag {
 			field := core.GetFieldValueByIndex(retType, index)
 			if !field.CanSet() {
-				return errors.New("the tag of inject cannot be used on unexported fields : " + retType.String() + "->" + field.String())
+				return errors.New("the tag of inject cannot be used on unexported fields : " + retType.String() + "->" + structField.Name)
 			}
 		}
 	}
