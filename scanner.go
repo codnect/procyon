@@ -23,7 +23,7 @@ func (scanner componentScanner) scan(contextId string, logger context.Logger) (i
 	componentMap := core.GetComponentTypeMap()
 	for componentName := range componentMap {
 		component := componentMap[componentName]
-		logger.Trace(contextId, fmt.Sprintf("Component : %s", componentName))
+		logger.T(contextId, fmt.Sprintf("Component : %s", componentName))
 		err := scanner.checkComponent(component, processors)
 		if err != nil {
 			return -1, err
