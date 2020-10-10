@@ -29,10 +29,10 @@ type EventPublishRunListener struct {
 	args        ApplicationArguments
 }
 
-func NewEventPublishRunListener(app *Application, arguments ApplicationArguments) EventPublishRunListener {
+func NewEventPublishRunListener(logger context.Logger, app *Application, arguments ApplicationArguments) EventPublishRunListener {
 	runListener := EventPublishRunListener{
 		app:         app,
-		broadcaster: context.NewSimpleApplicationEventBroadcaster(),
+		broadcaster: context.NewSimpleApplicationEventBroadcaster(logger),
 		args:        arguments,
 	}
 	appListeners := app.getAppListeners()
@@ -43,15 +43,15 @@ func NewEventPublishRunListener(app *Application, arguments ApplicationArguments
 }
 
 func (listener EventPublishRunListener) Starting() {
-	listener.broadcaster.BroadcastEvent(NewApplicationStarting(listener.app, listener.args))
+	listener.broadcaster.BroadcastEvent(nil, NewApplicationStarting(listener.app, listener.args))
 }
 
 func (listener EventPublishRunListener) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
-	listener.broadcaster.BroadcastEvent(NewApplicationEnvironmentPreparedEvent(listener.app, listener.args, environment))
+	listener.broadcaster.BroadcastEvent(nil, NewApplicationEnvironmentPreparedEvent(listener.app, listener.args, environment))
 }
 
 func (listener EventPublishRunListener) ContextPrepared(ctx context.ConfigurableApplicationContext) {
-	listener.broadcaster.BroadcastEvent(NewApplicationContextInitializedEvent(listener.app, listener.args, ctx))
+	listener.broadcaster.BroadcastEvent(nil, NewApplicationContextInitializedEvent(listener.app, listener.args, ctx))
 }
 
 func (listener EventPublishRunListener) ContextLoaded(ctx context.ConfigurableApplicationContext) {
@@ -61,17 +61,17 @@ func (listener EventPublishRunListener) ContextLoaded(ctx context.ConfigurableAp
 		ctx.AddApplicationListener(appListener)
 	}
 	// after that, broadcast an event to notify all listeners that app is prepared
-	listener.broadcaster.BroadcastEvent(NewApplicationPreparedEvent(listener.app, listener.args, ctx))
+	listener.broadcaster.BroadcastEvent(ctx, NewApplicationPreparedEvent(listener.app, listener.args, ctx))
 }
 
 func (listener EventPublishRunListener) Started(ctx context.ConfigurableApplicationContext) {
-	listener.broadcaster.BroadcastEvent(NewApplicationStartedEvent(listener.app, listener.args, ctx))
+	listener.broadcaster.BroadcastEvent(ctx, NewApplicationStartedEvent(listener.app, listener.args, ctx))
 }
 
 func (listener EventPublishRunListener) Running(ctx context.ConfigurableApplicationContext) {
-	listener.broadcaster.BroadcastEvent(NewApplicationReadyEvent(listener.app, listener.args, ctx))
+	listener.broadcaster.BroadcastEvent(ctx, NewApplicationReadyEvent(listener.app, listener.args, ctx))
 }
 
 func (listener EventPublishRunListener) Failed(ctx context.ConfigurableApplicationContext, err error) {
-	listener.broadcaster.BroadcastEvent(NewApplicationFailedEvent(listener.app, listener.args, ctx, err))
+	listener.broadcaster.BroadcastEvent(ctx, NewApplicationFailedEvent(listener.app, listener.args, ctx, err))
 }
