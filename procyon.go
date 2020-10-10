@@ -41,14 +41,13 @@ func (procyonApp *Application) Run() {
 	applicationId, mainContextId := procyonApp.createApplicationAndContextId()
 
 	// startup logger
-	simpleLogger := core.NewSimpleLogger()
-	logger := core.NewProxyLogger(simpleLogger, mainContextId)
+	logger := context.NewSimpleLogger()
 	startupLogger := NewStartupLogger(logger)
 
 	// it is executed during panic
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Panic(r)
+			logger.P(mainContextId.String(), r)
 		}
 	}()
 	// start a new task to watch time which will pass
@@ -72,23 +71,23 @@ func (procyonApp *Application) Run() {
 
 	if scanComponents {
 		// scan components
-		err := procyonApp.scanComponents(logger)
+		err := procyonApp.scanComponents(mainContextId.String(), logger)
 		if err != nil {
-			logger.Fatal(err)
+			logger.F(mainContextId.String(), err)
 		}
 	}
 
 	// application listener
 	err := procyonApp.initApplicationListenerInstances()
 	if err != nil {
-		logger.Fatal(err)
+		logger.F(mainContextId.String(), err)
 	}
 
 	// app run listeners
 	var listeners *ApplicationRunListeners
 	listeners, err = procyonApp.getAppRunListenerInstances(appArguments)
 	if err != nil {
-		logger.Fatal(err)
+		logger.F(mainContextId.String(), err)
 	}
 
 	// broadcast an event to inform the application is starting
@@ -98,14 +97,14 @@ func (procyonApp *Application) Run() {
 	var environment core.Environment
 	environment, err = procyonApp.prepareEnvironment(appArguments, listeners)
 	if err != nil {
-		logger.Fatal(err)
+		logger.F(mainContextId.String(), err)
 	}
 
 	// create application context
 	var applicationContext context.ConfigurableApplicationContext
 	applicationContext, err = procyonApp.createApplicationContext(applicationId, mainContextId)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal(applicationContext, err)
 	}
 
 	// prepare context
@@ -116,7 +115,7 @@ func (procyonApp *Application) Run() {
 		logger,
 	)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal(applicationContext, err)
 	}
 
 	listeners.Started(applicationContext)
@@ -125,10 +124,10 @@ func (procyonApp *Application) Run() {
 	// configure context
 	err = procyonApp.configureContext(applicationContext)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal(applicationContext, err)
 	}
 	_ = taskWatch.Stop()
-	startupLogger.LogStarted(taskWatch)
+	startupLogger.LogStarted(mainContextId.String(), taskWatch)
 }
 
 func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments, listeners *ApplicationRunListeners) (core.Environment, error) {
@@ -141,14 +140,14 @@ func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments
 	return environment, nil
 }
 
-func (procyonApp *Application) scanComponents(logger core.Logger) error {
-	logger.Info("Scanning components...")
+func (procyonApp *Application) scanComponents(contextId string, logger context.Logger) error {
+	logger.I(contextId, "Scanning components...")
 	componentScanner := newComponentScanner()
 	componentCount, err := componentScanner.scan(logger)
 	if err != nil {
 		return err
 	}
-	logger.Info(fmt.Sprintf("Found (%d) components.", componentCount))
+	logger.I(contextId, fmt.Sprintf("Found (%d) components.", componentCount))
 	return nil
 }
 
@@ -172,7 +171,7 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments,
 	listeners *ApplicationRunListeners,
-	logger core.Logger) error {
+	logger context.Logger) error {
 	// set environment
 	context.SetEnvironment(environment)
 	// set logger
