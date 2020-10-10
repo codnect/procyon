@@ -23,10 +23,6 @@ func (processor controllerComponentProcessor) SupportsComponent(typ *core.Type) 
 }
 
 func (processor controllerComponentProcessor) ProcessComponent(typ *core.Type) error {
-	inputTypes := core.GetFunctionInputTypes(typ)
-	if inputTypes != nil && len(inputTypes) > 0 {
-		return errors.New("the constructor of controller cannot take in parameters : " + typ.String())
-	}
 	return nil
 }
 
@@ -46,10 +42,6 @@ func (processor serviceComponentProcessor) SupportsComponent(typ *core.Type) boo
 }
 
 func (processor serviceComponentProcessor) ProcessComponent(typ *core.Type) error {
-	inputTypes := core.GetFunctionInputTypes(typ)
-	if inputTypes != nil && len(inputTypes) > 0 {
-		return errors.New("the constructor of service cannot take in parameters : " + typ.String())
-	}
 	return nil
 }
 
@@ -69,10 +61,6 @@ func (processor repositoryComponentProcessor) SupportsComponent(typ *core.Type) 
 }
 
 func (processor repositoryComponentProcessor) ProcessComponent(typ *core.Type) error {
-	inputTypes := core.GetFunctionInputTypes(typ)
-	if inputTypes != nil && len(inputTypes) > 0 {
-		return errors.New("the constructor of repository cannot take in parameters : " + typ.String())
-	}
 	return nil
 }
 
