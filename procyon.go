@@ -143,7 +143,7 @@ func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments
 func (procyonApp *Application) scanComponents(contextId string, logger context.Logger) error {
 	logger.I(contextId, "Scanning components...")
 	componentScanner := newComponentScanner()
-	componentCount, err := componentScanner.scan(logger)
+	componentCount, err := componentScanner.scan(contextId, logger)
 	if err != nil {
 		return err
 	}

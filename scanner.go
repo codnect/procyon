@@ -2,6 +2,7 @@ package procyon
 
 import (
 	"fmt"
+	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"
 )
@@ -13,7 +14,7 @@ func newComponentScanner() componentScanner {
 	return componentScanner{}
 }
 
-func (scanner componentScanner) scan(logger core.Logger) (int, error) {
+func (scanner componentScanner) scan(contextId string, logger context.Logger) (int, error) {
 	processors, err := scanner.getProcessorInstances()
 	if err != nil {
 		return -1, nil
@@ -22,7 +23,7 @@ func (scanner componentScanner) scan(logger core.Logger) (int, error) {
 	componentMap := core.GetComponentTypeMap()
 	for componentName := range componentMap {
 		component := componentMap[componentName]
-		logger.Trace(fmt.Sprintf("Component : %s", componentName))
+		logger.Trace(contextId, fmt.Sprintf("Component : %s", componentName))
 		err := scanner.checkComponent(component, processors)
 		if err != nil {
 			return -1, err
