@@ -14,12 +14,12 @@ func NewBootstrapListener() BootstrapListener {
 
 func (listener BootstrapListener) SubscribeEvents() []context.ApplicationEvent {
 	return []context.ApplicationEvent{
-		(*ApplicationStartingEvent)(nil),
+		(*ApplicationStartedEvent)(nil),
 	}
 }
 
-func (listener BootstrapListener) OnApplicationEvent(event context.ApplicationEvent) {
-	//source := event.GetSource()
+func (listener BootstrapListener) OnApplicationEvent(context context.ApplicationContext, event context.ApplicationEvent) {
+	_ = event.GetSource()
 	//timestamp := event.GetTimestamp()
 }
 

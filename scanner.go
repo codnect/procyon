@@ -20,17 +20,16 @@ func (scanner componentScanner) scan(contextId string, logger context.Logger) (i
 		return -1, nil
 	}
 	var componentCount = 0
-	componentMap := core.GetComponentTypeMap()
-	for componentName := range componentMap {
-		component := componentMap[componentName]
+	result := core.VisitComponentTypes(func(componentName string, componentType *core.Type) error {
 		logger.T(contextId, fmt.Sprintf("Component : %s", componentName))
-		err := scanner.checkComponent(component, processors)
+		err := scanner.checkComponent(componentType, processors)
 		if err != nil {
-			return -1, err
+			return err
 		}
 		componentCount++
-	}
-	return componentCount, err
+		return nil
+	})
+	return componentCount, result
 }
 
 func (scanner componentScanner) checkComponent(componentType *core.Type, processors []interface{}) (err error) {
@@ -48,15 +47,14 @@ func (scanner componentScanner) checkComponent(componentType *core.Type, process
 }
 
 func (scanner componentScanner) getProcessorInstances() ([]interface{}, error) {
-	componentProcessors := core.GetComponentProcessorMap()
 	var instances []interface{}
-	for componentName := range componentProcessors {
-		processorType := componentProcessors[componentName]
+	result := core.VisitComponentProcessors(func(processorName string, processorType *core.Type) error {
 		instance, err := peas.CreateInstance(processorType, []interface{}{})
 		if err != nil {
-			return nil, err
+			return err
 		}
 		instances = append(instances, instance)
-	}
-	return instances, nil
+		return nil
+	})
+	return instances, result
 }

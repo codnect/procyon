@@ -85,7 +85,7 @@ func (procyonApp *Application) Run() {
 
 	// app run listeners
 	var listeners *ApplicationRunListeners
-	listeners, err = procyonApp.getAppRunListenerInstances(appArguments)
+	listeners, err = procyonApp.getAppRunListenerInstances(logger, appArguments)
 	if err != nil {
 		logger.F(mainContextId.String(), err)
 	}
@@ -189,10 +189,10 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	return nil
 }
 
-func (procyonApp *Application) getAppRunListenerInstances(arguments ApplicationArguments) (*ApplicationRunListeners, error) {
+func (procyonApp *Application) getAppRunListenerInstances(logger context.Logger, arguments ApplicationArguments) (*ApplicationRunListeners, error) {
 	instances, err := procyonApp.getInstancesWithParamTypes(core.GetType((*ApplicationRunListener)(nil)),
-		[]*core.Type{core.GetType((*Application)(nil)), core.GetType((*ApplicationArguments)(nil))},
-		[]interface{}{procyonApp, arguments})
+		[]*core.Type{core.GetType((*context.Logger)(nil)), core.GetType((*Application)(nil)), core.GetType((*ApplicationArguments)(nil))},
+		[]interface{}{logger, procyonApp, arguments})
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,6 @@ func (procyonApp *Application) getInstances(typ *core.Type) (result []interface{
 	if err != nil {
 		return
 	}
-	var instances []interface{}
 	for _, t := range types {
 		var instance interface{}
 		instance, err = peas.CreateInstance(t, []interface{}{})
@@ -235,7 +234,7 @@ func (procyonApp *Application) getInstances(typ *core.Type) (result []interface{
 		}
 		result = append(result, instance)
 	}
-	return instances, nil
+	return
 }
 
 func (procyonApp *Application) getInstancesWithParamTypes(typ *core.Type, parameterTypes []*core.Type, args []interface{}) (result []interface{}, err error) {
