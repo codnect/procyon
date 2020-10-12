@@ -43,7 +43,7 @@ func (procyonApp *Application) Run() {
 	applicationId, mainContextId := procyonApp.createApplicationAndContextId()
 
 	// startup logger
-	logger := context.NewSimpleLogger()
+	logger := context.NewSimpleLogger(mainContextId.String())
 	startupLogger := NewStartupLogger(logger)
 
 	// it is executed during panic
