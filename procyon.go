@@ -12,12 +12,14 @@ import (
 )
 
 type Application struct {
-	listeners []context.ApplicationListener
+	listeners           []context.ApplicationListener
+	contextInitializers []context.ApplicationContextInitializer
 }
 
 func NewProcyonApplication() *Application {
 	return &Application{
-		listeners: make([]context.ApplicationListener, 0),
+		listeners:           make([]context.ApplicationListener, 0),
+		contextInitializers: make([]context.ApplicationContextInitializer, 0),
 	}
 }
 
@@ -79,6 +81,12 @@ func (procyonApp *Application) Run() {
 
 	// application listener
 	err := procyonApp.initApplicationListenerInstances()
+	if err != nil {
+		logger.F(mainContextId.String(), err)
+	}
+
+	// application context initializers
+	err = procyonApp.initApplicationContextInitializers()
 	if err != nil {
 		logger.F(mainContextId.String(), err)
 	}
@@ -177,8 +185,15 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	// set logger
 	context.SetLogger(logger)
 	factory := context.GetPeaFactory()
+
+	// apply context initializers
+	for _, contextInitializer := range procyonApp.getAppContextInitializers() {
+		contextInitializer.InitializeContext(context)
+	}
+
 	// broadcast an event to notify that context is prepared
 	listeners.ContextPrepared(context)
+
 	// register application arguments as shared pea
 	err := factory.RegisterSharedPea("procyonApplicationArguments", arguments)
 	if err != nil {
@@ -186,6 +201,7 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	}
 	// broadcast an event to notify that context is loaded
 	listeners.ContextLoaded(context)
+
 	return nil
 }
 
@@ -207,6 +223,10 @@ func (procyonApp *Application) getAppListeners() []context.ApplicationListener {
 	return procyonApp.listeners
 }
 
+func (procyonApp *Application) getAppContextInitializers() []context.ApplicationContextInitializer {
+	return procyonApp.contextInitializers
+}
+
 func (procyonApp *Application) initApplicationListenerInstances() error {
 	instances, err := procyonApp.getInstances(core.GetType((*context.ApplicationListener)(nil)))
 	if err != nil {
@@ -217,6 +237,19 @@ func (procyonApp *Application) initApplicationListenerInstances() error {
 		listenerInstances[index] = instance.(context.ApplicationListener)
 	}
 	procyonApp.listeners = listenerInstances
+	return nil
+}
+
+func (procyonApp *Application) initApplicationContextInitializers() error {
+	instances, err := procyonApp.getInstances(core.GetType((*context.ApplicationContextInitializer)(nil)))
+	if err != nil {
+		return err
+	}
+	initializerInstances := make([]context.ApplicationContextInitializer, len(instances))
+	for index, instance := range instances {
+		initializerInstances[index] = instance.(context.ApplicationContextInitializer)
+	}
+	procyonApp.contextInitializers = initializerInstances
 	return nil
 }
 
