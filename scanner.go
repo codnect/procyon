@@ -2,6 +2,7 @@ package procyon
 
 import (
 	"fmt"
+	"github.com/codnect/goo"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"
@@ -20,7 +21,7 @@ func (scanner componentScanner) scan(contextId string, logger context.Logger) (i
 		return -1, nil
 	}
 	var componentCount = 0
-	result := core.VisitComponentTypes(func(componentName string, componentType *core.Type) error {
+	result := core.VisitComponentTypes(func(componentName string, componentType goo.Type) error {
 		logger.T(contextId, fmt.Sprintf("Component : %s", componentName))
 		err := scanner.checkComponent(componentType, processors)
 		if err != nil {
@@ -32,7 +33,7 @@ func (scanner componentScanner) scan(contextId string, logger context.Logger) (i
 	return componentCount, result
 }
 
-func (scanner componentScanner) checkComponent(componentType *core.Type, processors []interface{}) (err error) {
+func (scanner componentScanner) checkComponent(componentType goo.Type, processors []interface{}) (err error) {
 	for _, processorInstance := range processors {
 		if processor, ok := processorInstance.(core.ComponentProcessor); ok {
 			if processor.SupportsComponent(componentType) {
@@ -48,7 +49,7 @@ func (scanner componentScanner) checkComponent(componentType *core.Type, process
 
 func (scanner componentScanner) getProcessorInstances() ([]interface{}, error) {
 	var instances []interface{}
-	result := core.VisitComponentProcessors(func(processorName string, processorType *core.Type) error {
+	result := core.VisitComponentProcessors(func(processorName string, processorType goo.Type) error {
 		instance, err := peas.CreateInstance(processorType, []interface{}{})
 		if err != nil {
 			return err

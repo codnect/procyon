@@ -3,6 +3,7 @@ package procyon
 import (
 	"errors"
 	"fmt"
+	"github.com/codnect/goo"
 	"github.com/google/uuid"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
@@ -206,8 +207,8 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 }
 
 func (procyonApp *Application) getAppRunListenerInstances(logger context.Logger, arguments ApplicationArguments) (*ApplicationRunListeners, error) {
-	instances, err := procyonApp.getInstancesWithParamTypes(core.GetType((*ApplicationRunListener)(nil)),
-		[]*core.Type{core.GetType((*context.Logger)(nil)), core.GetType((*Application)(nil)), core.GetType((*ApplicationArguments)(nil))},
+	instances, err := procyonApp.getInstancesWithParamTypes(goo.GetType((*ApplicationRunListener)(nil)),
+		[]goo.Type{goo.GetType((*context.Logger)(nil)), goo.GetType((*Application)(nil)), goo.GetType((*ApplicationArguments)(nil))},
 		[]interface{}{logger, procyonApp, arguments})
 	if err != nil {
 		return nil, err
@@ -228,7 +229,7 @@ func (procyonApp *Application) getAppContextInitializers() []context.Application
 }
 
 func (procyonApp *Application) initApplicationListenerInstances() error {
-	instances, err := procyonApp.getInstances(core.GetType((*context.ApplicationListener)(nil)))
+	instances, err := procyonApp.getInstances(goo.GetType((*context.ApplicationListener)(nil)))
 	if err != nil {
 		return err
 	}
@@ -241,7 +242,7 @@ func (procyonApp *Application) initApplicationListenerInstances() error {
 }
 
 func (procyonApp *Application) initApplicationContextInitializers() error {
-	instances, err := procyonApp.getInstances(core.GetType((*context.ApplicationContextInitializer)(nil)))
+	instances, err := procyonApp.getInstances(goo.GetType((*context.ApplicationContextInitializer)(nil)))
 	if err != nil {
 		return err
 	}
@@ -253,8 +254,8 @@ func (procyonApp *Application) initApplicationContextInitializers() error {
 	return nil
 }
 
-func (procyonApp *Application) getInstances(typ *core.Type) (result []interface{}, err error) {
-	var types []*core.Type
+func (procyonApp *Application) getInstances(typ goo.Type) (result []interface{}, err error) {
+	var types []goo.Type
 	types, err = core.GetComponentTypes(typ)
 	if err != nil {
 		return
@@ -270,8 +271,8 @@ func (procyonApp *Application) getInstances(typ *core.Type) (result []interface{
 	return
 }
 
-func (procyonApp *Application) getInstancesWithParamTypes(typ *core.Type, parameterTypes []*core.Type, args []interface{}) (result []interface{}, err error) {
-	var types []*core.Type
+func (procyonApp *Application) getInstancesWithParamTypes(typ goo.Type, parameterTypes []goo.Type, args []interface{}) (result []interface{}, err error) {
+	var types []goo.Type
 	types, err = core.GetComponentTypesWithParam(typ, parameterTypes)
 	if err != nil {
 		return

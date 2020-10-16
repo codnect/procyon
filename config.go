@@ -11,7 +11,6 @@ func init() {
 		newRepositoryComponentProcessor,
 		newServiceComponentProcessor,
 		newControllerComponentProcessor,
-		newPeaComponentProcessor,
 	)
 	/* Configuration Properties */
 	core.Register(
