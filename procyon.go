@@ -266,7 +266,11 @@ func (procyonApp *Application) getInstances(typ goo.Type) (result []interface{},
 		if err != nil {
 			return
 		}
-		result = append(result, instance)
+		if instance != nil {
+			result = append(result, instance)
+		} else {
+			err = errors.New("Instance cannot be created by using the method " + t.GetName())
+		}
 	}
 	return
 }

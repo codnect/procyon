@@ -21,7 +21,7 @@ func (scanner componentScanner) scan(contextId string, logger context.Logger) (i
 		return -1, nil
 	}
 	var componentCount = 0
-	result := core.VisitComponentTypes(func(componentName string, componentType goo.Type) error {
+	result := core.ForEachComponentType(func(componentName string, componentType goo.Type) error {
 		logger.T(contextId, fmt.Sprintf("Component : %s", componentName))
 		err := scanner.checkComponent(componentType, processors)
 		if err != nil {
@@ -49,7 +49,7 @@ func (scanner componentScanner) checkComponent(componentType goo.Type, processor
 
 func (scanner componentScanner) getProcessorInstances() ([]interface{}, error) {
 	var instances []interface{}
-	result := core.VisitComponentProcessors(func(processorName string, processorType goo.Type) error {
+	result := core.ForEachComponentProcessor(func(processorName string, processorType goo.Type) error {
 		instance, err := peas.CreateInstance(processorType, []interface{}{})
 		if err != nil {
 			return err
