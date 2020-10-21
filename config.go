@@ -1,7 +1,6 @@
 package procyon
 
 import (
-	configure "github.com/procyon-projects/procyon-configure"
 	core "github.com/procyon-projects/procyon-core"
 )
 
@@ -11,11 +10,6 @@ func init() {
 		newRepositoryComponentProcessor,
 		newServiceComponentProcessor,
 		newControllerComponentProcessor,
-	)
-	/* Configuration Properties */
-	core.Register(
-		configure.NewServerConfiguration,
-		configure.NewDataSourceConfiguration,
 	)
 	/* Application Run Listeners */
 	core.Register(NewEventPublishRunListener)
