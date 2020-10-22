@@ -10,6 +10,8 @@ import (
 	peas "github.com/procyon-projects/procyon-peas"
 	web "github.com/procyon-projects/procyon-web"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 type Application struct {
@@ -137,6 +139,10 @@ func (procyonApp *Application) Run() {
 	}
 	_ = taskWatch.Stop()
 	startupLogger.LogStarted(mainContextId.String(), taskWatch)
+
+	exitSignalChannel := make(chan os.Signal, 1)
+	signal.Notify(exitSignalChannel, syscall.SIGINT, syscall.SIGTERM)
+	<-exitSignalChannel
 }
 
 func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments, listeners *ApplicationRunListeners) (core.Environment, error) {
