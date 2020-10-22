@@ -1,4 +1,6 @@
 # Procyon Framework
+![alt text](https://goreportcard.com/badge/github.com/procyon-projects/procyon)
+
 Procyon is the http framework written in Go. 
 
 * It makes it easy to create production-grade applications. 
