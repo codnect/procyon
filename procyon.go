@@ -129,9 +129,6 @@ func (procyonApp *Application) Run() {
 		logger.Fatal(applicationContext, err)
 	}
 
-	listeners.Started(applicationContext)
-	listeners.Running(applicationContext)
-
 	// configure context
 	err = procyonApp.configureContext(applicationContext)
 	if err != nil {
@@ -139,6 +136,10 @@ func (procyonApp *Application) Run() {
 	}
 	_ = taskWatch.Stop()
 	startupLogger.LogStarted(mainContextId.String(), taskWatch)
+
+	listeners.Started(applicationContext)
+	procyonApp.invokeApplicationRunListeners(applicationContext, appArguments)
+	listeners.Running(applicationContext)
 
 	exitSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(exitSignalChannel, syscall.SIGINT, syscall.SIGTERM)
@@ -308,4 +309,11 @@ func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicat
 		return nil
 	}
 	return errors.New("context.ConfigurableContextAdapter methods must be implemented in your context struct")
+}
+
+func (procyonApp *Application) invokeApplicationRunListeners(ctx context.ApplicationContext, arguments ApplicationArguments) {
+	applicationRunListeners := ctx.GetSharedPeasByType(goo.GetType((*ApplicationRunListener)(nil)))
+	for _, applicationRunListener := range applicationRunListeners {
+		applicationRunListener.(ApplicationRunner).Run(arguments)
+	}
 }
