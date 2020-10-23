@@ -138,7 +138,7 @@ func (procyonApp *Application) Run() {
 	startupLogger.LogStarted(mainContextId.String(), taskWatch)
 
 	listeners.Started(applicationContext)
-	procyonApp.invokeApplicationRunListeners(applicationContext, appArguments)
+	procyonApp.invokeApplicationRunners(applicationContext, appArguments)
 	listeners.Running(applicationContext)
 
 	exitSignalChannel := make(chan os.Signal, 1)
@@ -311,9 +311,9 @@ func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicat
 	return errors.New("context.ConfigurableContextAdapter methods must be implemented in your context struct")
 }
 
-func (procyonApp *Application) invokeApplicationRunListeners(ctx context.ApplicationContext, arguments ApplicationArguments) {
-	applicationRunListeners := ctx.GetSharedPeasByType(goo.GetType((*ApplicationRunListener)(nil)))
-	for _, applicationRunListener := range applicationRunListeners {
-		applicationRunListener.(ApplicationRunner).Run(arguments)
+func (procyonApp *Application) invokeApplicationRunners(ctx context.ApplicationContext, arguments ApplicationArguments) {
+	applicationRunners := ctx.GetSharedPeasByType(goo.GetType((*ApplicationRunner)(nil)))
+	for _, applicationRunner := range applicationRunners {
+		applicationRunner.(ApplicationRunner).Run(arguments)
 	}
 }
