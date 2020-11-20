@@ -15,14 +15,14 @@ func newComponentScanner() componentScanner {
 	return componentScanner{}
 }
 
-func (scanner componentScanner) scan(contextId string, logger context.Logger) (int, error) {
+func (scanner componentScanner) scan(contextId context.ContextId, logger context.Logger) (int, error) {
 	processors, err := scanner.getProcessorInstances()
 	if err != nil {
 		return -1, nil
 	}
 	var componentCount = 0
 	result := core.ForEachComponentType(func(componentName string, componentType goo.Type) error {
-		logger.T(contextId, fmt.Sprintf("Component : %s", componentName))
+		logger.Trace(contextId, fmt.Sprintf("Component : %s", componentName))
 		err := scanner.checkComponent(componentType, processors)
 		if err != nil {
 			return err

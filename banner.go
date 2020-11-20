@@ -4,17 +4,6 @@ import (
 	"fmt"
 )
 
-type Banner interface {
-	printBanner()
-}
-
-var (
-	appBanner = ApplicationBanner{}
-)
-
-type ApplicationBanner struct {
-}
-
 var bannerText = []string{"",
 	"   ___",
 	"  / _ \\  _ __   ___    ___  _   _   ___   _ __",
@@ -24,7 +13,7 @@ var bannerText = []string{"",
 	"                            |___/",
 }
 
-func (banner ApplicationBanner) PrintBanner() {
+func printBanner() {
 	for _, line := range bannerText {
 		fmt.Println(line)
 	}
