@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/codnect/goo"
-	"github.com/google/uuid"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"
@@ -27,18 +26,11 @@ func NewProcyonApplication() *Application {
 }
 
 func (procyonApp *Application) createApplicationAndContextId() (context.ApplicationId, context.ContextId) {
-	var err error
-	var applicationId uuid.UUID
-	applicationId, err = uuid.NewUUID()
-	if err != nil {
-		panic("Could not create an application id")
-	}
-	var contextId uuid.UUID
-	contextId, err = uuid.NewUUID()
-	if err != nil {
-		panic("Could not create a context id")
-	}
-	return context.ApplicationId(applicationId.String()), context.ContextId(contextId.String())
+	var applicationId [36]byte
+	core.GenerateUUID(applicationId[:])
+	var contextId [36]byte
+	core.GenerateUUID(contextId[:])
+	return context.ApplicationId(applicationId[:]), context.ContextId(contextId[:])
 }
 
 func (procyonApp *Application) Run() {
@@ -318,8 +310,8 @@ func (procyonApp *Application) invokeApplicationRunners(ctx context.ApplicationC
 
 func (procyonApp *Application) logStarting(logger context.Logger, appId context.ApplicationId, contextId context.ContextId) {
 	logger.Info(contextId, "Starting...")
-	logger.Info(contextId, "Application Id : ", appId)
-	logger.Info(contextId, "Application Context Id : ", contextId)
+	logger.Infof(contextId, "Application Id : %s", appId)
+	logger.Infof(contextId, "Application Context Id : %s", contextId)
 	logger.Info(contextId, "Running with Procyon, Procyon "+Version)
 }
 

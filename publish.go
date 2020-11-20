@@ -32,7 +32,7 @@ type EventPublishRunListener struct {
 func NewEventPublishRunListener(logger context.Logger, app *Application, arguments ApplicationArguments) EventPublishRunListener {
 	runListener := EventPublishRunListener{
 		app:         app,
-		broadcaster: context.NewSimpleApplicationEventBroadcaster(logger),
+		broadcaster: context.NewSimpleApplicationEventBroadcaster(),
 		args:        arguments,
 	}
 	appListeners := app.getAppListeners()
