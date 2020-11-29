@@ -42,19 +42,19 @@ func NewEventPublishRunListener(logger context.Logger, app *Application, argumen
 	return runListener
 }
 
-func (listener EventPublishRunListener) Starting() {
+func (listener EventPublishRunListener) OnApplicationStarting() {
 	listener.broadcaster.BroadcastEvent(nil, NewApplicationStarting(listener.app, listener.args))
 }
 
-func (listener EventPublishRunListener) EnvironmentPrepared(environment core.ConfigurableEnvironment) {
+func (listener EventPublishRunListener) OnApplicationEnvironmentPrepared(environment core.ConfigurableEnvironment) {
 	listener.broadcaster.BroadcastEvent(nil, NewApplicationEnvironmentPreparedEvent(listener.app, listener.args, environment))
 }
 
-func (listener EventPublishRunListener) ContextPrepared(ctx context.ConfigurableApplicationContext) {
+func (listener EventPublishRunListener) OnApplicationContextPrepared(ctx context.ConfigurableApplicationContext) {
 	listener.broadcaster.BroadcastEvent(nil, NewApplicationContextInitializedEvent(listener.app, listener.args, ctx))
 }
 
-func (listener EventPublishRunListener) ContextLoaded(ctx context.ConfigurableApplicationContext) {
+func (listener EventPublishRunListener) OnApplicationContextLoaded(ctx context.ConfigurableApplicationContext) {
 	// when context is loaded, add application listeners registered
 	appListeners := listener.app.getAppListeners()
 	for _, appListener := range appListeners {
@@ -64,14 +64,14 @@ func (listener EventPublishRunListener) ContextLoaded(ctx context.ConfigurableAp
 	listener.broadcaster.BroadcastEvent(ctx, NewApplicationPreparedEvent(listener.app, listener.args, ctx))
 }
 
-func (listener EventPublishRunListener) Started(ctx context.ConfigurableApplicationContext) {
+func (listener EventPublishRunListener) OnApplicationStarted(ctx context.ConfigurableApplicationContext) {
 	listener.broadcaster.BroadcastEvent(ctx, NewApplicationStartedEvent(listener.app, listener.args, ctx))
 }
 
-func (listener EventPublishRunListener) Running(ctx context.ConfigurableApplicationContext) {
+func (listener EventPublishRunListener) OnApplicationRunning(ctx context.ConfigurableApplicationContext) {
 	listener.broadcaster.BroadcastEvent(ctx, NewApplicationReadyEvent(listener.app, listener.args, ctx))
 }
 
-func (listener EventPublishRunListener) Failed(ctx context.ConfigurableApplicationContext, err error) {
+func (listener EventPublishRunListener) OnApplicationFailed(ctx context.ConfigurableApplicationContext, err error) {
 	listener.broadcaster.BroadcastEvent(ctx, NewApplicationFailedEvent(listener.app, listener.args, ctx, err))
 }

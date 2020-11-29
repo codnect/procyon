@@ -92,7 +92,7 @@ func (procyonApp *Application) Run() {
 	}
 
 	// broadcast an event to inform the application is starting
-	listeners.Starting()
+	listeners.OnApplicationStarting()
 
 	// prepare environment
 	var environment core.Environment
@@ -127,9 +127,9 @@ func (procyonApp *Application) Run() {
 	_ = taskWatch.Stop()
 	procyonApp.logStarted(logger, mainContextId, taskWatch)
 
-	listeners.Started(applicationContext)
+	listeners.OnApplicationStarted(applicationContext)
 	procyonApp.invokeApplicationRunners(applicationContext, appArguments)
-	listeners.Running(applicationContext)
+	listeners.OnApplicationRunning(applicationContext)
 
 	exitSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(exitSignalChannel, syscall.SIGINT, syscall.SIGTERM)
@@ -142,7 +142,7 @@ func (procyonApp *Application) prepareEnvironment(arguments ApplicationArguments
 	if err != nil {
 		return nil, err
 	}
-	listeners.EnvironmentPrepared(environment)
+	listeners.OnApplicationEnvironmentPrepared(environment)
 	return environment, nil
 }
 
@@ -190,7 +190,7 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	}
 
 	// broadcast an event to notify that context is prepared
-	listeners.ContextPrepared(context)
+	listeners.OnApplicationContextPrepared(context)
 
 	// register application arguments as shared pea
 	err := factory.RegisterSharedPea("procyonApplicationArguments", arguments)
@@ -198,7 +198,7 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 		return err
 	}
 	// broadcast an event to notify that context is loaded
-	listeners.ContextLoaded(context)
+	listeners.OnApplicationContextLoaded(context)
 
 	return nil
 }
@@ -304,7 +304,7 @@ func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicat
 func (procyonApp *Application) invokeApplicationRunners(ctx context.ApplicationContext, arguments ApplicationArguments) {
 	applicationRunners := ctx.GetSharedPeasByType(goo.GetType((*ApplicationRunner)(nil)))
 	for _, applicationRunner := range applicationRunners {
-		applicationRunner.(ApplicationRunner).Run(arguments)
+		applicationRunner.(ApplicationRunner).OnApplicationRun(ctx, arguments)
 	}
 }
 
