@@ -3,7 +3,7 @@
 
 # Procyon Framework
 ![alt text](https://goreportcard.com/badge/github.com/procyon-projects/procyon)
-
+[![Build Status](https://travis-ci.com/procyon-projects/procyon.svg?branch=master)](https://travis-ci.com/procyon-projects/procyon)
 
 # What is Procyon? 
 
