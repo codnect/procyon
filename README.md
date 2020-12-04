@@ -3,9 +3,10 @@
 
 # Procyon Framework
 ![alt text](https://goreportcard.com/badge/github.com/procyon-projects/procyon)
+[![codecov](https://codecov.io/gh/procyon-projects/procyon/branch/master/graph/badge.svg?token=H02KEYZVHH)](https://codecov.io/gh/procyon-projects/procyon)
 [![Build Status](https://travis-ci.com/procyon-projects/procyon.svg?branch=master)](https://travis-ci.com/procyon-projects/procyon)
 [![Gitter](https://badges.gitter.im/procyon-projects/community.svg)](https://gitter.im/procyon-projects/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-[![PkgGoDev](https://pkg.go.dev/badge/procyon-projects/procyon)](https://pkg.go.dev/procyon-projects/procyon)
+[![PkgGoDev](https://pkg.go.dev/badge/procyon-projects/procyon)](https://pkg.go.dev/github.com/procyon-projects/procyon)
 
 # What is Procyon? 
 
