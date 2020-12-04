@@ -5,24 +5,6 @@ import (
 	core "github.com/procyon-projects/procyon-core"
 )
 
-type BootstrapListener struct {
-}
-
-func NewBootstrapListener() BootstrapListener {
-	return BootstrapListener{}
-}
-
-func (listener BootstrapListener) SubscribeEvents() []context.ApplicationEventId {
-	return []context.ApplicationEventId{
-		ApplicationStartedEventId(),
-	}
-}
-
-func (listener BootstrapListener) OnApplicationEvent(context context.Context, event context.ApplicationEvent) {
-	_ = event.GetSource()
-	//timestamp := event.GetTimestamp()
-}
-
 type EventPublishRunListener struct {
 	app         *Application
 	broadcaster context.ApplicationEventBroadcaster

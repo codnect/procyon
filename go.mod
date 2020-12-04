@@ -12,4 +12,5 @@ require (
 	github.com/procyon-projects/procyon-web v0.0.0-20201203213018-e19b25983894
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
+	github.com/stretchr/testify v1.6.1
 )

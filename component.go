@@ -1,6 +1,7 @@
 package procyon
 
 import (
+	"errors"
 	"github.com/codnect/goo"
 	web "github.com/procyon-projects/procyon-web"
 )
@@ -21,5 +22,8 @@ func (processor controllerComponentProcessor) SupportsComponent(typ goo.Type) bo
 }
 
 func (processor controllerComponentProcessor) ProcessComponent(typ goo.Type) error {
+	if !processor.SupportsComponent(typ) {
+		return errors.New(typ.GetFullName() + " is not supported by controller component processor")
+	}
 	return nil
 }
