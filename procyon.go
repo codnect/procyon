@@ -56,7 +56,7 @@ func (procyonApp *Application) Run() {
 	procyonApp.logStarting(logger, applicationId, mainContextId)
 
 	// get the application arguments
-	appArguments := GetApplicationArguments(os.Args)
+	appArguments := getApplicationArguments(os.Args)
 
 	argumentComponentScan := appArguments.GetOptionValues("procyon.component.scan")
 	scanComponents := true

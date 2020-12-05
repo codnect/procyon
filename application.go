@@ -13,11 +13,11 @@ type ApplicationArguments interface {
 }
 
 type DefaultApplicationArguments struct {
-	source core.SimpleCommandLinePropertySource
+	source core.CommandLinePropertySource
 	args   []string
 }
 
-func GetApplicationArguments(args []string) ApplicationArguments {
+func getApplicationArguments(args []string) *DefaultApplicationArguments {
 	return &DefaultApplicationArguments{
 		args:   args,
 		source: core.NewSimpleCommandLinePropertySource(args),
