@@ -11,7 +11,7 @@ type EventPublishRunListener struct {
 	args        ApplicationArguments
 }
 
-func NewEventPublishRunListener(logger context.Logger, app *Application, arguments ApplicationArguments) EventPublishRunListener {
+func NewEventPublishRunListener(app *Application, arguments ApplicationArguments) EventPublishRunListener {
 	runListener := EventPublishRunListener{
 		app:         app,
 		broadcaster: context.NewSimpleApplicationEventBroadcaster(),
