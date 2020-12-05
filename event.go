@@ -15,6 +15,10 @@ var applicationStartedEventId = context.GetEventId("github.com.procyon.Applicati
 var applicationReadyEventId = context.GetEventId("github.com.procyon.ApplicationReadyEvent")
 var applicationFailedEventId = context.GetEventId("github.com.procyon.ApplicationFailedEvent")
 
+func ApplicationEventId() context.ApplicationEventId {
+	return applicationEventId
+}
+
 func ApplicationStartingEventId() context.ApplicationEventId {
 	return applicationStartingEventId
 }
