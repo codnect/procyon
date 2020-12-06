@@ -6,7 +6,6 @@ import (
 	"github.com/codnect/goo"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
-	peas "github.com/procyon-projects/procyon-peas"
 	web "github.com/procyon-projects/procyon-web"
 	"os"
 	"os/signal"
@@ -53,7 +52,7 @@ func (procyonApp *Application) Run() {
 	printBanner()
 
 	// log starting
-	procyonApp.logStarting(logger, applicationId, mainContextId)
+	logStarting(logger, applicationId, mainContextId)
 
 	// get the application arguments
 	appArguments := getApplicationArguments(os.Args)
@@ -86,7 +85,7 @@ func (procyonApp *Application) Run() {
 
 	// app run listeners
 	var listeners *ApplicationRunListeners
-	listeners, err = procyonApp.getAppRunListenerInstances(logger, appArguments)
+	listeners, err = procyonApp.getAppRunListenerInstances(appArguments)
 	if err != nil {
 		logger.Fatal(mainContextId, err)
 	}
@@ -125,7 +124,7 @@ func (procyonApp *Application) Run() {
 		logger.Fatal(applicationContext, err)
 	}
 	_ = taskWatch.Stop()
-	procyonApp.logStarted(logger, mainContextId, taskWatch)
+	logStarted(logger, mainContextId, taskWatch)
 
 	listeners.OnApplicationStarted(applicationContext)
 	procyonApp.invokeApplicationRunners(applicationContext, appArguments)
@@ -203,10 +202,10 @@ func (procyonApp *Application) prepareContext(context context.ConfigurableApplic
 	return nil
 }
 
-func (procyonApp *Application) getAppRunListenerInstances(logger context.Logger, arguments ApplicationArguments) (*ApplicationRunListeners, error) {
-	instances, err := procyonApp.getInstancesWithParamTypes(goo.GetType((*ApplicationRunListener)(nil)),
-		[]goo.Type{goo.GetType((*context.Logger)(nil)), goo.GetType((*Application)(nil)), goo.GetType((*ApplicationArguments)(nil))},
-		[]interface{}{logger, procyonApp, arguments})
+func (procyonApp *Application) getAppRunListenerInstances(arguments ApplicationArguments) (*ApplicationRunListeners, error) {
+	instances, err := getInstancesWithParamTypes(goo.GetType((*ApplicationRunListener)(nil)),
+		[]goo.Type{goo.GetType((*Application)(nil)), goo.GetType((*ApplicationArguments)(nil))},
+		[]interface{}{procyonApp, arguments})
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +225,7 @@ func (procyonApp *Application) getAppContextInitializers() []context.Application
 }
 
 func (procyonApp *Application) initApplicationListenerInstances() error {
-	instances, err := procyonApp.getInstances(goo.GetType((*context.ApplicationListener)(nil)))
+	instances, err := getInstances(goo.GetType((*context.ApplicationListener)(nil)))
 	if err != nil {
 		return err
 	}
@@ -239,7 +238,7 @@ func (procyonApp *Application) initApplicationListenerInstances() error {
 }
 
 func (procyonApp *Application) initApplicationContextInitializers() error {
-	instances, err := procyonApp.getInstances(goo.GetType((*context.ApplicationContextInitializer)(nil)))
+	instances, err := getInstances(goo.GetType((*context.ApplicationContextInitializer)(nil)))
 	if err != nil {
 		return err
 	}
@@ -249,45 +248,6 @@ func (procyonApp *Application) initApplicationContextInitializers() error {
 	}
 	procyonApp.contextInitializers = initializerInstances
 	return nil
-}
-
-func (procyonApp *Application) getInstances(typ goo.Type) (result []interface{}, err error) {
-	var types []goo.Type
-	types, err = core.GetComponentTypes(typ)
-	if err != nil {
-		return
-	}
-	for _, t := range types {
-		var instance interface{}
-		instance, err = peas.CreateInstance(t, []interface{}{})
-		if err != nil {
-			return
-		}
-		if instance != nil {
-			result = append(result, instance)
-		} else {
-			err = errors.New("Instance cannot be created by using the method " + t.GetName())
-		}
-	}
-	return
-}
-
-func (procyonApp *Application) getInstancesWithParamTypes(typ goo.Type, parameterTypes []goo.Type, args []interface{}) (result []interface{}, err error) {
-	var types []goo.Type
-	types, err = core.GetComponentTypesWithParam(typ, parameterTypes)
-	if err != nil {
-		return
-	}
-	var instances []interface{}
-	for _, t := range types {
-		var instance interface{}
-		instance, err = peas.CreateInstance(t, args)
-		if err != nil {
-			return
-		}
-		instances = append(instances, instance)
-	}
-	return instances, nil
 }
 
 func (procyonApp *Application) configureContext(ctx context.ConfigurableApplicationContext) error {
@@ -308,14 +268,14 @@ func (procyonApp *Application) invokeApplicationRunners(ctx context.ApplicationC
 	}
 }
 
-func (procyonApp *Application) logStarting(logger context.Logger, appId context.ApplicationId, contextId context.ContextId) {
+func logStarting(logger context.Logger, appId context.ApplicationId, contextId context.ContextId) {
 	logger.Info(contextId, "Starting...")
 	logger.Infof(contextId, "Application Id : %s", appId)
 	logger.Infof(contextId, "Application Context Id : %s", contextId)
 	logger.Info(contextId, "Running with Procyon, Procyon "+Version)
 }
 
-func (procyonApp *Application) logStarted(logger context.Logger, contextId context.ContextId, watch *core.TaskWatch) {
+func logStarted(logger context.Logger, contextId context.ContextId, watch *core.TaskWatch) {
 	lastTime := float32(watch.GetTotalTime()) / 1e9
 	formattedText := fmt.Sprintf("Started in %.2f second(s)\n", lastTime)
 	logger.Info(contextId, formattedText)
