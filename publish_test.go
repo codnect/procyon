@@ -28,9 +28,7 @@ func (broadcaster *applicationEventBroadcasterMock) BroadcastEvent(context conte
 }
 
 func TestEventPublishRunListener(t *testing.T) {
-	var app = &Application{
-		listeners: make([]context.ApplicationListener, 0),
-	}
+	var app = NewProcyonApplication()
 	var appArgs ApplicationArguments
 	eventPublishRunListener := NewEventPublishRunListener(app, appArgs)
 

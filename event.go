@@ -49,17 +49,17 @@ func ApplicationFailedEventId() context.ApplicationEventId {
 
 type ProcyonApplicationEvent interface {
 	context.ApplicationEvent
-	GetProcyonApplication() *Application
+	GetProcyonApplication() *ProcyonApplication
 	GetArgs() ApplicationArguments
 }
 
 type ApplicationStartingEvent struct {
-	app       *Application
+	app       *ProcyonApplication
 	args      ApplicationArguments
 	timestamp int64
 }
 
-func NewApplicationStarting(app *Application, args ApplicationArguments) ApplicationStartingEvent {
+func NewApplicationStarting(app *ProcyonApplication, args ApplicationArguments) ApplicationStartingEvent {
 	return ApplicationStartingEvent{
 		app,
 		args,
@@ -83,7 +83,7 @@ func (event ApplicationStartingEvent) GetTimestamp() int64 {
 	return event.timestamp
 }
 
-func (event ApplicationStartingEvent) GetProcyonApplication() *Application {
+func (event ApplicationStartingEvent) GetProcyonApplication() *ProcyonApplication {
 	return event.app
 }
 
@@ -92,13 +92,13 @@ func (event ApplicationStartingEvent) GetArgs() ApplicationArguments {
 }
 
 type ApplicationEnvironmentPreparedEvent struct {
-	app         *Application
+	app         *ProcyonApplication
 	args        ApplicationArguments
 	timestamp   int64
 	environment core.ConfigurableEnvironment
 }
 
-func NewApplicationEnvironmentPreparedEvent(app *Application, args ApplicationArguments, env core.ConfigurableEnvironment) ApplicationEnvironmentPreparedEvent {
+func NewApplicationEnvironmentPreparedEvent(app *ProcyonApplication, args ApplicationArguments, env core.ConfigurableEnvironment) ApplicationEnvironmentPreparedEvent {
 	return ApplicationEnvironmentPreparedEvent{
 		app,
 		args,
@@ -123,7 +123,7 @@ func (event ApplicationEnvironmentPreparedEvent) GetTimestamp() int64 {
 	return event.timestamp
 }
 
-func (event ApplicationEnvironmentPreparedEvent) GetProcyonApplication() *Application {
+func (event ApplicationEnvironmentPreparedEvent) GetProcyonApplication() *ProcyonApplication {
 	return event.app
 }
 
@@ -136,13 +136,13 @@ func (event ApplicationEnvironmentPreparedEvent) GetEnvironment() core.Configura
 }
 
 type ApplicationContextInitializedEvent struct {
-	app       *Application
+	app       *ProcyonApplication
 	args      ApplicationArguments
 	timestamp int64
 	context   context.ConfigurableApplicationContext
 }
 
-func NewApplicationContextInitializedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationContextInitializedEvent {
+func NewApplicationContextInitializedEvent(app *ProcyonApplication, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationContextInitializedEvent {
 	return ApplicationContextInitializedEvent{
 		app,
 		args,
@@ -167,7 +167,7 @@ func (event ApplicationContextInitializedEvent) GetTimestamp() int64 {
 	return event.timestamp
 }
 
-func (event ApplicationContextInitializedEvent) GetProcyonApplication() *Application {
+func (event ApplicationContextInitializedEvent) GetProcyonApplication() *ProcyonApplication {
 	return event.app
 }
 
@@ -180,13 +180,13 @@ func (event ApplicationContextInitializedEvent) GetApplicationContext() context.
 }
 
 type ApplicationPreparedEvent struct {
-	app       *Application
+	app       *ProcyonApplication
 	args      ApplicationArguments
 	timestamp int64
 	context   context.ConfigurableApplicationContext
 }
 
-func NewApplicationPreparedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationPreparedEvent {
+func NewApplicationPreparedEvent(app *ProcyonApplication, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationPreparedEvent {
 	return ApplicationPreparedEvent{
 		app,
 		args,
@@ -211,7 +211,7 @@ func (event ApplicationPreparedEvent) GetTimestamp() int64 {
 	return event.timestamp
 }
 
-func (event ApplicationPreparedEvent) GetProcyonApplication() *Application {
+func (event ApplicationPreparedEvent) GetProcyonApplication() *ProcyonApplication {
 	return event.app
 }
 
@@ -224,13 +224,13 @@ func (event ApplicationPreparedEvent) GetApplicationContext() context.Configurab
 }
 
 type ApplicationStartedEvent struct {
-	app       *Application
+	app       *ProcyonApplication
 	args      ApplicationArguments
 	timestamp int64
 	context   context.ConfigurableApplicationContext
 }
 
-func NewApplicationStartedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationStartedEvent {
+func NewApplicationStartedEvent(app *ProcyonApplication, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationStartedEvent {
 	return ApplicationStartedEvent{
 		app,
 		args,
@@ -255,7 +255,7 @@ func (event ApplicationStartedEvent) GetTimestamp() int64 {
 	return event.timestamp
 }
 
-func (event ApplicationStartedEvent) GetProcyonApplication() *Application {
+func (event ApplicationStartedEvent) GetProcyonApplication() *ProcyonApplication {
 	return event.app
 }
 
@@ -268,13 +268,13 @@ func (event ApplicationStartedEvent) GetApplicationContext() context.Configurabl
 }
 
 type ApplicationReadyEvent struct {
-	app       *Application
+	app       *ProcyonApplication
 	args      ApplicationArguments
 	timestamp int64
 	context   context.ConfigurableApplicationContext
 }
 
-func NewApplicationReadyEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationReadyEvent {
+func NewApplicationReadyEvent(app *ProcyonApplication, args ApplicationArguments, ctx context.ConfigurableApplicationContext) ApplicationReadyEvent {
 	return ApplicationReadyEvent{
 		app,
 		args,
@@ -299,7 +299,7 @@ func (event ApplicationReadyEvent) GetTimestamp() int64 {
 	return event.timestamp
 }
 
-func (event ApplicationReadyEvent) GetProcyonApplication() *Application {
+func (event ApplicationReadyEvent) GetProcyonApplication() *ProcyonApplication {
 	return event.app
 }
 
@@ -312,14 +312,14 @@ func (event ApplicationReadyEvent) GetApplicationContext() context.ConfigurableA
 }
 
 type ApplicationFailedEvent struct {
-	app       *Application
+	app       *ProcyonApplication
 	args      ApplicationArguments
 	timestamp int64
 	context   context.ConfigurableApplicationContext
 	err       error
 }
 
-func NewApplicationFailedEvent(app *Application, args ApplicationArguments, ctx context.ConfigurableApplicationContext, err error) ApplicationFailedEvent {
+func NewApplicationFailedEvent(app *ProcyonApplication, args ApplicationArguments, ctx context.ConfigurableApplicationContext, err error) ApplicationFailedEvent {
 	return ApplicationFailedEvent{
 		app,
 		args,
@@ -345,7 +345,7 @@ func (event ApplicationFailedEvent) GetTimestamp() int64 {
 	return event.timestamp
 }
 
-func (event ApplicationFailedEvent) GetProcyonApplication() *Application {
+func (event ApplicationFailedEvent) GetProcyonApplication() *ProcyonApplication {
 	return event.app
 }
 

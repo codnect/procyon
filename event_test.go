@@ -13,7 +13,7 @@ func testProcyonApplicationEvent(t *testing.T,
 	eventId context.ApplicationEventId,
 	parentEventId context.ApplicationEventId,
 	source interface{},
-	application *Application,
+	application *ProcyonApplication,
 	args ApplicationArguments) {
 
 	assert.Equal(t, eventId, event.GetEventId())

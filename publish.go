@@ -6,18 +6,18 @@ import (
 )
 
 type EventPublishRunListener struct {
-	app         *Application
+	app         *ProcyonApplication
 	broadcaster context.ApplicationEventBroadcaster
 	args        ApplicationArguments
 }
 
-func NewEventPublishRunListener(app *Application, arguments ApplicationArguments) EventPublishRunListener {
+func NewEventPublishRunListener(app *ProcyonApplication, arguments ApplicationArguments) EventPublishRunListener {
 	runListener := EventPublishRunListener{
 		app:         app,
 		broadcaster: context.NewSimpleApplicationEventBroadcaster(),
 		args:        arguments,
 	}
-	appListeners := app.getAppListeners()
+	appListeners := app.getApplicationListeners()
 	for _, appListener := range appListeners {
 		runListener.broadcaster.RegisterApplicationListener(appListener)
 	}
@@ -38,7 +38,7 @@ func (listener EventPublishRunListener) OnApplicationContextPrepared(ctx context
 
 func (listener EventPublishRunListener) OnApplicationContextLoaded(ctx context.ConfigurableApplicationContext) {
 	// when context is loaded, add application listeners registered
-	appListeners := listener.app.getAppListeners()
+	appListeners := listener.app.getApplicationListeners()
 	for _, appListener := range appListeners {
 		ctx.AddApplicationListener(appListener)
 	}
