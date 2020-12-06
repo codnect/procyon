@@ -43,6 +43,14 @@ type application interface {
 	finish()
 }
 
+type environmentProvider interface {
+	getNewEnvironment() core.ConfigurableEnvironment
+}
+
+type contextProvider interface {
+	getNewContext(applicationId context.ApplicationId, contextId context.ContextId) context.ConfigurableApplicationContext
+}
+
 type ProcyonApplication struct {
 	application
 }
@@ -135,6 +143,8 @@ type baseApplication struct {
 	taskWatch           *core.TaskWatch
 	listeners           []context.ApplicationListener
 	contextInitializers []context.ApplicationContextInitializer
+	contextProvider     contextProvider
+	environmentProvider environmentProvider
 }
 
 func newBaseApplication() *baseApplication {
@@ -143,6 +153,8 @@ func newBaseApplication() *baseApplication {
 		contextInitializers: make([]context.ApplicationContextInitializer, 0),
 		taskWatch:           core.NewTaskWatch(),
 		logger:              context.NewSimpleLogger(),
+		contextProvider:     newDefaultContextProvider(),
+		environmentProvider: newDefaultEnvironmentProvider(),
 	}
 	baseApplication.generateApplicationAndContextId()
 	return baseApplication
@@ -185,7 +197,7 @@ func (application *baseApplication) generateApplicationAndContextId() {
 }
 
 func (application *baseApplication) prepareEnvironment(arguments ApplicationArguments, listeners *ApplicationRunListeners) (core.Environment, error) {
-	environment := web.NewStandardWebEnvironment()
+	environment := application.environmentProvider.getNewEnvironment()
 
 	propertySources := environment.GetPropertySources()
 	if arguments != nil && len(arguments.GetSourceArgs()) > 0 {
@@ -220,8 +232,7 @@ func (application *baseApplication) prepareContext(environment core.Configurable
 	arguments ApplicationArguments,
 	listeners *ApplicationRunListeners) (context.ConfigurableApplicationContext, error) {
 
-	var applicationContext context.ConfigurableApplicationContext
-	applicationContext = web.NewProcyonServerApplicationContext(application.applicationId, application.contextId)
+	applicationContext := application.contextProvider.getNewContext(application.applicationId, application.contextId)
 
 	if applicationContext == nil {
 		return nil, errors.New("context could not be created")
@@ -328,4 +339,26 @@ func (application *baseApplication) finish() {
 	exitSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(exitSignalChannel, syscall.SIGINT, syscall.SIGTERM)
 	<-exitSignalChannel
+}
+
+type defaultEnvironmentProvider struct {
+}
+
+func newDefaultEnvironmentProvider() defaultEnvironmentProvider {
+	return defaultEnvironmentProvider{}
+}
+
+func (provider defaultEnvironmentProvider) getNewEnvironment() core.ConfigurableEnvironment {
+	return web.NewStandardWebEnvironment()
+}
+
+type defaultContextProvider struct {
+}
+
+func newDefaultContextProvider() defaultContextProvider {
+	return defaultContextProvider{}
+}
+
+func (provider defaultContextProvider) getNewContext(applicationId context.ApplicationId, contextId context.ContextId) context.ConfigurableApplicationContext {
+	return web.NewProcyonServerApplicationContext(applicationId, contextId)
 }

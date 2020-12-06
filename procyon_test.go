@@ -4,6 +4,7 @@ import (
 	"fmt"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
+	peas "github.com/procyon-projects/procyon-peas"
 	web "github.com/procyon-projects/procyon-web"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -272,17 +273,165 @@ func TestBaseApplication_scanComponents(t *testing.T) {
 	baseApplication.scanComponents(getApplicationArguments(os.Args))
 }
 
+type environmentProviderMock struct {
+	environment environmentMock
+}
+
+func newEnvironmentProviderMock(environment environmentMock) environmentProviderMock {
+	return environmentProviderMock{
+		environment,
+	}
+}
+
+func (provider environmentProviderMock) getNewEnvironment() core.ConfigurableEnvironment {
+	return provider.environment
+}
+
+type environmentMock struct {
+	core.Environment
+	mock.Mock
+}
+
+func newEnvironmentMock() environmentMock {
+	return environmentMock{}
+}
+
+func (env environmentMock) GetPropertySources() *core.PropertySources {
+	result := env.Called()
+	return result.Get(0).(*core.PropertySources)
+}
+
+func (env environmentMock) GetSystemEnvironment() []string {
+	result := env.Called()
+	return result.Get(0).([]string)
+}
+
+func (env environmentMock) GetTypeConverterService() core.TypeConverterService {
+	result := env.Called()
+	return result.Get(0).(core.TypeConverterService)
+}
+
 func TestBaseApplication_prepareEnvironment(t *testing.T) {
+	propertySources := core.NewPropertySources()
+	environmentMock := newEnvironmentMock()
+	environmentMock.On("GetPropertySources").Return(propertySources)
+
+	environmentProviderMock := newEnvironmentProviderMock(environmentMock)
+
 	baseApplication := newBaseApplication()
+	baseApplication.environmentProvider = environmentProviderMock
 	applicationRunListeners := NewApplicationRunListeners(nil)
-	baseApplication.prepareEnvironment(getApplicationArguments(os.Args), applicationRunListeners)
+
+	env, err := baseApplication.prepareEnvironment(getApplicationArguments(os.Args), applicationRunListeners)
+	assert.NotNil(t, env)
+	assert.Nil(t, err)
+
+	assert.Equal(t, 1, propertySources.GetSize())
+	environmentMock.AssertExpectations(t)
+}
+
+type contextProviderMock struct {
+	context contextMock
+}
+
+func newContextProviderMock(context contextMock) contextProviderMock {
+	return contextProviderMock{
+		context,
+	}
+}
+
+func (provider contextProviderMock) getNewContext(applicationId context.ApplicationId, contextId context.ContextId) context.ConfigurableApplicationContext {
+	return provider.context
+}
+
+type contextMock struct {
+	context.ApplicationContext
+	mock.Mock
+}
+
+func newContextMock() contextMock {
+	return contextMock{}
+}
+
+func (ctx contextMock) SetLogger(logger context.Logger) {
+	ctx.Called(logger)
+}
+
+func (ctx contextMock) GetLogger() context.Logger {
+	results := ctx.Called()
+	return results.Get(0).(context.Logger)
+}
+
+func (ctx contextMock) SetEnvironment(environment core.ConfigurableEnvironment) {
+	ctx.Called(environment)
+}
+
+func (ctx contextMock) GetEnvironment() core.ConfigurableEnvironment {
+	results := ctx.Called()
+	return results.Get(0).(core.ConfigurableEnvironment)
+}
+
+func (ctx contextMock) GetPeaFactory() peas.ConfigurablePeaFactory {
+	results := ctx.Called()
+	return results.Get(0).(peas.ConfigurablePeaFactory)
+}
+
+func (ctx contextMock) AddApplicationListener(listener context.ApplicationListener) {
+	ctx.Called(listener)
+}
+
+func (ctx contextMock) Configure() {
+	ctx.Called()
+}
+
+func (ctx contextMock) OnConfigure() {
+	ctx.Called()
+}
+
+func (ctx contextMock) FinishConfigure() {
+	ctx.Called()
+}
+
+type peaFactoryMock struct {
+	mock.Mock
+	peas.ConfigurablePeaFactory
+}
+
+func newPeaFactoryMock() peaFactoryMock {
+	return peaFactoryMock{}
+}
+
+func (peaFactory peaFactoryMock) RegisterSharedPea(peaName string, sharedObject interface{}) error {
+	results := peaFactory.Called(peaName, sharedObject)
+	return results.Error(0)
 }
 
 func TestBaseApplication_prepareContext(t *testing.T) {
-	/*baseApplication := newBaseApplication()
+	arguments := getApplicationArguments(os.Args)
+	peaFactoryMock := newPeaFactoryMock()
+	peaFactoryMock.On("RegisterSharedPea", "procyonApplicationArguments", arguments).Return(nil)
+
+	environment := web.NewStandardWebEnvironment()
+	contextMock := newContextMock()
+
+	baseApplication := newBaseApplication()
+
+	contextMock.On("SetEnvironment", environment)
+	contextMock.On("SetLogger", baseApplication.logger)
+	contextMock.On("Configure")
+	contextMock.On("GetPeaFactory").Return(peaFactoryMock)
+
+	contextProviderMock := newContextProviderMock(contextMock)
+
+	baseApplication.contextProvider = contextProviderMock
 	applicationRunListeners := NewApplicationRunListeners(nil)
-	baseApplication.prepareContext(web.NewStandardWebEnvironment(), getApplicationArguments(os.Args), applicationRunListeners)
-	*/
+	ctx, err := baseApplication.prepareContext(environment, arguments, applicationRunListeners)
+
+	assert.NotNil(t, ctx)
+	assert.Nil(t, err)
+
+	contextMock.AssertExpectations(t)
+	peaFactoryMock.AssertExpectations(t)
 }
 
 func TestBaseApplication_getAppRunListenerInstances(t *testing.T) {
