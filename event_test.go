@@ -27,11 +27,10 @@ func testProcyonApplicationEvent(t *testing.T,
 func TestApplicationStartingEvent(t *testing.T) {
 	var application = NewProcyonApplication()
 	var appArgs = getApplicationArguments(nil)
-	var ctx = web.NewProcyonServerApplicationContext("app-id", "context-id")
-	event := NewApplicationStartedEvent(application, appArgs, ctx)
+	event := NewApplicationStarting(application, appArgs)
 
-	testProcyonApplicationEvent(t, event, ApplicationStartedEventId(), ApplicationEventId(), application, application, appArgs)
-	assert.Equal(t, ctx, event.GetApplicationContext())
+	testProcyonApplicationEvent(t, event, ApplicationStartingEventId(), ApplicationEventId(), application, application, appArgs)
+	assert.Equal(t, appArgs, event.GetArgs())
 }
 
 func TestApplicationEnvironmentPreparedEvent(t *testing.T) {
