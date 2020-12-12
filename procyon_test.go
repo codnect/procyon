@@ -1,6 +1,7 @@
 package procyon
 
 import (
+	"errors"
 	"fmt"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
@@ -12,6 +13,10 @@ import (
 	"testing"
 	"time"
 )
+
+func init() {
+	core.Register(newTestApplicationContextInitializer)
+}
 
 type applicationMock struct {
 	mock.Mock
@@ -170,6 +175,68 @@ func TestProcyonApplication_Run_Successfully(t *testing.T) {
 	mockApplication.AssertExpectations(t)
 }
 
+func TestProcyonApplication_Run_Failed(t *testing.T) {
+	var applicationIdArray [36]byte
+	core.GenerateUUID(applicationIdArray[:])
+	var contextIdArray [36]byte
+	core.GenerateUUID(contextIdArray[:])
+
+	contextId := context.ContextId(contextIdArray[:])
+	applicationId := context.ApplicationId(applicationIdArray[:])
+
+	err := errors.New("test error")
+
+	loggerMock := loggerMock{}
+	loggerMock.On("Fatal", contextId, err)
+
+	taskWatch := core.NewTaskWatch()
+	applicationRunListeners := NewApplicationRunListeners(nil)
+
+	procyonApplication := NewProcyonApplication()
+
+	mockApplication := &applicationMock{}
+	mockApplication.On("getContextId").Return(contextId)
+
+	procyonApplication.application = mockApplication
+
+	mockApplication.On("getLogger").Return(loggerMock)
+	mockApplication.On("getTaskWatch").Return(taskWatch)
+
+	mockApplication.On("printBanner")
+	mockApplication.On("logStarting")
+
+	applicationArguments := getApplicationArguments(nil)
+	mockApplication.On("getApplicationArguments").Return(applicationArguments)
+
+	mockApplication.On("scanComponents", applicationArguments).Return(err)
+
+	mockApplication.On("initApplicationListenerInstances").Return(err)
+
+	mockApplication.On("initApplicationContextInitializers").Return(err)
+
+	mockApplication.On("getApplicationRunListenerInstances", applicationArguments).
+		Return(applicationRunListeners, err)
+
+	environment := web.NewStandardWebEnvironment()
+	mockApplication.On("prepareEnvironment", applicationArguments, applicationRunListeners).
+		Return(environment, err)
+
+	applicationContext := web.NewProcyonServerApplicationContext(applicationId, contextId)
+	mockApplication.On("prepareContext", environment, applicationArguments, applicationRunListeners).
+		Return(applicationContext, err)
+
+	mockApplication.On("logStarted")
+
+	mockApplication.On("invokeApplicationRunners", applicationContext, applicationArguments)
+
+	mockApplication.On("finish")
+
+	procyonApplication.Run()
+
+	loggerMock.AssertExpectations(t)
+	mockApplication.AssertExpectations(t)
+}
+
 func TestBaseApplication_getLogger(t *testing.T) {
 	assert.NotNil(t, newBaseApplication().getLogger())
 }
@@ -221,6 +288,7 @@ func (l loggerMock) Error(ctx interface{}, message interface{}) {
 }
 
 func (l loggerMock) Fatal(ctx interface{}, message interface{}) {
+	l.Called(ctx, message)
 }
 
 func (l loggerMock) Panic(ctx interface{}, message interface{}) {
@@ -435,11 +503,29 @@ func TestBaseApplication_prepareContext(t *testing.T) {
 }
 
 func TestBaseApplication_getAppRunListenerInstances(t *testing.T) {
-	/*baseApplication := newBaseApplication()
-	runListeners, err := baseApplication.getApplicationRunListenerInstances(getApplicationArguments(os.Args))
+	procyonApp := NewProcyonApplication()
+	runListeners, err := procyonApp.getApplicationRunListenerInstances(getApplicationArguments(os.Args))
 	assert.NotNil(t, runListeners)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(runListeners.listeners))*/
+	assert.Equal(t, 1, len(runListeners.listeners))
+}
+
+type testApplicationContextInitializer struct {
+}
+
+func newTestApplicationContextInitializer() testApplicationContextInitializer {
+	return testApplicationContextInitializer{}
+}
+
+func (initializer testApplicationContextInitializer) InitializeContext(context context.ConfigurableApplicationContext) {
+
+}
+
+func TestBaseApplication_initApplicationContextInitializers(t *testing.T) {
+	procyonApp := NewProcyonApplication()
+	err := procyonApp.initApplicationContextInitializers()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(procyonApp.getApplicationContextInitializers()))
 }
 
 func TestTestBaseApplication_logStarted(t *testing.T) {

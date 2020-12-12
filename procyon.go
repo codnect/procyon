@@ -56,9 +56,11 @@ type ProcyonApplication struct {
 }
 
 func NewProcyonApplication() *ProcyonApplication {
+	baseApplication := newBaseApplication()
 	app := &ProcyonApplication{
-		newBaseApplication(),
+		baseApplication,
 	}
+	baseApplication.procyonApplication = app
 	return app
 }
 
@@ -124,7 +126,7 @@ func (procyonApp *ProcyonApplication) Run() {
 		listeners,
 	)
 	if err != nil {
-		logger.Fatal(applicationContext, err)
+		logger.Fatal(procyonApp.getContextId(), err)
 	}
 	taskWatch.Stop()
 	procyonApp.logStarted()
@@ -137,6 +139,7 @@ func (procyonApp *ProcyonApplication) Run() {
 }
 
 type baseApplication struct {
+	procyonApplication  *ProcyonApplication
 	applicationId       context.ApplicationId
 	contextId           context.ContextId
 	logger              context.Logger
@@ -270,7 +273,7 @@ func (application *baseApplication) prepareContext(environment core.Configurable
 func (application *baseApplication) getApplicationRunListenerInstances(arguments ApplicationArguments) (*ApplicationRunListeners, error) {
 	instances, err := getInstancesWithParamTypes(goo.GetType((*ApplicationRunListener)(nil)),
 		[]goo.Type{goo.GetType((*ProcyonApplication)(nil)), goo.GetType((*ApplicationArguments)(nil))},
-		[]interface{}{application, arguments})
+		[]interface{}{application.procyonApplication, arguments})
 	if err != nil {
 		return nil, err
 	}
