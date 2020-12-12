@@ -45,3 +45,17 @@ func TestGetInstancesWithParamTypes(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, instances)
 }
+
+func TestGetInstancesWithNil(t *testing.T) {
+	instances, err := getInstances(nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, "type must not be null", err.Error())
+	assert.Equal(t, 0, len(instances))
+}
+
+func TestGetInstancesWithParamTypes_ForNil(t *testing.T) {
+	instances, err := getInstancesWithParamTypes(nil, nil, nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, "type must not be null", err.Error())
+	assert.Equal(t, 0, len(instances))
+}
