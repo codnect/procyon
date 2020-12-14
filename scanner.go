@@ -2,7 +2,7 @@ package procyon
 
 import (
 	"fmt"
-	"github.com/codnect/goo"
+	"github.com/procyon-projects/goo"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"

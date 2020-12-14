@@ -1,7 +1,7 @@
 package procyon
 
 import (
-	"github.com/codnect/goo"
+	"github.com/procyon-projects/goo"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	"github.com/stretchr/testify/assert"
