@@ -10,22 +10,22 @@
 
 # What is Procyon? 
 
-Procyon is a HTTP web framework written in Go, powered by [fasthttp](https://github.com/valyala/fasthttp) 
-and third-part libraries. If you need a comprehensive web framework, then use Procyon.
-Because it provides a lot of modules which include several features.
+Procyon is an HTTP web framework written in Go, powered by [fasthttp](https://github.com/valyala/fasthttp) 
+and third-party libraries. If you need a comprehensive web framework, then I recommend you to use Procyon. Because it provides a lot of modules including several features.
 
 * It makes it easy to create production-grade applications. 
 * It aims to ease to build, develop and deploy your web applications quickly in Go.
 
 ## Third-Party Libraries
 
-We use some third-party libraries while developing Procyon. Here are the list we've used :
+We use some third-party libraries while developing Procyon. Here is the list we’ve used :
 
 * [fasthttp](https://github.com/valyala/fasthttp), It is 10 times faster than standard http library. 
 * [jsoniter](https://github.com/json-iterator/go), It is used to encode and decode. It's faster than standard library.
+* [logrus](https://github.com/sirupsen/logrus) is a structured logger for Go, completely API compatible with the standard library logger.
 
 ## Modules
-There are a number of modules in Procyon Framework :
+There are several modules in the Procyon Framework :
 
 * **procyon :**  It provides all features of Procyon.
 
@@ -37,28 +37,26 @@ There are a number of modules in Procyon Framework :
 
 * **procyon-web :** It provides web support for developing web application.
 
-* **procyon-peas :** This allow us to manage our instances created in Procyon application. Peas are very similar to Java Beans.
-They might be called as Go Beans :)
+* **procyon-peas :** This allows us to manage our instances created in the Procyon application. Peas are very similar to Java Beans. They can be called Go Beans :)
 
 
 ## How to use Procyon?
 
-It is so easy to use Procyon Framework. The only thing you have to do is to add the **Procyon** module into your **go.mod** and 
-import it into your code file.
+It is so easy to use Procyon Framework. The only thing you have to do is to add the **Procyon** module into your **go.mod** and import it into your code file as follows.
 ```go
 import (
 	"github.com/procyon-projects/procyon"
 )
 ```
-Next, You need to invoke the method **procyon.NewProcyonApplication** to create a procyon application in main function.
+Next, You need to invoke the method **procyon.NewProcyonApplication** to create a Procyon application in the main function.
 ```go
 myApp := procyon.NewProcyonApplication()
 ```
-After that, invoke the method **Run** to run the application. It is easy that much to have a simple Procyon application.
+Following, invoke the method Run to run the application.
 ```go
 myApp.Run()
 ``` 
-Eventually, your code snippet will look like the following.  It is easy that much to have a simple Procyon application.
+Eventually, your code snippet will look like the following. It is easy that much to have a simple Procyon application.
 ```go
 import (
 	"github.com/procyon-projects/procyon"
@@ -75,18 +73,15 @@ After running, you will see the following console.
 ![Image of Yaktocat](https://procyon-projects.github.io/img/run-console.png)
 
 # QuickStart
-This quickstart gives you a basic understanding of creating a simple endpoint and how to do
-by using Procyon Framework.
+This part gives you a basic understanding of creating a simple endpoint and how to do it by using the Procyon Framework.
 
 ## Components
-Components are the part of Procyon Framework. Controller, Service, Repository, Initializers, etc.
-are considered as component.  
+Components are the part of Procyon Framework. Controller, Service, Repository, Initializers, etc. are considered as components.
 
 ## Register Components
-If you have a component like a Controller, you need to notify it to Procyon as Go language
-doesn't have annotation and similar reflection library like Java. You don't need to be worried about it.
-The only thing you have to do is to use method **core.Register** in **init**, as the following below.
-It is placed in module **procyon-core**.
+If you have a component like a Controller, you need to notify it Procyon as Go language doesn’t have an annotation like Java. You don't need to be worried about it.
+The only thing you have to do is to use method **core.Register** in the **init** as the following.
+It is provided by the module **procyon-core**.
 
 **Note that you have to give a function with only one return parameter, which will create a instance of the controller.**
 
@@ -104,10 +99,9 @@ func init() {
 
 ```
 ## First Controller
-The first thing you have to do to have a controller component in Procyon is to implement
-interface **Controller**.
+The first thing you have to do to have a controller component in Procyon is to implement the interface **Controller**.
 
-The interface **Controller** looks like the following below. It is placed in module **procyon-web**.
+The interface **Controller** looks like the below. It is provided by the module **procyon-web**.
 
 ```go
 type Controller interface {
@@ -115,7 +109,7 @@ type Controller interface {
 }
 ```
 
-A simple controller will looks like the following below. It might change based on your needs.
+An example controller will look like the following. It might change based on your needs.
 
 ```go
 type HelloWorldController struct {
@@ -135,9 +129,8 @@ func (controller HelloWorldController) HelloWorld(context *web.WebRequestContext
 ```
 
 ## Registry Handlers
-Your handler registrations should be done by using **registry** which will 
-be passed into the method **RegisterHandlers**, as you can see the following.
-
+Your handler registrations should be done by using the **registry** which will 
+be passed into the method **RegisterHandlers** as you can see in the following code snippet.
 ```go
 func (controller HelloWorldController) RegisterHandlers(registry web.HandlerRegistry) {
 	registry.Register(
@@ -146,8 +139,7 @@ func (controller HelloWorldController) RegisterHandlers(registry web.HandlerRegi
 }
 ```
 
-You can see the complete code below. It is easy that much to create a controller and register
-your handlers.
+You can see the complete code below. It is easy that much to create a controller and register your handlers.
 
 **controller.go**
 ```go
@@ -170,18 +162,16 @@ func (controller HelloWorldController) HelloWorld(context *web.WebRequestContext
 ```
 
 ## Run Application
-If you run your application without giving any parameter port, it will start on port 8080
-as you can see following.
+If you run your application without giving any parameter port, it will start on port 8080 as you can see in the following screenshot.
 
 ![Image of Console Running](https://procyon-projects.github.io/img/run-console.png)
 
-If you want to change the port on which the application start, you can specify parameter **--server.port**.
+If you want to change the port on which the application starts, you can specify the parameter **--server.port**.
 When you specify the parameter port as 3030 (**--server.port=3030**), your application will start on **port 3030**. 
 
 
 ## Request the endpoint
-We assume that you do all steps which needs to be done and have a running application, then it's time to request
-the endpoint **/api/helloworld** which we create.
+We assume that you have done all steps which need to be done and have a running application, then it’s time to request the endpoint **/api/helloworld** which we create.
 
 ![Image of Console Running](https://procyon-projects.github.io/img/api-helloworld.png)
 
