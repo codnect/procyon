@@ -3,6 +3,7 @@ package procyon
 import (
 	"errors"
 	"fmt"
+	"github.com/procyon-projects/goo"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"
@@ -474,10 +475,16 @@ func (peaFactory peaFactoryMock) RegisterSharedPea(peaName string, sharedObject 
 	return results.Error(0)
 }
 
+func (peaFactory peaFactoryMock) ExcludeType(typ goo.Type) error {
+	results := peaFactory.Called(typ)
+	return results.Error(0)
+}
+
 func TestBaseApplication_prepareContext(t *testing.T) {
 	arguments := getApplicationArguments(os.Args)
 	peaFactoryMock := newPeaFactoryMock()
 	peaFactoryMock.On("RegisterSharedPea", "procyonApplicationArguments", arguments).Return(nil)
+	peaFactoryMock.On("ExcludeType", mock.Anything).Return(nil)
 
 	environment := web.NewStandardWebEnvironment()
 	contextMock := newContextMock()
@@ -488,7 +495,6 @@ func TestBaseApplication_prepareContext(t *testing.T) {
 	contextMock.On("SetLogger", baseApplication.logger)
 	contextMock.On("Configure")
 	contextMock.On("GetPeaFactory").Return(peaFactoryMock)
-
 	contextProviderMock := newContextProviderMock(contextMock)
 
 	baseApplication.contextProvider = contextProviderMock

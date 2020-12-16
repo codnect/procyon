@@ -9,6 +9,7 @@ import (
 	web "github.com/procyon-projects/procyon-web"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 )
 
@@ -72,7 +73,18 @@ func (procyonApp *ProcyonApplication) Run() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Panic(procyonApp.getContextId(), r)
+			switch r.(type) {
+			case error:
+				err := r.(error)
+				errorString := err.Error()
+				logger.Fatal(procyonApp.getContextId(), errorString+"\n"+string(debug.Stack()))
+			case string:
+				errorString := r.(string)
+				logger.Fatal(procyonApp.getContextId(), errorString+"\n"+string(debug.Stack()))
+			default:
+				logger.Error(procyonApp.getContextId(), r)
+				logger.Fatal(procyonApp.getContextId(), string(debug.Stack()))
+			}
 		}
 	}()
 
@@ -251,6 +263,7 @@ func (application *baseApplication) prepareContext(environment core.Configurable
 	for _, contextInitializer := range application.getApplicationContextInitializers() {
 		contextInitializer.InitializeContext(applicationContext)
 	}
+	factory.ExcludeType(goo.GetType((*ApplicationRunListener)(nil)))
 
 	// broadcast an event to notify that context is prepared
 	listeners.OnApplicationContextPrepared(applicationContext)
