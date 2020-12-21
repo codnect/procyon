@@ -347,7 +347,7 @@ func (application *baseApplication) logStarting() {
 
 func (application *baseApplication) logStarted() {
 	lastTime := float32(application.taskWatch.GetTotalTime()) / 1e9
-	formattedText := fmt.Sprintf("Started in %.2f second(s)\n", lastTime)
+	formattedText := fmt.Sprintf("Started in %.2f second(s)", lastTime)
 	application.logger.Info(application.contextId, formattedText)
 }
 
