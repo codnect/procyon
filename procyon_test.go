@@ -544,7 +544,7 @@ func TestTestBaseApplication_logStarted(t *testing.T) {
 	taskWatch.Stop()
 
 	lastTime := float32(taskWatch.GetTotalTime()) / 1e9
-	formattedText := fmt.Sprintf("Started in %.2f second(s)\n", lastTime)
+	formattedText := fmt.Sprintf("Started in %.2f second(s)", lastTime)
 	loggerMock.On("Info", baseApplication.contextId, formattedText)
 
 	baseApplication.logger = loggerMock
