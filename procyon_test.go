@@ -28,6 +28,16 @@ func (app *applicationMock) getLogger() context.Logger {
 	return results.Get(0).(context.Logger)
 }
 
+func (app *applicationMock) getLoggingProperties(arguments ApplicationArguments) *context.LoggingProperties {
+	//results := app.Called(arguments)
+	//return results.Get(0).(*context.LoggingProperties)
+	return nil
+}
+
+func (app *applicationMock) configureLogger(logger context.Logger, loggingProperties *context.LoggingProperties) {
+	//app.Called(logger, loggingProperties)
+}
+
 func (app *applicationMock) getTaskWatch() *core.TaskWatch {
 	results := app.Called()
 	return results.Get(0).(*core.TaskWatch)

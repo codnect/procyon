@@ -17,7 +17,7 @@ func TestComponentScanner_scan(t *testing.T) {
 
 	componentScanner := newComponentScanner()
 	count, err := componentScanner.scan(contextId, loggerMock)
-	assert.Equal(t, 13, count)
+	assert.Equal(t, 14, count)
 	assert.Nil(t, err)
 }
 
