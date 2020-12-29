@@ -24,6 +24,8 @@ var bannerText = []string{"",
 
 type application interface {
 	getLogger() context.Logger
+	getLoggingProperties(arguments ApplicationArguments) *context.LoggingProperties
+	configureLogger(logger context.Logger, loggingProperties *context.LoggingProperties)
 	getTaskWatch() *core.TaskWatch
 	getApplicationId() context.ApplicationId
 	getContextId() context.ContextId
@@ -69,7 +71,12 @@ func (procyonApp *ProcyonApplication) Run() {
 	taskWatch := procyonApp.getTaskWatch()
 	taskWatch.Start()
 
+	// get the application arguments
+	arguments := procyonApp.getApplicationArguments()
+
 	logger := procyonApp.getLogger()
+	loggerProperties := procyonApp.getLoggingProperties(arguments)
+	procyonApp.configureLogger(logger, loggerProperties)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -92,9 +99,6 @@ func (procyonApp *ProcyonApplication) Run() {
 
 	// log starting
 	procyonApp.logStarting()
-
-	// get the application arguments
-	arguments := procyonApp.getApplicationArguments()
 
 	// scan components
 	err := procyonApp.scanComponents(arguments)
@@ -155,6 +159,7 @@ type baseApplication struct {
 	applicationId       context.ApplicationId
 	contextId           context.ContextId
 	logger              context.Logger
+	customLogger        context.Logger
 	taskWatch           *core.TaskWatch
 	listeners           []context.ApplicationListener
 	contextInitializers []context.ApplicationContextInitializer
@@ -172,10 +177,14 @@ func newBaseApplication() *baseApplication {
 		environmentProvider: newDefaultEnvironmentProvider(),
 	}
 	baseApplication.generateApplicationAndContextId()
+
 	return baseApplication
 }
 
 func (application *baseApplication) getLogger() context.Logger {
+	if application.customLogger != nil {
+		return application.customLogger
+	}
 	return application.logger
 }
 
@@ -355,6 +364,59 @@ func (application *baseApplication) finish() {
 	exitSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(exitSignalChannel, syscall.SIGINT, syscall.SIGTERM)
 	<-exitSignalChannel
+}
+
+func (application *baseApplication) getCustomLogger() {
+	customLoggers, err := getInstances(goo.GetType((*context.Logger)(nil)))
+	if err != nil {
+		panic(err)
+	}
+
+	if customLoggers != nil {
+		if len(customLoggers) != 1 {
+			panic("Custom logger cannot be distinguished because there are more than one")
+		}
+
+		if len(customLoggers) != 0 {
+			application.customLogger = customLoggers[0].(context.Logger)
+		}
+	}
+}
+
+func (application *baseApplication) configureLogger(logger context.Logger, loggingProperties *context.LoggingProperties) {
+	if logger == nil {
+		return
+	}
+
+	if configurableLogger, ok := logger.(context.LoggingConfiguration); ok {
+		configurableLogger.ApplyLoggingProperties(*loggingProperties)
+	}
+}
+
+func (application *baseApplication) getLoggingProperties(arguments ApplicationArguments) *context.LoggingProperties {
+	if arguments == nil {
+		return nil
+	}
+
+	properties := &context.LoggingProperties{}
+	loggingLevel := arguments.GetOptionValues("logging.level")
+	if len(loggingLevel) != 0 {
+		properties.Level = loggingLevel[0]
+	} else {
+		properties.Level = "TRACE"
+	}
+
+	loggingFile := arguments.GetOptionValues("logging.file.name")
+	if len(loggingFile) != 0 {
+		properties.FileName = loggingFile[0]
+	}
+
+	loggingPath := arguments.GetOptionValues("logging.file.path")
+	if len(loggingFile) != 0 {
+		properties.FilePath = loggingPath[0]
+	}
+
+	return properties
 }
 
 type defaultEnvironmentProvider struct {
