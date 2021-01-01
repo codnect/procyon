@@ -35,7 +35,7 @@ type application interface {
 	logStarting()
 	scanComponents(arguments ApplicationArguments) error
 	prepareEnvironment(arguments ApplicationArguments, listeners *ApplicationRunListeners) (core.Environment, error)
-	prepareContext(environment core.ConfigurableEnvironment, arguments ApplicationArguments, listeners *ApplicationRunListeners) (context.ConfigurableApplicationContext, error)
+	prepareContext(environment core.ConfigurableEnvironment, arguments ApplicationArguments, listeners *ApplicationRunListeners, loggingProperties *context.LoggingProperties) (context.ConfigurableApplicationContext, error)
 	getApplicationRunListenerInstances(arguments ApplicationArguments) (*ApplicationRunListeners, error)
 	getApplicationListeners() []context.ApplicationListener
 	getApplicationContextInitializers() []context.ApplicationContextInitializer
@@ -75,8 +75,8 @@ func (procyonApp *ProcyonApplication) Run() {
 	arguments := procyonApp.getApplicationArguments()
 
 	logger := procyonApp.getLogger()
-	loggerProperties := procyonApp.getLoggingProperties(arguments)
-	procyonApp.configureLogger(logger, loggerProperties)
+	loggingProperties := procyonApp.getLoggingProperties(arguments)
+	procyonApp.configureLogger(logger, loggingProperties)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -140,6 +140,7 @@ func (procyonApp *ProcyonApplication) Run() {
 	applicationContext, err = procyonApp.prepareContext(environment.(core.ConfigurableEnvironment),
 		arguments,
 		listeners,
+		loggingProperties,
 	)
 	if err != nil {
 		logger.Fatal(procyonApp.getContextId(), err)
@@ -201,8 +202,9 @@ func (application *baseApplication) getContextId() context.ContextId {
 }
 
 func (application *baseApplication) printBanner() {
+	logger := application.getLogger()
 	for _, line := range bannerText {
-		fmt.Println(line)
+		logger.Print(application.contextId, line)
 	}
 }
 
@@ -254,7 +256,8 @@ func (application *baseApplication) scanComponents(arguments ApplicationArgument
 
 func (application *baseApplication) prepareContext(environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments,
-	listeners *ApplicationRunListeners) (context.ConfigurableApplicationContext, error) {
+	listeners *ApplicationRunListeners,
+	loggingProperties *context.LoggingProperties) (context.ConfigurableApplicationContext, error) {
 
 	applicationContext := application.contextProvider.getNewContext(application.applicationId, application.contextId)
 
@@ -282,6 +285,12 @@ func (application *baseApplication) prepareContext(environment core.Configurable
 	if err != nil {
 		return nil, err
 	}
+
+	err = factory.RegisterSharedPea("loggingProperties", *loggingProperties)
+	if err != nil {
+		return nil, err
+	}
+
 	// broadcast an event to notify that context is loaded
 	listeners.OnApplicationContextLoaded(applicationContext)
 
@@ -348,10 +357,15 @@ func (application *baseApplication) invokeApplicationRunners(ctx context.Applica
 }
 
 func (application *baseApplication) logStarting() {
-	application.logger.Info(application.contextId, "Starting...")
-	application.logger.Infof(application.contextId, "Application Id : %s", application.applicationId)
-	application.logger.Infof(application.contextId, "Application Context Id : %s", application.contextId)
-	application.logger.Info(application.contextId, "Running with Procyon, Procyon "+Version)
+	logger := application.logger
+	if application.customLogger != nil {
+		logger = application.customLogger
+	}
+
+	logger.Info(application.contextId, "Starting...")
+	logger.Infof(application.contextId, "Application Id : %s", application.applicationId)
+	logger.Infof(application.contextId, "Application Context Id : %s", application.contextId)
+	logger.Info(application.contextId, "Running with Procyon, Procyon "+Version)
 }
 
 func (application *baseApplication) logStarted() {
@@ -412,7 +426,7 @@ func (application *baseApplication) getLoggingProperties(arguments ApplicationAr
 	}
 
 	loggingPath := arguments.GetOptionValues("logging.file.path")
-	if len(loggingFile) != 0 {
+	if len(loggingPath) != 0 {
 		properties.FilePath = loggingPath[0]
 	}
 
