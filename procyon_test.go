@@ -29,9 +29,8 @@ func (app *applicationMock) getLogger() context.Logger {
 }
 
 func (app *applicationMock) getLoggingProperties(arguments ApplicationArguments) *context.LoggingProperties {
-	//results := app.Called(arguments)
-	//return results.Get(0).(*context.LoggingProperties)
-	return nil
+	results := app.Called(arguments)
+	return results.Get(0).(*context.LoggingProperties)
 }
 
 func (app *applicationMock) configureLogger(logger context.Logger, loggingProperties *context.LoggingProperties) {
@@ -78,8 +77,9 @@ func (app *applicationMock) scanComponents(arguments ApplicationArguments) error
 
 func (app *applicationMock) prepareContext(environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments,
-	listeners *ApplicationRunListeners) (context.ConfigurableApplicationContext, error) {
-	results := app.Called(environment, arguments, listeners)
+	listeners *ApplicationRunListeners,
+	loggingProperties *context.LoggingProperties) (context.ConfigurableApplicationContext, error) {
+	results := app.Called(environment, arguments, listeners, loggingProperties)
 	return results.Get(0).(context.ConfigurableApplicationContext), results.Error(1)
 }
 
@@ -131,6 +131,7 @@ func TestProcyonApplication_NewProcyonApplication(t *testing.T) {
 }
 
 func TestProcyonApplication_Run_Successfully(t *testing.T) {
+	loggingProperties := &context.LoggingProperties{}
 	var applicationIdArray [36]byte
 	core.GenerateUUID(applicationIdArray[:])
 	var contextIdArray [36]byte
@@ -148,6 +149,7 @@ func TestProcyonApplication_Run_Successfully(t *testing.T) {
 	mockApplication := &applicationMock{}
 	procyonApplication.application = mockApplication
 
+	mockApplication.On("getLoggingProperties", mock.Anything).Return(loggingProperties)
 	mockApplication.On("getLogger").Return(logger)
 	mockApplication.On("getTaskWatch").Return(taskWatch)
 	//mockApplication.On("getApplicationId").Return(baseApplication.applicationId)
@@ -173,7 +175,7 @@ func TestProcyonApplication_Run_Successfully(t *testing.T) {
 		Return(environment, nil)
 
 	applicationContext := web.NewProcyonServerApplicationContext(applicationId, contextId)
-	mockApplication.On("prepareContext", environment, applicationArguments, applicationRunListeners).
+	mockApplication.On("prepareContext", environment, applicationArguments, applicationRunListeners, loggingProperties).
 		Return(applicationContext, nil)
 
 	mockApplication.On("logStarted")
@@ -187,6 +189,8 @@ func TestProcyonApplication_Run_Successfully(t *testing.T) {
 }
 
 func TestProcyonApplication_Run_Failed(t *testing.T) {
+	loggingProperties := &context.LoggingProperties{}
+
 	var applicationIdArray [36]byte
 	core.GenerateUUID(applicationIdArray[:])
 	var contextIdArray [36]byte
@@ -210,6 +214,7 @@ func TestProcyonApplication_Run_Failed(t *testing.T) {
 
 	procyonApplication.application = mockApplication
 
+	mockApplication.On("getLoggingProperties", mock.Anything).Return(loggingProperties)
 	mockApplication.On("getLogger").Return(loggerMock)
 	mockApplication.On("getTaskWatch").Return(taskWatch)
 
@@ -233,7 +238,7 @@ func TestProcyonApplication_Run_Failed(t *testing.T) {
 		Return(environment, err)
 
 	applicationContext := web.NewProcyonServerApplicationContext(applicationId, contextId)
-	mockApplication.On("prepareContext", environment, applicationArguments, applicationRunListeners).
+	mockApplication.On("prepareContext", environment, applicationArguments, applicationRunListeners, loggingProperties).
 		Return(applicationContext, err)
 
 	mockApplication.On("logStarted")
@@ -305,6 +310,9 @@ func (l loggerMock) Fatal(ctx interface{}, message interface{}) {
 func (l loggerMock) Panic(ctx interface{}, message interface{}) {
 }
 
+func (l loggerMock) Print(ctx interface{}, message interface{}) {
+}
+
 func (l loggerMock) Tracef(ctx interface{}, format string, args ...interface{}) {
 }
 
@@ -325,6 +333,9 @@ func (l loggerMock) Fatalf(ctx interface{}, format string, args ...interface{}) 
 }
 
 func (l loggerMock) Panicf(ctx interface{}, format string, args ...interface{}) {
+}
+
+func (l loggerMock) Printf(ctx interface{}, format string, args ...interface{}) {
 }
 
 func TestTestBaseApplication_logStarting(t *testing.T) {
@@ -491,9 +502,12 @@ func (peaFactory peaFactoryMock) ExcludeType(typ goo.Type) error {
 }
 
 func TestBaseApplication_prepareContext(t *testing.T) {
+	loggingProperties := &context.LoggingProperties{}
+
 	arguments := getApplicationArguments(os.Args)
 	peaFactoryMock := newPeaFactoryMock()
 	peaFactoryMock.On("RegisterSharedPea", "procyonApplicationArguments", arguments).Return(nil)
+	peaFactoryMock.On("RegisterSharedPea", "loggingProperties", loggingProperties).Return(nil)
 	peaFactoryMock.On("ExcludeType", mock.Anything).Return(nil)
 
 	environment := web.NewStandardWebEnvironment()
@@ -509,7 +523,7 @@ func TestBaseApplication_prepareContext(t *testing.T) {
 
 	baseApplication.contextProvider = contextProviderMock
 	applicationRunListeners := NewApplicationRunListeners(nil)
-	ctx, err := baseApplication.prepareContext(environment, arguments, applicationRunListeners)
+	ctx, err := baseApplication.prepareContext(environment, arguments, applicationRunListeners, loggingProperties)
 
 	assert.NotNil(t, ctx)
 	assert.Nil(t, err)

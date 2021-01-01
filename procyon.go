@@ -286,7 +286,7 @@ func (application *baseApplication) prepareContext(environment core.Configurable
 		return nil, err
 	}
 
-	err = factory.RegisterSharedPea("loggingProperties", *loggingProperties)
+	err = factory.RegisterSharedPea("loggingProperties", loggingProperties)
 	if err != nil {
 		return nil, err
 	}
