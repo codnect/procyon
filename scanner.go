@@ -22,7 +22,7 @@ func (scanner componentScanner) scan(contextId context.ContextId, logger context
 	}
 	var componentCount = 0
 	result := core.ForEachComponentType(func(componentName string, componentType goo.Type) error {
-		logger.Trace(contextId, fmt.Sprintf("Component : %s", componentName))
+		logger.Trace(contextId, fmt.Sprintf("Registered component %s", componentName))
 		err := scanner.checkComponent(componentType, processors)
 		if err != nil {
 			return err

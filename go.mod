@@ -9,7 +9,7 @@ require (
 	github.com/procyon-projects/procyon-context v0.0.0-20210101183307-4dc0c5c3f21e
 	github.com/procyon-projects/procyon-core v0.0.0-20201220152409-8be6bfca0807
 	github.com/procyon-projects/procyon-peas v0.0.0-20201216175850-6e7929fd4292
-	github.com/procyon-projects/procyon-web v0.0.0-20201229213403-5b61d149bab6
+	github.com/procyon-projects/procyon-web v0.0.0-20210102132859-c3695a02cd70
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.6.1
