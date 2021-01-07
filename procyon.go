@@ -418,7 +418,7 @@ func (application *baseApplication) getLoggingProperties(arguments ApplicationAr
 	if len(loggingLevel) != 0 {
 		properties.Level = loggingLevel[0]
 	} else {
-		properties.Level = "TRACE"
+		properties.Level = "DEBUG"
 	}
 
 	loggingFile := arguments.GetOptionValues("logging.file.name")
