@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/procyon-projects/goo"
+	configure "github.com/procyon-projects/procyon-configure"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	peas "github.com/procyon-projects/procyon-peas"
@@ -28,12 +29,12 @@ func (app *applicationMock) getLogger() context.Logger {
 	return results.Get(0).(context.Logger)
 }
 
-func (app *applicationMock) getLoggingProperties(arguments ApplicationArguments) *context.LoggingProperties {
+func (app *applicationMock) getLoggingProperties(arguments ApplicationArguments) *configure.LoggingProperties {
 	results := app.Called(arguments)
-	return results.Get(0).(*context.LoggingProperties)
+	return results.Get(0).(*configure.LoggingProperties)
 }
 
-func (app *applicationMock) configureLogger(logger context.Logger, loggingProperties *context.LoggingProperties) {
+func (app *applicationMock) configureLogger(logger context.Logger, loggingProperties *configure.LoggingProperties) {
 	//app.Called(logger, loggingProperties)
 }
 
@@ -78,7 +79,7 @@ func (app *applicationMock) scanComponents(arguments ApplicationArguments) error
 func (app *applicationMock) prepareContext(environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments,
 	listeners *ApplicationRunListeners,
-	loggingProperties *context.LoggingProperties) (context.ConfigurableApplicationContext, error) {
+	loggingProperties *configure.LoggingProperties) (context.ConfigurableApplicationContext, error) {
 	results := app.Called(environment, arguments, listeners, loggingProperties)
 	return results.Get(0).(context.ConfigurableApplicationContext), results.Error(1)
 }
@@ -131,7 +132,7 @@ func TestProcyonApplication_NewProcyonApplication(t *testing.T) {
 }
 
 func TestProcyonApplication_Run_Successfully(t *testing.T) {
-	loggingProperties := &context.LoggingProperties{}
+	loggingProperties := &configure.LoggingProperties{}
 	var applicationIdArray [36]byte
 	core.GenerateUUID(applicationIdArray[:])
 	var contextIdArray [36]byte
@@ -189,7 +190,7 @@ func TestProcyonApplication_Run_Successfully(t *testing.T) {
 }
 
 func TestProcyonApplication_Run_Failed(t *testing.T) {
-	loggingProperties := &context.LoggingProperties{}
+	loggingProperties := &configure.LoggingProperties{}
 
 	var applicationIdArray [36]byte
 	core.GenerateUUID(applicationIdArray[:])
@@ -502,7 +503,7 @@ func (peaFactory peaFactoryMock) ExcludeType(typ goo.Type) error {
 }
 
 func TestBaseApplication_prepareContext(t *testing.T) {
-	loggingProperties := &context.LoggingProperties{}
+	loggingProperties := &configure.LoggingProperties{}
 
 	arguments := getApplicationArguments(os.Args)
 	peaFactoryMock := newPeaFactoryMock()

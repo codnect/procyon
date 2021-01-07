@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/procyon-projects/goo"
+	configure "github.com/procyon-projects/procyon-configure"
 	context "github.com/procyon-projects/procyon-context"
 	core "github.com/procyon-projects/procyon-core"
 	web "github.com/procyon-projects/procyon-web"
@@ -24,8 +25,8 @@ var bannerText = []string{"",
 
 type application interface {
 	getLogger() context.Logger
-	getLoggingProperties(arguments ApplicationArguments) *context.LoggingProperties
-	configureLogger(logger context.Logger, loggingProperties *context.LoggingProperties)
+	getLoggingProperties(arguments ApplicationArguments) *configure.LoggingProperties
+	configureLogger(logger context.Logger, loggingProperties *configure.LoggingProperties)
 	getTaskWatch() *core.TaskWatch
 	getApplicationId() context.ApplicationId
 	getContextId() context.ContextId
@@ -35,7 +36,7 @@ type application interface {
 	logStarting()
 	scanComponents(arguments ApplicationArguments) error
 	prepareEnvironment(arguments ApplicationArguments, listeners *ApplicationRunListeners) (core.Environment, error)
-	prepareContext(environment core.ConfigurableEnvironment, arguments ApplicationArguments, listeners *ApplicationRunListeners, loggingProperties *context.LoggingProperties) (context.ConfigurableApplicationContext, error)
+	prepareContext(environment core.ConfigurableEnvironment, arguments ApplicationArguments, listeners *ApplicationRunListeners, loggingProperties *configure.LoggingProperties) (context.ConfigurableApplicationContext, error)
 	getApplicationRunListenerInstances(arguments ApplicationArguments) (*ApplicationRunListeners, error)
 	getApplicationListeners() []context.ApplicationListener
 	getApplicationContextInitializers() []context.ApplicationContextInitializer
@@ -257,7 +258,7 @@ func (application *baseApplication) scanComponents(arguments ApplicationArgument
 func (application *baseApplication) prepareContext(environment core.ConfigurableEnvironment,
 	arguments ApplicationArguments,
 	listeners *ApplicationRunListeners,
-	loggingProperties *context.LoggingProperties) (context.ConfigurableApplicationContext, error) {
+	loggingProperties *configure.LoggingProperties) (context.ConfigurableApplicationContext, error) {
 
 	applicationContext := application.contextProvider.getNewContext(application.applicationId, application.contextId)
 
@@ -397,7 +398,7 @@ func (application *baseApplication) getCustomLogger() {
 	}
 }
 
-func (application *baseApplication) configureLogger(logger context.Logger, loggingProperties *context.LoggingProperties) {
+func (application *baseApplication) configureLogger(logger context.Logger, loggingProperties *configure.LoggingProperties) {
 	if logger == nil {
 		return
 	}
@@ -407,12 +408,12 @@ func (application *baseApplication) configureLogger(logger context.Logger, loggi
 	}
 }
 
-func (application *baseApplication) getLoggingProperties(arguments ApplicationArguments) *context.LoggingProperties {
+func (application *baseApplication) getLoggingProperties(arguments ApplicationArguments) *configure.LoggingProperties {
 	if arguments == nil {
 		return nil
 	}
 
-	properties := &context.LoggingProperties{}
+	properties := &configure.LoggingProperties{}
 	loggingLevel := arguments.GetOptionValues("logging.level")
 	if len(loggingLevel) != 0 {
 		properties.Level = loggingLevel[0]
