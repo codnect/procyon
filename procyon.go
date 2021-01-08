@@ -231,6 +231,8 @@ func (application *baseApplication) prepareEnvironment(arguments ApplicationArgu
 		propertySources.Add(core.NewSimpleCommandLinePropertySource(arguments.GetSourceArgs()))
 	}
 
+	propertySources.Add(core.NewSystemEnvironmentPropertySource())
+
 	listeners.OnApplicationEnvironmentPrepared(environment)
 	return environment, nil
 }
