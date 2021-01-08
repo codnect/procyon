@@ -417,7 +417,7 @@ func TestBaseApplication_prepareEnvironment(t *testing.T) {
 	assert.NotNil(t, env)
 	assert.Nil(t, err)
 
-	assert.Equal(t, 1, propertySources.GetSize())
+	assert.Equal(t, 2, propertySources.GetSize())
 	environmentMock.AssertExpectations(t)
 }
 
