@@ -8,6 +8,13 @@
 [![Gitter](https://badges.gitter.im/procyon-projects/community.svg)](https://gitter.im/procyon-projects/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![PkgGoDev](https://pkg.go.dev/badge/procyon-projects/procyon)](https://pkg.go.dev/github.com/procyon-projects/procyon)
 
+
+## Installation
+
+```shell
+go get -u github.com/procyon-projects/procyon/...
+```
+
 # What is Procyon? 
 
 Procyon is an HTTP web framework written in Go, powered by [fasthttp](https://github.com/valyala/fasthttp) 
