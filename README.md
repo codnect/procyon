@@ -1,5 +1,4 @@
-
-<img src="https://procyon-projects.github.io/img/logo.png" width="128">
+![Procyon Logo](https://user-images.githubusercontent.com/5354910/195999760-326029e5-ab8a-4e44-bd78-58b4dcd748fa.png)
 
 # Procyon Framework
 ![alt text](https://goreportcard.com/badge/github.com/procyon-projects/procyon)
