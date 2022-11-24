@@ -47,11 +47,10 @@ func (c *Container) GetByType(typ *Type) (any, error) {
 }
 
 func (c *Container) Contains(name string) bool {
-	return false
+	return c.instanceRegistry.Contains(name)
 }
 
 func (c *Container) IsShared(name string) bool {
-
 	return false
 }
 
@@ -87,12 +86,12 @@ func (c *Container) getInstance(name string, requiredType *Type, args ...any) (a
 
 	if def.IsShared() {
 		instance, err := c.instanceRegistry.OrElseGet(name, func() (any, error) {
-			return nil, nil
+			return c.createInstance(def, args)
 		})
 
 		return instance, err
 	} else if def.IsPrototype() {
-
+		return c.createInstance(def, args)
 	}
 
 	return nil, nil
@@ -149,7 +148,12 @@ func (c *Container) createInstance(definition *Definition, args []any) (instance
 }
 
 func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
+
 	return nil, nil
+}
+
+func (c *Container) resolveInput(typ reflector.Type) []any {
+	return nil
 }
 
 func (c *Container) initializeInstance(name string, instance any) (any, error) {

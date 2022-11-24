@@ -1,6 +1,6 @@
 package env
 
-import "procyon-test/env/property"
+import "github.com/procyon-projects/procyon/env/property"
 
 type Variables map[string]string
 

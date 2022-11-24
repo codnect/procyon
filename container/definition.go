@@ -77,16 +77,20 @@ func MakeDefinition(constructor Constructor, options ...Option) (*Definition, er
 
 	def := &Definition{
 		name:            lowerCamelCase(name),
+		constructor:     constructor,
 		constructorFunc: functionType,
 		typ: &Type{
 			resultType,
 		},
+		scope: SharedScope,
 	}
 
 	for index, parameterType := range functionType.Parameters() {
 		input := &Input{
 			index: index,
-			typ:   parameterType,
+			typ: Type{
+				parameterType,
+			},
 		}
 
 		def.inputs = append(def.inputs, input)

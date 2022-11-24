@@ -1,14 +1,12 @@
 package container
 
-import "github.com/procyon-projects/reflector"
-
 type Constructor any
 
 type Input struct {
 	index    int
 	name     string
 	optional bool
-	typ      reflector.Type
+	typ      Type
 }
 
 func (i *Input) Index() int {
@@ -23,6 +21,6 @@ func (i *Input) IsOptional() bool {
 	return i.optional
 }
 
-func (i *Input) Type() reflector.Type {
+func (i *Input) Type() Type {
 	return i.typ
 }

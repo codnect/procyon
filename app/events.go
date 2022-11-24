@@ -1,7 +1,7 @@
 package app
 
 import (
-	"procyon-test/env"
+	"github.com/procyon-projects/procyon/env"
 	"time"
 )
 

@@ -1,7 +1,7 @@
 package app
 
 import (
-	"procyon-test/health"
+	"github.com/procyon-projects/procyon/health"
 	"time"
 )
 

@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
-	"procyon-test/container"
-	"procyon-test/env"
-	"procyon-test/event"
+	"github.com/procyon-projects/procyon/container"
+	"github.com/procyon-projects/procyon/env"
+	"github.com/procyon-projects/procyon/event"
 	"time"
 )
 

@@ -1,8 +1,8 @@
 package app
 
 import (
-	"procyon-test/env"
-	"procyon-test/event"
+	"github.com/procyon-projects/procyon/env"
+	"github.com/procyon-projects/procyon/event"
 	"time"
 )
 
