@@ -28,7 +28,7 @@ func (c *InstanceRegistry) Add(name string, instance any) error {
 	c.muInstances.Lock()
 
 	if _, exists := c.instances[name]; exists {
-		panic(fmt.Sprintf("container: instance with name %s already exists", name))
+		return fmt.Errorf("container: instance with name %s already exists", name)
 	}
 
 	c.instances[name] = instance
@@ -69,16 +69,16 @@ func (c *InstanceRegistry) InstanceNames() []string {
 
 func (c *InstanceRegistry) FindByType(requiredType *Type) (any, error) {
 	if requiredType == nil {
-		return nil, errors.New("requiredType cannot be nil")
+		return nil, errors.New("container: requiredType cannot be nil")
 	}
 
 	instances := c.FindAllByType(requiredType)
 	if len(instances) > 1 {
-		return nil, fmt.Errorf("instances cannot be distinguished for required type %s", requiredType.Name())
+		return nil, fmt.Errorf("container: instances cannot be distinguished for required type %s", requiredType.Name())
 	}
 
 	if len(instances) == 0 {
-		return nil, fmt.Errorf("not found any instance of type %s", requiredType.Name())
+		return nil, fmt.Errorf("container: not found any instance of type %s", requiredType.Name())
 	}
 
 	return instances[0], nil
@@ -88,7 +88,7 @@ func (c *InstanceRegistry) FindAllByType(requiredType *Type) []any {
 	defer c.muInstances.Unlock()
 	c.muInstances.Lock()
 
-	instances := make([]interface{}, 0)
+	instances := make([]any, 0)
 
 	for name, typ := range c.typesOfInstances {
 
@@ -144,7 +144,7 @@ func (c *InstanceRegistry) putToPreparation(name string) error {
 	c.muInstances.Lock()
 
 	if _, ok := c.instancesInPreparation[name]; ok {
-		return fmt.Errorf("instance with name %s is currently in preparation, maybe it has got circular dependency cycle", name)
+		return fmt.Errorf("container: instance with name %s is currently in preparation, maybe it has got circular dependency cycle", name)
 	}
 
 	c.instancesInPreparation[name] = struct{}{}
@@ -162,27 +162,23 @@ type DefinitionRegistry struct {
 	muDefinitions sync.RWMutex
 }
 
-func NewDefinitionRegistry(definitions map[string]*Definition) *DefinitionRegistry {
-	if definitions == nil {
-		definitions = make(map[string]*Definition)
-	}
-
+func NewDefinitionRegistry() *DefinitionRegistry {
 	return &DefinitionRegistry{
-		definitions:   definitions,
+		definitions:   copyDefinitions(),
 		muDefinitions: sync.RWMutex{},
 	}
 }
 
 func (c *DefinitionRegistry) Add(def *Definition) error {
 	if def == nil {
-		return fmt.Errorf("definition should not be nil")
+		return fmt.Errorf("container: definition should not be nil")
 	}
 
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
 	if _, exists := c.definitions[def.Name()]; exists {
-		panic(fmt.Sprintf("container: definition with name %s already exists", def.Name()))
+		return fmt.Errorf("container: definition with name %s already exists", def.Name())
 	}
 
 	c.definitions[def.Name()] = def
@@ -195,7 +191,7 @@ func (c *DefinitionRegistry) Remove(name string) error {
 	c.muDefinitions.Lock()
 
 	if _, exists := c.definitions[name]; !exists {
-		panic(fmt.Sprintf("container: no found definition with name %s", name))
+		return fmt.Errorf("container: no found definition with name %s", name)
 	}
 
 	delete(c.definitions, name)
@@ -257,7 +253,7 @@ func (c *DefinitionRegistry) DefinitionNamesByType(requiredType *Type) []string 
 
 	for name, def := range c.definitions {
 
-		instanceType := def.Type().typ
+		instanceType := def.reflectorType()
 
 		if instanceType.CanConvert(requiredType.typ) {
 			names = append(names, name)

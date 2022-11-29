@@ -1,6 +1,6 @@
 package web
 
-import "procyon-test/web/mediatype"
+import "github.com/procyon-projects/procyon/web/mediatype"
 
 type Response struct {
 	status      HttpStatus

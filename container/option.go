@@ -20,14 +20,14 @@ func Optional[T any]() Option {
 
 		exists := false
 		for _, input := range def.inputs {
-			if input.Type().typ.Compare(typ) {
+			if input.reflectorType().Compare(typ) {
 				input.optional = true
 				exists = true
 			}
 		}
 
 		if !exists {
-			return fmt.Errorf("could not find any input of type %s", typ.Name())
+			return fmt.Errorf("container: could not find any input of type %s", typ.Name())
 		}
 
 		return nil
@@ -37,11 +37,11 @@ func Optional[T any]() Option {
 func OptionalAt(index int) Option {
 	return func(def *Definition) error {
 		if index < 0 {
-			panic(fmt.Sprintf("index should be greater than or equal to zero, but got index %d", index))
+			panic(fmt.Sprintf("container: index should be greater than or equal to zero, but got index %d", index))
 		}
 
 		if len(def.inputs) < index {
-			return fmt.Errorf("could not find any input at index %d", index)
+			return fmt.Errorf("container: could not find any input at index %d", index)
 		}
 
 		def.inputs[index].optional = true
@@ -55,14 +55,14 @@ func Qualifier[T any](name string) Option {
 
 		exists := false
 		for _, input := range def.inputs {
-			if input.Type().typ.Compare(typ) {
+			if input.reflectorType().Compare(typ) {
 				input.name = name
 				exists = true
 			}
 		}
 
 		if !exists {
-			return fmt.Errorf("could not find any input of type %s", typ.Name())
+			return fmt.Errorf("container: could not find any input of type %s", typ.Name())
 		}
 
 		return nil
@@ -72,11 +72,11 @@ func Qualifier[T any](name string) Option {
 func QualifierAt(index int, name string) Option {
 	return func(def *Definition) error {
 		if index < 0 {
-			panic(fmt.Sprintf("index should be greater than or equal to zero, but got index %d", index))
+			panic(fmt.Sprintf("container: index should be greater than or equal to zero, but got index %d", index))
 		}
 
 		if len(def.inputs) < index {
-			return fmt.Errorf("could not find any input at index %d", index)
+			return fmt.Errorf("container: could not find any input at index %d", index)
 		}
 
 		def.inputs[index].name = name

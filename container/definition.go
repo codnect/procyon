@@ -22,6 +22,10 @@ func (d *Definition) Type() *Type {
 	return d.typ
 }
 
+func (d *Definition) reflectorType() reflector.Type {
+	return d.typ.typ
+}
+
 func (d *Definition) Constructor() Constructor {
 	return d.constructor
 }
@@ -50,18 +54,18 @@ func (d *Definition) IsPrototype() bool {
 
 func MakeDefinition(constructor Constructor, options ...Option) (*Definition, error) {
 	if constructor == nil {
-		return nil, fmt.Errorf("constructor should not be nil")
+		return nil, fmt.Errorf("container: constructor should not be nil")
 	}
 
 	typ := reflector.TypeOfAny(constructor)
 	if !reflector.IsFunction(typ) {
-		return nil, fmt.Errorf("constructor should be a function")
+		return nil, fmt.Errorf("container: constructor should be a function")
 	}
 
 	functionType := reflector.ToFunction(typ)
 
 	if functionType.NumResult() != 1 {
-		return nil, fmt.Errorf("constructor can only be a function returning one result")
+		return nil, fmt.Errorf("container: constructor can only be a function returning one result")
 	}
 
 	resultType := functionType.Results()[0]
@@ -88,7 +92,7 @@ func MakeDefinition(constructor Constructor, options ...Option) (*Definition, er
 	for index, parameterType := range functionType.Parameters() {
 		input := &Input{
 			index: index,
-			typ: Type{
+			typ: &Type{
 				parameterType,
 			},
 		}

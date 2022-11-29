@@ -27,3 +27,10 @@ func TypeOf[T any]() *Type {
 		typ: typ,
 	}
 }
+
+func TypeOfAny[T any](obj T) *Type {
+	typ := reflector.TypeOfAny(obj)
+	return &Type{
+		typ: typ,
+	}
+}

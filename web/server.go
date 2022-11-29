@@ -2,8 +2,8 @@ package web
 
 import (
 	"fmt"
+	"github.com/procyon-projects/procyon/env/property"
 	"net/http"
-	"procyon-test/env/property"
 )
 
 type ServerProperties struct {

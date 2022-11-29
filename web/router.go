@@ -2,8 +2,8 @@ package web
 
 import (
 	"fmt"
+	"github.com/procyon-projects/procyon/web/mediatype"
 	"net/http"
-	"procyon-test/web/mediatype"
 )
 
 type Router struct {

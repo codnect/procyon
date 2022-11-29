@@ -13,7 +13,7 @@ type Container struct {
 
 func New() *Container {
 	return &Container{
-		definitionRegistry: NewDefinitionRegistry(copyDefinitions()),
+		definitionRegistry: NewDefinitionRegistry(),
 		instanceRegistry:   NewInstanceRegistry(),
 	}
 }
@@ -80,7 +80,7 @@ func (c *Container) getInstance(name string, requiredType *Type, args ...any) (a
 		return nil, fmt.Errorf("not found definition with name %s", name)
 	}
 
-	if requiredType != nil && !c.match(def.Type().typ, requiredType.typ) {
+	if requiredType != nil && !c.match(def.reflectorType(), requiredType.typ) {
 		return nil, fmt.Errorf("definition type with name %s does not match the required type", name)
 	}
 
@@ -148,12 +148,30 @@ func (c *Container) createInstance(definition *Definition, args []any) (instance
 }
 
 func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
+	arguments := make([]any, len(inputs))
+	for _, input := range inputs {
+		instance, err := c.Get(input.Name())
 
+		if !input.IsOptional() && err != nil {
+			return nil, err
+		}
+
+		if input.IsOptional() && err != nil {
+			if input.reflectorType().IsInstantiable() {
+				var val reflector.Value
+				val, err = input.reflectorType().Instantiate()
+
+				if err != nil {
+					return nil, err
+				}
+
+				instance = val.Val()
+			}
+		}
+
+		arguments = append(arguments, instance)
+	}
 	return nil, nil
-}
-
-func (c *Container) resolveInput(typ reflector.Type) []any {
-	return nil
 }
 
 func (c *Container) initializeInstance(name string, instance any) (any, error) {
