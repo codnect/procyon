@@ -40,7 +40,7 @@ func OptionalAt(index int) Option {
 			panic(fmt.Sprintf("container: index should be greater than or equal to zero, but got index %d", index))
 		}
 
-		if len(def.inputs) < index {
+		if len(def.inputs) <= index {
 			return fmt.Errorf("container: could not find any input at index %d", index)
 		}
 
@@ -75,7 +75,7 @@ func QualifierAt(index int, name string) Option {
 			panic(fmt.Sprintf("container: index should be greater than or equal to zero, but got index %d", index))
 		}
 
-		if len(def.inputs) < index {
+		if len(def.inputs) <= index {
 			return fmt.Errorf("container: could not find any input at index %d", index)
 		}
 

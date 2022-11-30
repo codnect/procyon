@@ -26,7 +26,10 @@ func AnyConstructFunctionReturningNonPointerValue(t *DependencyType) AnyType {
 }
 
 func TestMakeDefinition_WithConstructorReturningPointerType(t *testing.T) {
-	def, err := MakeDefinition(AnyConstructFunction, Qualifier[*DependencyType]("anyDependencyType"))
+	def, err := MakeDefinition(AnyConstructFunction, Qualifier[*DependencyType]("anyDependencyType"),
+		Scope(PrototypeScope),
+		QualifierAt(0, "anotherDependencyType"),
+		OptionalAt(0))
 	assert.Nil(t, err)
 
 	assert.Equal(t, "anyType", def.Name())
@@ -40,13 +43,13 @@ func TestMakeDefinition_WithConstructorReturningPointerType(t *testing.T) {
 	assert.Len(t, inputs, 1)
 
 	assert.Equal(t, 0, inputs[0].Index())
-	assert.False(t, inputs[0].IsOptional())
-	assert.Equal(t, "anyDependencyType", inputs[0].Name())
+	assert.True(t, inputs[0].IsOptional())
+	assert.Equal(t, "anotherDependencyType", inputs[0].Name())
 	assert.Equal(t, "*DependencyType", inputs[0].Type().Name())
 
-	assert.Equal(t, false, def.IsPrototype())
-	assert.Equal(t, true, def.IsShared())
-	assert.Equal(t, "shared", def.Scope())
+	assert.Equal(t, true, def.IsPrototype())
+	assert.Equal(t, false, def.IsShared())
+	assert.Equal(t, "prototype", def.Scope())
 }
 
 func TestMakeDefinition_WithConstructorReturningNonPointerType(t *testing.T) {

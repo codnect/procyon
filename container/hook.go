@@ -2,11 +2,19 @@ package container
 
 import "sync"
 
-type Hook interface {
+type PreInitializeHook interface {
 	OnPreInitialization(name string, instance any) (any, error)
-	OnInitialization() error
+}
+
+type PostInitializeHook interface {
 	OnPostInitialization(name string, instance any) (any, error)
-	OnStartup() error
+}
+
+type InitializeHook interface {
+	OnInitialization() error
+}
+
+type Hook interface {
 }
 
 type Hooks struct {

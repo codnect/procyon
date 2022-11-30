@@ -162,9 +162,13 @@ type DefinitionRegistry struct {
 	muDefinitions sync.RWMutex
 }
 
-func NewDefinitionRegistry() *DefinitionRegistry {
+func NewDefinitionRegistry(definitions map[string]*Definition) *DefinitionRegistry {
+	if definitions == nil {
+		definitions = make(map[string]*Definition)
+	}
+
 	return &DefinitionRegistry{
-		definitions:   copyDefinitions(),
+		definitions:   definitions,
 		muDefinitions: sync.RWMutex{},
 	}
 }

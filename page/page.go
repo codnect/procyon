@@ -1,8 +1,8 @@
 package page
 
 import (
+	"github.com/procyon-projects/procyon/sort"
 	"math"
-	"procyon-test/sort"
 )
 
 type Paginated interface {

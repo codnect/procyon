@@ -277,7 +277,7 @@ func TestInstanceRegistry_OrElseGetCreatesAndReturnsNewInstanceIfInstanceIsNotFo
 }
 
 func TestDefinitionRegistry_AddReturnsErrorIfDefinitionIsNil(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	err := registry.Add(nil)
 
 	assert.NotNil(t, err)
@@ -285,7 +285,7 @@ func TestDefinitionRegistry_AddReturnsErrorIfDefinitionIsNil(t *testing.T) {
 }
 
 func TestDefinitionRegistry_AddReturnNilIfDefinitionIsAddedSuccessfully(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -297,7 +297,7 @@ func TestDefinitionRegistry_AddReturnNilIfDefinitionIsAddedSuccessfully(t *testi
 }
 
 func TestDefinitionRegistry_AddReturnsErrorIfDefinitionIsDuplicated(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -314,7 +314,7 @@ func TestDefinitionRegistry_AddReturnsErrorIfDefinitionIsDuplicated(t *testing.T
 }
 
 func TestDefinitionRegistry_RemoveReturnsErrorIfDefinitionIsNotFound(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 
 	err := registry.Remove("anyType")
 
@@ -323,7 +323,7 @@ func TestDefinitionRegistry_RemoveReturnsErrorIfDefinitionIsNotFound(t *testing.
 }
 
 func TestDefinitionRegistry_RemoveDeletesDefinitionFromRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -340,7 +340,7 @@ func TestDefinitionRegistry_RemoveDeletesDefinitionFromRegistry(t *testing.T) {
 }
 
 func TestDefinitionRegistry_ContainsReturnsTrueIfDefinitionExistsInRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -354,12 +354,12 @@ func TestDefinitionRegistry_ContainsReturnsTrueIfDefinitionExistsInRegistry(t *t
 }
 
 func TestDefinitionRegistry_ContainsReturnsFalseIfDefinitionDoesNotExistInRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	assert.False(t, registry.Contains("anyType"))
 }
 
 func TestDefinitionRegistry_FindReturnsDefinitionIfItExistsInRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -375,7 +375,7 @@ func TestDefinitionRegistry_FindReturnsDefinitionIfItExistsInRegistry(t *testing
 }
 
 func TestDefinitionRegistry_FindReturnsNilIfDefinitionDoesNotExistInRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 
 	result, ok := registry.Find("anyType")
 	assert.False(t, ok)
@@ -383,7 +383,7 @@ func TestDefinitionRegistry_FindReturnsNilIfDefinitionDoesNotExistInRegistry(t *
 }
 
 func TestDefinitionRegistry_DefinitionsReturnsRegisteredDefinitions(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -399,7 +399,7 @@ func TestDefinitionRegistry_DefinitionsReturnsRegisteredDefinitions(t *testing.T
 }
 
 func TestDefinitionRegistry_DefinitionNamesReturnsRegisteredDefinitionNames(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -415,14 +415,14 @@ func TestDefinitionRegistry_DefinitionNamesReturnsRegisteredDefinitionNames(t *t
 }
 
 func TestDefinitionRegistry_DefinitionNamesByTypeReturnsEmptyNamesIfRequiredTypeIsNil(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	names := registry.DefinitionNamesByType(nil)
 	assert.NotNil(t, names)
 	assert.Len(t, names, 0)
 }
 
 func TestDefinitionRegistry_DefinitionNamesByTypeReturnsRegisteredDefinitionNamesBasedOnType(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
@@ -446,7 +446,7 @@ func TestDefinitionRegistry_DefinitionNamesByTypeReturnsRegisteredDefinitionName
 }
 
 func TestDefinitionRegistry_CountReturnsNumberOfDefinitions(t *testing.T) {
-	registry := NewDefinitionRegistry()
+	registry := NewDefinitionRegistry(nil)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)

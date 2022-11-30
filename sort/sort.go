@@ -1,6 +1,6 @@
 package sort
 
-import "procyon-test/sort/order"
+import "github.com/procyon-projects/procyon/sort/order"
 
 var (
 	unsorted = newSort()

@@ -13,7 +13,7 @@ type Container struct {
 
 func New() *Container {
 	return &Container{
-		definitionRegistry: NewDefinitionRegistry(),
+		definitionRegistry: NewDefinitionRegistry(copyDefinitions()),
 		instanceRegistry:   NewInstanceRegistry(),
 	}
 }
