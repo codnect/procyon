@@ -9,12 +9,14 @@ import (
 type Container struct {
 	definitionRegistry *DefinitionRegistry
 	instanceRegistry   *InstanceRegistry
+	hooks              *Hooks
 }
 
 func New() *Container {
 	return &Container{
 		definitionRegistry: NewDefinitionRegistry(copyDefinitions()),
 		instanceRegistry:   NewInstanceRegistry(),
+		hooks:              NewHooks(),
 	}
 }
 
@@ -28,6 +30,10 @@ func (c *Container) DefinitionRegistry() *DefinitionRegistry {
 
 func (c *Container) InstanceRegistry() *InstanceRegistry {
 	return c.instanceRegistry
+}
+
+func (c *Container) Hooks() *Hooks {
+	return c.hooks
 }
 
 func (c *Container) Get(name string) (any, error) {
@@ -77,7 +83,9 @@ func (c *Container) getInstance(name string, requiredType *Type, args ...any) (a
 	def, ok := c.definitionRegistry.Find(name)
 
 	if !ok {
-		return nil, fmt.Errorf("not found definition with name %s", name)
+		return nil, &notFoundError{
+			ErrorString: fmt.Sprintf("not found definition with name %s", name),
+		}
 	}
 
 	if requiredType != nil && !c.match(def.reflectorType(), requiredType.typ) {
@@ -147,17 +155,78 @@ func (c *Container) createInstance(definition *Definition, args []any) (instance
 	return c.initializeInstance(definition.name, instance)
 }
 
-func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
-	arguments := make([]any, len(inputs))
-	for _, input := range inputs {
-		instance, err := c.Get(input.Name())
+func (c *Container) getInstances(sliceType reflector.Slice) (any, error) {
+	val, err := sliceType.Instantiate()
 
-		if !input.IsOptional() && err != nil {
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		instance any
+		items    any
+		itemType = &Type{
+			typ: sliceType.Elem(),
+		}
+	)
+
+	instances := c.InstanceRegistry().FindAllByType(itemType)
+
+	sliceInstance := val.Val()
+	sliceType = reflector.ToSlice(reflector.ToPointer(reflector.TypeOfAny(sliceInstance)).Elem())
+	items, err = sliceType.Append(instances...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	definitionNames := c.DefinitionRegistry().DefinitionNamesByType(itemType)
+
+	for _, definitionName := range definitionNames {
+		if c.InstanceRegistry().Contains(definitionName) {
+			continue
+		}
+
+		instance, err = c.Get(definitionName)
+
+		if err != nil {
 			return nil, err
 		}
 
-		if input.IsOptional() && err != nil {
-			if input.reflectorType().IsInstantiable() {
+		items, err = sliceType.Append(instance)
+	}
+
+	return items, nil
+}
+
+func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
+	arguments := make([]any, 0)
+	for _, input := range inputs {
+
+		if reflector.IsSlice(input.reflectorType()) {
+			instances, err := c.getInstances(reflector.ToSlice(input.reflectorType()))
+
+			if err != nil {
+				return nil, err
+			}
+
+			arguments = append(arguments, instances)
+			continue
+		}
+
+		var (
+			instance any
+			err      error
+		)
+
+		if input.Name() != "" {
+			instance, err = c.Get(input.Name())
+		} else {
+			instance, err = c.GetByType(input.Type())
+		}
+
+		if err != nil {
+			if notFoundErr := (*notFoundError)(nil); errors.As(err, &notFoundErr) && !reflector.IsPointer(input.reflectorType()) && input.reflectorType().IsInstantiable() {
 				var val reflector.Value
 				val, err = input.reflectorType().Instantiate()
 
@@ -165,15 +234,57 @@ func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
 					return nil, err
 				}
 
-				instance = val.Val()
+				instance = val.Elem()
+				arguments = append(arguments, instance)
+				continue
 			}
-		}
 
-		arguments = append(arguments, instance)
+			if !input.IsOptional() && err != nil {
+				return nil, err
+			} else if input.IsOptional() && err != nil {
+				arguments = append(arguments, nil)
+			}
+		} else {
+			arguments = append(arguments, instance)
+		}
 	}
-	return nil, nil
+
+	return arguments, nil
 }
 
 func (c *Container) initializeInstance(name string, instance any) (any, error) {
-	return nil, nil
+	var (
+		err error
+	)
+	hooks := c.Hooks().ToSlice()
+
+	for _, hook := range hooks {
+		if hook.OnPreInitialization != nil {
+			instance, err = hook.OnPreInitialization(name, instance)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if postConstructor, implements := instance.(PostConstructor); implements {
+		err = postConstructor.PostConstruct()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, hook := range hooks {
+		if hook.OnPostInitialization != nil {
+			instance, err = hook.OnPostInitialization(name, instance)
+
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return instance, nil
 }

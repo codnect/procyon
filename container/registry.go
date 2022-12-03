@@ -78,7 +78,9 @@ func (c *InstanceRegistry) FindByType(requiredType *Type) (any, error) {
 	}
 
 	if len(instances) == 0 {
-		return nil, fmt.Errorf("container: not found any instance of type %s", requiredType.Name())
+		return nil, &notFoundError{
+			ErrorString: fmt.Sprintf("container: not found any instance of type %s", requiredType.Name()),
+		}
 	}
 
 	return instances[0], nil

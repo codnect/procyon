@@ -1,50 +1,100 @@
 package container
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
-type PreInitializeHook interface {
+type PreInitializationHook interface {
 	OnPreInitialization(name string, instance any) (any, error)
 }
 
-type PostInitializeHook interface {
+type PostInitializationHook interface {
 	OnPostInitialization(name string, instance any) (any, error)
 }
 
-type InitializeHook interface {
-	OnInitialization() error
+type HookFunc interface {
+	func(name string, instance any) (any, error)
 }
 
-type Hook interface {
+func PostInitialization[F HookFunc](f F) *Hook {
+	return &Hook{
+		OnPostInitialization: f,
+	}
+}
+
+func PreInitialization[F HookFunc](f F) *Hook {
+	return &Hook{
+		OnPreInitialization: f,
+	}
+}
+
+type Hook struct {
+	OnPreInitialization  func(string, any) (any, error)
+	OnPostInitialization func(string, any) (any, error)
 }
 
 type Hooks struct {
-	hooks map[string]Hook
+	hooks map[*Hook]struct{}
 	mu    sync.RWMutex
 }
 
-func newHooks() *Hooks {
+func NewHooks() *Hooks {
 	return &Hooks{
-		make(map[string]Hook),
+		make(map[*Hook]struct{}),
 		sync.RWMutex{},
 	}
 }
 
-func (h *Hooks) Add(hook Hook) error {
+func (h *Hooks) Add(hook *Hook) error {
+	defer h.mu.Unlock()
+	h.mu.Lock()
+
+	if hook == nil {
+		return fmt.Errorf("container: hook cannot be nil")
+	}
+
+	if _, ok := h.hooks[hook]; ok {
+		return fmt.Errorf("container: hook already exists")
+	}
+
+	h.hooks[hook] = struct{}{}
 	return nil
 }
 
-func (h *Hooks) Remove(hook Hook) {
+func (h *Hooks) Remove(hook *Hook) {
+	defer h.mu.Unlock()
+	h.mu.Lock()
 
+	if hook != nil {
+		delete(h.hooks, hook)
+	}
 }
 
-func (h *Hooks) Hooks() []Hook {
-	return nil
+func (h *Hooks) ToSlice() []*Hook {
+	defer h.mu.Unlock()
+	h.mu.Lock()
+
+	hooks := make([]*Hook, 0)
+
+	for hook, _ := range h.hooks {
+		hooks = append(hooks, hook)
+	}
+
+	return hooks
 }
 
 func (h *Hooks) Count() int {
-	return 0
+	defer h.mu.Unlock()
+	h.mu.Lock()
+	return len(h.hooks)
 }
 
 func (h *Hooks) RemoveAll() {
+	defer h.mu.Unlock()
+	h.mu.Lock()
 
+	for key := range h.hooks {
+		delete(h.hooks, key)
+	}
 }

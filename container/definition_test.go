@@ -8,6 +8,7 @@ import (
 )
 
 type AnyType struct {
+	t *DependencyType
 }
 
 func (a AnyType) String() string {
@@ -18,7 +19,9 @@ type DependencyType struct {
 }
 
 func AnyConstructFunction(t *DependencyType) *AnyType {
-	return &AnyType{}
+	return &AnyType{
+		t,
+	}
 }
 
 func AnyConstructFunctionReturningNonPointerValue(t *DependencyType) AnyType {

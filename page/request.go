@@ -1,6 +1,6 @@
 package page
 
-import "procyon-test/sort"
+import "github.com/procyon-projects/procyon/sort"
 
 var (
 	unpagedRequest = newRequest(0, 0, false)

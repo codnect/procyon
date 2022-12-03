@@ -4,6 +4,10 @@ import "github.com/procyon-projects/reflector"
 
 type Constructor any
 
+type PostConstructor interface {
+	PostConstruct() error
+}
+
 type Input struct {
 	index    int
 	name     string
