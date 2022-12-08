@@ -119,7 +119,13 @@ func (c *Container) getInstance(name string, requiredType *Type, args ...any) (a
 
 	if def.IsShared() {
 		instance, err := c.instanceRegistry.OrElseGet(name, func() (any, error) {
-			return c.createInstance(def, args)
+			instance, err := c.createInstance(def, args)
+
+			if err != nil {
+				return nil, err
+			}
+
+			return instance, c.instanceRegistry.Add(name, instance)
 		})
 
 		return instance, err

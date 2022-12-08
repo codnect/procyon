@@ -206,3 +206,72 @@ func TestContainer_PostConstructorShouldBeCalled(t *testing.T) {
 	assert.NotNil(t, instance)
 	instance.(*AnyType).AssertExpectations(t)
 }
+
+func TestContainer_ContainsChecksIfInstanceExists(t *testing.T) {
+	c := New()
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0))
+	assert.Nil(t, err)
+	assert.NotNil(t, def)
+
+	c.DefinitionRegistry().Add(def)
+
+	assert.False(t, c.Contains("anyType"))
+
+	var instance any
+	instance, err = c.Get("anyType")
+
+	assert.Nil(t, err)
+	assert.NotNil(t, instance)
+
+	assert.True(t, c.Contains("anyType"))
+}
+
+func TestContainer_GetReturnsDifferentInstanceForEachCallIfTypeScopeIsPrototype(t *testing.T) {
+	c := New()
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scope(PrototypeScope))
+	assert.Nil(t, err)
+	assert.NotNil(t, def)
+	c.DefinitionRegistry().Add(def)
+
+	var instance any
+	instance, err = c.Get("anyType")
+	assert.Nil(t, err)
+	assert.NotNil(t, instance)
+
+	var anotherInstance any
+	anotherInstance, err = c.Get("anyType")
+	assert.Nil(t, err)
+	assert.NotNil(t, anotherInstance)
+
+	assert.NotEqual(t, instance, anotherInstance)
+}
+
+func TestContainer_HooksShouldBeCalledDuringInitialization(t *testing.T) {
+	c := New()
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scope(PrototypeScope))
+	assert.Nil(t, err)
+	assert.NotNil(t, def)
+	c.DefinitionRegistry().Add(def)
+
+	preHookCalled := false
+	err = c.Hooks().Add(PreInitialization(func(name string, instance any) (any, error) {
+		preHookCalled = true
+		return instance, nil
+	}))
+	assert.Nil(t, err)
+
+	postHookCalled := false
+	err = c.Hooks().Add(PostInitialization(func(name string, instance any) (any, error) {
+		postHookCalled = true
+		return instance, nil
+	}))
+	assert.Nil(t, err)
+
+	var instance any
+	instance, err = c.Get("anyType")
+	assert.Nil(t, err)
+	assert.NotNil(t, instance)
+
+	assert.True(t, preHookCalled)
+	assert.True(t, postHookCalled)
+}
