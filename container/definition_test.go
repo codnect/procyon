@@ -2,24 +2,35 @@ package container
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"reflect"
 	"runtime"
 	"testing"
 )
 
 type AnyType struct {
+	*mock.Mock
 	t *DependencyType
 }
 
-func (a AnyType) String() string {
+func (a *AnyType) String() string {
 	return ""
+}
+
+func (a *AnyType) PostConstruct() error {
+	a.Mock.Called()
+	return nil
 }
 
 type DependencyType struct {
 }
 
 func AnyConstructFunction(t *DependencyType) *AnyType {
+	m := &mock.Mock{}
+	m.On("PostConstruct").Return()
+
 	return &AnyType{
+		m,
 		t,
 	}
 }

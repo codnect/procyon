@@ -52,44 +52,69 @@ func (c *Container) GetByType(typ *Type) (any, error) {
 	return c.getInstance("", typ)
 }
 
+func (c *Container) GetInstancesByType(requiredType *Type) ([]any, error) {
+	if requiredType == nil {
+		return nil, errors.New("container: requiredType cannot be nil")
+	}
+
+	instances, err := c.getInstances(reflector.ToSlice(reflector.TypeOf[[]any]()), requiredType)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return instances.([]any), nil
+}
+
 func (c *Container) Contains(name string) bool {
 	return c.instanceRegistry.Contains(name)
 }
 
 func (c *Container) IsShared(name string) bool {
-	return false
+	def, ok := c.definitionRegistry.Find(name)
+	return ok && def.IsShared()
 }
 
 func (c *Container) IsPrototype(name string) bool {
-
-	return false
+	def, ok := c.definitionRegistry.Find(name)
+	return ok && def.IsPrototype()
 }
 
 func (c *Container) getInstance(name string, requiredType *Type, args ...any) (any, error) {
 	if name == "" && requiredType == nil {
-		return nil, errors.New("either name or typ should be given")
+		return nil, errors.New("container: either name or requiredType should be given")
 	}
 
 	if name == "" {
 		candidate, err := c.instanceRegistry.FindByType(requiredType)
 
-		if err != nil {
-			return nil, err
+		if err == nil {
+			return candidate, nil
 		}
 
-		return candidate, nil
+		names := c.definitionRegistry.DefinitionNamesByType(requiredType)
+
+		if len(names) == 0 {
+			return nil, &notFoundError{
+				ErrorString: fmt.Sprintf("container: not found instance or definition with required type %s", requiredType.Name()),
+			}
+		} else if len(names) > 1 {
+			return nil, fmt.Errorf("container: there is more than one definition for the required type %s, it cannot be distinguished ", requiredType.Name())
+		}
+
+		name = names[0]
 	}
 
 	def, ok := c.definitionRegistry.Find(name)
 
 	if !ok {
 		return nil, &notFoundError{
-			ErrorString: fmt.Sprintf("not found definition with name %s", name),
+			ErrorString: fmt.Sprintf("container: not found definition with name %s", name),
 		}
 	}
 
 	if requiredType != nil && !c.match(def.reflectorType(), requiredType.typ) {
-		return nil, fmt.Errorf("definition type with name %s does not match the required type", name)
+		return nil, fmt.Errorf("container: definition type with name %s does not match the required type", name)
 	}
 
 	if def.IsShared() {
@@ -149,13 +174,13 @@ func (c *Container) createInstance(definition *Definition, args []any) (instance
 
 		instance = results[0]
 	} else {
-		return nil, fmt.Errorf("the number of provided arguments is wrong for definition %s", definition.Name())
+		return nil, fmt.Errorf("container: the number of provided arguments is wrong for definition %s", definition.Name())
 	}
 
 	return c.initializeInstance(definition.name, instance)
 }
 
-func (c *Container) getInstances(sliceType reflector.Slice) (any, error) {
+func (c *Container) getInstances(sliceType reflector.Slice, itemType *Type) (any, error) {
 	val, err := sliceType.Instantiate()
 
 	if err != nil {
@@ -165,22 +190,18 @@ func (c *Container) getInstances(sliceType reflector.Slice) (any, error) {
 	var (
 		instance any
 		items    any
-		itemType = &Type{
-			typ: sliceType.Elem(),
-		}
 	)
 
-	instances := c.InstanceRegistry().FindAllByType(itemType)
+	instances := c.instanceRegistry.FindAllByType(itemType)
 
-	sliceInstance := val.Val()
-	sliceType = reflector.ToSlice(reflector.ToPointer(reflector.TypeOfAny(sliceInstance)).Elem())
+	sliceType = reflector.ToSlice(reflector.ToPointer(reflector.TypeOfAny(val.Val())).Elem())
 	items, err = sliceType.Append(instances...)
 
 	if err != nil {
 		return nil, err
 	}
 
-	definitionNames := c.DefinitionRegistry().DefinitionNamesByType(itemType)
+	definitionNames := c.definitionRegistry.DefinitionNamesByType(itemType)
 
 	for _, definitionName := range definitionNames {
 		if c.InstanceRegistry().Contains(definitionName) {
@@ -204,7 +225,10 @@ func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
 	for _, input := range inputs {
 
 		if reflector.IsSlice(input.reflectorType()) {
-			instances, err := c.getInstances(reflector.ToSlice(input.reflectorType()))
+			sliceType := reflector.ToSlice(input.reflectorType())
+			instances, err := c.getInstances(sliceType, &Type{
+				typ: sliceType.Elem(),
+			})
 
 			if err != nil {
 				return nil, err
