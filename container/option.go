@@ -84,7 +84,7 @@ func QualifierAt(index int, name string) Option {
 	}
 }
 
-func Scope(scope string) Option {
+func Scoped(scope string) Option {
 	return func(def *Definition) error {
 		def.scope = scope
 		return nil

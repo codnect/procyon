@@ -1,6 +1,7 @@
 package container
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/procyon-projects/reflector"
@@ -21,6 +22,19 @@ func New() *Container {
 }
 
 func (c *Container) Start() error {
+	ctx := context.Background()
+
+	for _, name := range c.definitionRegistry.DefinitionNames() {
+		definition, ok := c.definitionRegistry.Find(name)
+		if ok && definition.IsShared() {
+			_, err := c.Get(ctx, definition.Name())
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -36,28 +50,28 @@ func (c *Container) Hooks() *Hooks {
 	return c.hooks
 }
 
-func (c *Container) Get(name string) (any, error) {
-	return c.getInstance(name, nil)
+func (c *Container) Get(ctx context.Context, name string) (any, error) {
+	return c.getInstance(ctx, name, nil)
 }
 
-func (c *Container) GetByNameAndType(name string, typ *Type) (any, error) {
-	return c.getInstance(name, typ)
+func (c *Container) GetByNameAndType(ctx context.Context, name string, typ *Type) (any, error) {
+	return c.getInstance(ctx, name, typ)
 }
 
-func (c *Container) GetByNameAndArgs(name string, args ...any) (any, error) {
-	return c.getInstance(name, nil, args...)
+func (c *Container) GetByNameAndArgs(ctx context.Context, name string, args ...any) (any, error) {
+	return c.getInstance(ctx, name, nil, args...)
 }
 
-func (c *Container) GetByType(typ *Type) (any, error) {
-	return c.getInstance("", typ)
+func (c *Container) GetByType(ctx context.Context, typ *Type) (any, error) {
+	return c.getInstance(ctx, "", typ)
 }
 
-func (c *Container) GetInstancesByType(requiredType *Type) ([]any, error) {
+func (c *Container) GetInstancesByType(ctx context.Context, requiredType *Type) ([]any, error) {
 	if requiredType == nil {
 		return nil, errors.New("container: requiredType cannot be nil")
 	}
 
-	instances, err := c.getInstances(reflector.ToSlice(reflector.TypeOf[[]any]()), requiredType)
+	instances, err := c.getInstances(ctx, reflector.ToSlice(reflector.TypeOf[[]any]()), requiredType)
 
 	if err != nil {
 		return nil, err
@@ -80,7 +94,7 @@ func (c *Container) IsPrototype(name string) bool {
 	return ok && def.IsPrototype()
 }
 
-func (c *Container) getInstance(name string, requiredType *Type, args ...any) (any, error) {
+func (c *Container) getInstance(ctx context.Context, name string, requiredType *Type, args ...any) (any, error) {
 	if name == "" && requiredType == nil {
 		return nil, errors.New("container: either name or requiredType should be given")
 	}
@@ -99,7 +113,7 @@ func (c *Container) getInstance(name string, requiredType *Type, args ...any) (a
 				ErrorString: fmt.Sprintf("container: not found instance or definition with required type %s", requiredType.Name()),
 			}
 		} else if len(names) > 1 {
-			return nil, fmt.Errorf("container: there is more than one definition for the required type %s, it cannot be distinguished ", requiredType.Name())
+			return nil, fmt.Errorf("container: there is more than one definition for the required type %s, it cannot be distinguished", requiredType.Name())
 		}
 
 		name = names[0]
@@ -119,21 +133,15 @@ func (c *Container) getInstance(name string, requiredType *Type, args ...any) (a
 
 	if def.IsShared() {
 		instance, err := c.instanceRegistry.OrElseGet(name, func() (any, error) {
-			instance, err := c.createInstance(def, args)
-
-			if err != nil {
-				return nil, err
-			}
-
-			return instance, c.instanceRegistry.Add(name, instance)
+			return c.createInstance(ctx, def, args)
 		})
 
 		return instance, err
 	} else if def.IsPrototype() {
-		return c.createInstance(def, args)
+		return c.createInstance(ctx, def, args)
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("container: invalid scope %s", def.Scope())
 }
 
 func (c *Container) match(instanceType reflector.Type, requiredType reflector.Type) bool {
@@ -150,13 +158,13 @@ func (c *Container) match(instanceType reflector.Type, requiredType reflector.Ty
 	return false
 }
 
-func (c *Container) createInstance(definition *Definition, args []any) (instance any, err error) {
+func (c *Container) createInstance(ctx context.Context, definition *Definition, args []any) (instance any, err error) {
 	newFunc := definition.constructorFunc
 	parameterCount := len(definition.Inputs())
 
 	if parameterCount != 0 && len(args) == 0 {
 		var resolvedArguments []any
-		resolvedArguments, err = c.resolveInputs(definition.Inputs())
+		resolvedArguments, err = c.resolveInputs(ctx, definition.Inputs())
 
 		if err != nil {
 			return nil, err
@@ -186,7 +194,7 @@ func (c *Container) createInstance(definition *Definition, args []any) (instance
 	return c.initializeInstance(definition.name, instance)
 }
 
-func (c *Container) getInstances(sliceType reflector.Slice, itemType *Type) (any, error) {
+func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice, itemType *Type) (any, error) {
 	val, err := sliceType.Instantiate()
 
 	if err != nil {
@@ -214,7 +222,7 @@ func (c *Container) getInstances(sliceType reflector.Slice, itemType *Type) (any
 			continue
 		}
 
-		instance, err = c.Get(definitionName)
+		instance, err = c.Get(ctx, definitionName)
 
 		if err != nil {
 			return nil, err
@@ -226,13 +234,13 @@ func (c *Container) getInstances(sliceType reflector.Slice, itemType *Type) (any
 	return items, nil
 }
 
-func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
+func (c *Container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, error) {
 	arguments := make([]any, 0)
 	for _, input := range inputs {
 
 		if reflector.IsSlice(input.reflectorType()) {
 			sliceType := reflector.ToSlice(input.reflectorType())
-			instances, err := c.getInstances(sliceType, &Type{
+			instances, err := c.getInstances(ctx, sliceType, &Type{
 				typ: sliceType.Elem(),
 			})
 
@@ -250,9 +258,9 @@ func (c *Container) resolveInputs(inputs []*Input) ([]any, error) {
 		)
 
 		if input.Name() != "" {
-			instance, err = c.Get(input.Name())
+			instance, err = c.Get(ctx, input.Name())
 		} else {
-			instance, err = c.GetByType(input.Type())
+			instance, err = c.GetByType(ctx, input.Type())
 		}
 
 		if err != nil {

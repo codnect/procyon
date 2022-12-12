@@ -131,7 +131,15 @@ func (c *InstanceRegistry) OrElseGet(name string, supplier func() (any, error)) 
 	}()
 
 	instance, err = supplier()
-	return instance, err
+
+	if err != nil {
+		return nil, err
+	}
+
+	c.instances[name] = instance
+	c.typesOfInstances[name] = reflector.TypeOfAny(instance)
+
+	return instance, nil
 }
 
 func (c *InstanceRegistry) Count() int {

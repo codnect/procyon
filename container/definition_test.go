@@ -41,7 +41,7 @@ func AnyConstructFunctionReturningNonPointerValue(t *DependencyType) AnyType {
 
 func TestMakeDefinition_WithConstructorReturningPointerType(t *testing.T) {
 	def, err := MakeDefinition(AnyConstructFunction, Qualifier[*DependencyType]("anyDependencyType"),
-		Scope(PrototypeScope),
+		Scoped(PrototypeScope),
 		QualifierAt(0, "anotherDependencyType"),
 		OptionalAt(0))
 	assert.Nil(t, err)

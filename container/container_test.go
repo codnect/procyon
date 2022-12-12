@@ -1,6 +1,8 @@
 package container
 
 import (
+	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,13 +11,23 @@ type AnySliceType struct {
 	anyField int
 }
 
+func (a *AnySliceType) String() string {
+	return ""
+}
+
 func AnySliceConstructFunction(t []*DependencyType) *AnySliceType {
 	return &AnySliceType{}
 }
 
 func TestContainer_Start(t *testing.T) {
 	c := New()
-	err := c.Start()
+
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
+	assert.Nil(t, err)
+	assert.NotNil(t, def)
+	c.DefinitionRegistry().Add(def)
+
+	err = c.Start()
 	assert.Nil(t, err)
 }
 
@@ -46,7 +58,7 @@ func TestContainer_Get(t *testing.T) {
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.Get("anyType")
+	instance, err = c.Get(context.Background(), "anyType")
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 }
@@ -62,7 +74,7 @@ func TestContainer_GetInstanceWithSliceDependency(t *testing.T) {
 	c.InstanceRegistry().Add("test2", &DependencyType{})
 
 	var instance any
-	instance, err = c.Get("anySliceType")
+	instance, err = c.Get(context.Background(), "anySliceType")
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 }
@@ -76,7 +88,7 @@ func TestContainer_GetByType(t *testing.T) {
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.GetByType(TypeOf[*AnyType]())
+	instance, err = c.GetByType(context.Background(), TypeOf[*AnyType]())
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 }
@@ -90,7 +102,7 @@ func TestContainer_GetByNameAndTypeReturnsInstance(t *testing.T) {
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.GetByNameAndType("anyType", TypeOf[*AnyType]())
+	instance, err = c.GetByNameAndType(context.Background(), "anyType", TypeOf[*AnyType]())
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 }
@@ -110,7 +122,7 @@ func TestContainer_GetByNameAndTypeReturnsErrorIfDefinitionTypeWithGivenNameDoes
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.GetByNameAndType("anySliceType", TypeOf[*AnyType]())
+	instance, err = c.GetByNameAndType(context.Background(), "anySliceType", TypeOf[*AnyType]())
 	assert.NotNil(t, err)
 	assert.Nil(t, instance)
 	assert.Equal(t, "container: definition type with name anySliceType does not match the required type", err.Error())
@@ -127,7 +139,7 @@ func TestContainer_GetByNameAndArgsReturnsInstanceWithArguments(t *testing.T) {
 	depType := &DependencyType{}
 
 	var instance any
-	instance, err = c.GetByNameAndArgs("anyType", depType)
+	instance, err = c.GetByNameAndArgs(context.Background(), "anyType", depType)
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 	assert.Equal(t, depType, instance.(*AnyType).t)
@@ -144,7 +156,7 @@ func TestContainer_GetByNameAndArgsReturnsErrorIfNumberOfProvidedArgumentIsWrong
 	depType := &DependencyType{}
 
 	var instance any
-	instance, err = c.GetByNameAndArgs("anyType", depType, "anyString")
+	instance, err = c.GetByNameAndArgs(context.Background(), "anyType", depType, "anyString")
 	assert.NotNil(t, err)
 	assert.Nil(t, instance)
 	assert.Equal(t, "container: the number of provided arguments is wrong for definition anyType", err.Error())
@@ -157,7 +169,7 @@ func TestContainer_GetInstancesReturnsInstancesForRequiredTypes(t *testing.T) {
 	anotherInstance := &AnyType{}
 	c.InstanceRegistry().Add("anotherInstance", anotherInstance)
 
-	instances, err := c.GetInstancesByType(TypeOf[*AnyType]())
+	instances, err := c.GetInstancesByType(context.Background(), TypeOf[*AnyType]())
 	assert.Nil(t, err)
 	assert.NotNil(t, instances)
 	assert.Equal(t, []any{anyInstance, anotherInstance}, instances)
@@ -165,7 +177,7 @@ func TestContainer_GetInstancesReturnsInstancesForRequiredTypes(t *testing.T) {
 
 func TestContainer_GetInstancesByTypeReturnsErrorIfRequiredTypeIsNil(t *testing.T) {
 	c := New()
-	instance, err := c.GetInstancesByType(nil)
+	instance, err := c.GetInstancesByType(context.Background(), nil)
 	assert.NotNil(t, err)
 	assert.Nil(t, instance)
 	assert.Equal(t, "container: requiredType cannot be nil", err.Error())
@@ -173,7 +185,7 @@ func TestContainer_GetInstancesByTypeReturnsErrorIfRequiredTypeIsNil(t *testing.
 
 func TestContainer_IsPrototype(t *testing.T) {
 	c := New()
-	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scope(PrototypeScope))
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 	c.DefinitionRegistry().Add(def)
@@ -200,7 +212,7 @@ func TestContainer_PostConstructorShouldBeCalled(t *testing.T) {
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.Get("anyType")
+	instance, err = c.Get(context.Background(), "anyType")
 
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
@@ -218,7 +230,7 @@ func TestContainer_ContainsChecksIfInstanceExists(t *testing.T) {
 	assert.False(t, c.Contains("anyType"))
 
 	var instance any
-	instance, err = c.Get("anyType")
+	instance, err = c.Get(context.Background(), "anyType")
 
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
@@ -228,18 +240,18 @@ func TestContainer_ContainsChecksIfInstanceExists(t *testing.T) {
 
 func TestContainer_GetReturnsDifferentInstanceForEachCallIfTypeScopeIsPrototype(t *testing.T) {
 	c := New()
-	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scope(PrototypeScope))
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.Get("anyType")
+	instance, err = c.Get(context.Background(), "anyType")
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 
 	var anotherInstance any
-	anotherInstance, err = c.Get("anyType")
+	anotherInstance, err = c.Get(context.Background(), "anyType")
 	assert.Nil(t, err)
 	assert.NotNil(t, anotherInstance)
 
@@ -248,7 +260,7 @@ func TestContainer_GetReturnsDifferentInstanceForEachCallIfTypeScopeIsPrototype(
 
 func TestContainer_HooksShouldBeCalledDuringInitialization(t *testing.T) {
 	c := New()
-	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scope(PrototypeScope))
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 	c.DefinitionRegistry().Add(def)
@@ -268,10 +280,39 @@ func TestContainer_HooksShouldBeCalledDuringInitialization(t *testing.T) {
 	assert.Nil(t, err)
 
 	var instance any
-	instance, err = c.Get("anyType")
+	instance, err = c.Get(context.Background(), "anyType")
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 
 	assert.True(t, preHookCalled)
 	assert.True(t, postHookCalled)
+}
+
+func TestContainer_GetByTypeReturnsErrorIfThereIsMoreThanOneDefinition(t *testing.T) {
+	c := New()
+	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
+	assert.Nil(t, err)
+	assert.NotNil(t, def)
+	c.DefinitionRegistry().Add(def)
+
+	def, err = MakeDefinition(AnySliceConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
+	assert.Nil(t, err)
+	assert.NotNil(t, def)
+	c.DefinitionRegistry().Add(def)
+
+	var instance any
+	instance, err = c.GetByType(context.Background(), TypeOf[fmt.Stringer]())
+
+	assert.NotNil(t, err)
+	assert.Equal(t, "container: there is more than one definition for the required type Stringer, it cannot be distinguished", err.Error())
+	assert.Nil(t, instance)
+}
+
+func TestContainer_GetReturnsErrorIfDefinitionDoesNotExist(t *testing.T) {
+	c := New()
+	instance, err := c.Get(context.Background(), "any")
+
+	assert.NotNil(t, err)
+	assert.Equal(t, "container: not found definition with name any", err.Error())
+	assert.Nil(t, instance)
 }
