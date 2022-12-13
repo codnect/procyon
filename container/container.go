@@ -5,24 +5,30 @@ import (
 	"errors"
 	"fmt"
 	"github.com/procyon-projects/reflector"
+	"strings"
+	"sync"
 )
 
 type Container struct {
 	definitionRegistry *DefinitionRegistry
-	instanceRegistry   *InstanceRegistry
+	sharedInstances    *SharedInstances
 	hooks              *Hooks
+	scopes             map[string]Scope
+	muScopes           *sync.RWMutex
 }
 
 func New() *Container {
 	return &Container{
 		definitionRegistry: NewDefinitionRegistry(copyDefinitions()),
-		instanceRegistry:   NewInstanceRegistry(),
+		sharedInstances:    NewSharedInstances(),
 		hooks:              NewHooks(),
+		scopes:             map[string]Scope{},
+		muScopes:           &sync.RWMutex{},
 	}
 }
 
 func (c *Container) Start() error {
-	ctx := context.Background()
+	ctx := contextWithHolder(context.Background())
 
 	for _, name := range c.definitionRegistry.DefinitionNames() {
 		definition, ok := c.definitionRegistry.Find(name)
@@ -42,8 +48,8 @@ func (c *Container) DefinitionRegistry() *DefinitionRegistry {
 	return c.definitionRegistry
 }
 
-func (c *Container) InstanceRegistry() *InstanceRegistry {
-	return c.instanceRegistry
+func (c *Container) SharedInstances() *SharedInstances {
+	return c.sharedInstances
 }
 
 func (c *Container) Hooks() *Hooks {
@@ -81,7 +87,7 @@ func (c *Container) GetInstancesByType(ctx context.Context, requiredType *Type) 
 }
 
 func (c *Container) Contains(name string) bool {
-	return c.instanceRegistry.Contains(name)
+	return c.sharedInstances.Contains(name)
 }
 
 func (c *Container) IsShared(name string) bool {
@@ -94,13 +100,60 @@ func (c *Container) IsPrototype(name string) bool {
 	return ok && def.IsPrototype()
 }
 
+func (c *Container) RegisterScope(scopeName string, scope Scope) error {
+	if strings.TrimSpace(scopeName) == "" {
+		panic("container: scopeName cannot be empty or blank")
+	}
+
+	if scope == nil {
+		panic("container: scope cannot be nil")
+	}
+
+	if SharedScope != scopeName && PrototypeScope != scopeName {
+		defer c.muScopes.Unlock()
+		c.muScopes.Lock()
+		c.scopes[scopeName] = scope
+		return nil
+	}
+
+	return errors.New("container: cannot replace existing scopes 'shared' and 'prototype'")
+}
+
+func (c *Container) ScopeNames() []string {
+	defer c.muScopes.Unlock()
+	c.muScopes.Lock()
+
+	scopeNames := make([]string, 0)
+	for scopeName, _ := range c.scopes {
+		scopeNames = append(scopeNames, scopeName)
+	}
+
+	return scopeNames
+}
+
+func (c *Container) GetScope(scopeName string) (Scope, error) {
+	defer c.muScopes.Unlock()
+	c.muScopes.Lock()
+	if scope, ok := c.scopes[scopeName]; ok {
+		return scope, nil
+	}
+
+	return nil, fmt.Errorf("container: no scope registered for scope name %s", scopeName)
+}
+
 func (c *Container) getInstance(ctx context.Context, name string, requiredType *Type, args ...any) (any, error) {
+	if ctx == nil {
+		return nil, errors.New("container: context should be passed")
+	}
+
+	ctx = contextWithHolder(ctx)
+
 	if name == "" && requiredType == nil {
 		return nil, errors.New("container: either name or requiredType should be given")
 	}
 
 	if name == "" {
-		candidate, err := c.instanceRegistry.FindByType(requiredType)
+		candidate, err := c.sharedInstances.FindByType(requiredType)
 
 		if err == nil {
 			return candidate, nil
@@ -132,16 +185,44 @@ func (c *Container) getInstance(ctx context.Context, name string, requiredType *
 	}
 
 	if def.IsShared() {
-		instance, err := c.instanceRegistry.OrElseGet(name, func() (any, error) {
+		instance, err := c.sharedInstances.OrElseGet(name, func() (any, error) {
 			return c.createInstance(ctx, def, args)
 		})
 
 		return instance, err
 	} else if def.IsPrototype() {
+		prototypeHolder := holderFromContext(ctx)
+		err := prototypeHolder.beforeCreation(name)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer prototypeHolder.afterCreation(name)
 		return c.createInstance(ctx, def, args)
 	}
 
-	return nil, fmt.Errorf("container: invalid scope %s", def.Scope())
+	if strings.TrimSpace(def.Scope()) == "" {
+		return nil, fmt.Errorf("container: no scope name for required type %s", requiredType.Name())
+	}
+
+	scope, err := c.GetScope(def.Scope())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return scope.Get(ctx, name, func(ctx context.Context) (any, error) {
+		scopeHolder := holderFromContext(ctx)
+		err = scopeHolder.beforeCreation(name)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer scopeHolder.afterCreation(name)
+		return c.createInstance(ctx, def, args)
+	})
 }
 
 func (c *Container) match(instanceType reflector.Type, requiredType reflector.Type) bool {
@@ -206,7 +287,7 @@ func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice,
 		items    any
 	)
 
-	instances := c.instanceRegistry.FindAllByType(itemType)
+	instances := c.sharedInstances.FindAllByType(itemType)
 
 	sliceType = reflector.ToSlice(reflector.ToPointer(reflector.TypeOfAny(val.Val())).Elem())
 	items, err = sliceType.Append(instances...)
@@ -218,7 +299,7 @@ func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice,
 	definitionNames := c.definitionRegistry.DefinitionNamesByType(itemType)
 
 	for _, definitionName := range definitionNames {
-		if c.InstanceRegistry().Contains(definitionName) {
+		if c.sharedInstances.Contains(definitionName) {
 			continue
 		}
 
