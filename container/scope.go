@@ -8,6 +8,6 @@ const (
 )
 
 type Scope interface {
-	Get(ctx context.Context, name string, supplier func(ctx context.Context) (any, error)) (any, error)
-	Remove(ctx context.Context, name string) (any, error)
+	GetObject(ctx context.Context, name string, supplier func(ctx context.Context) (any, error)) (any, error)
+	RemoveObject(ctx context.Context, name string) (any, error)
 }
