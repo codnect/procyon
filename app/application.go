@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/procyon-projects/procyon/container"
 	"github.com/procyon-projects/procyon/env"
+	"github.com/procyon-projects/procyon/event"
 	"github.com/procyon-projects/reflector"
 	"log"
 	"time"
@@ -16,8 +17,10 @@ type Application interface {
 
 func New() Application {
 	appContainer := container.New()
+	broadcaster := event.NewBroadcaster()
+
 	return &application{
-		ctx:       newContext(appContainer),
+		ctx:       newContext(appContainer, broadcaster),
 		container: appContainer,
 	}
 }
