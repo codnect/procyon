@@ -15,25 +15,57 @@ type Health interface {
 }
 
 type Option interface {
-	applyOption()
+	applyOption(h *health)
+}
+
+type health struct {
+	status  Status
+	details map[string]any
+}
+
+func newHealth(status Status, options ...Option) *health {
+	h := &health{
+		status:  status,
+		details: map[string]any{},
+	}
+
+	for _, option := range options {
+		option.applyOption(h)
+	}
+
+	return h
+}
+
+func (h *health) HealthStatus() Status {
+	return h.status
+}
+
+func (h *health) Details() map[string]any {
+	return h.details
 }
 
 func Unknown(options ...Option) Health {
-	return nil
+	return newHealth(StatusUnknown, options...)
 }
 
 func Up(options ...Option) Health {
-	return nil
+	return newHealth(StatusUp, options...)
 }
 
 func Down(options ...Option) Health {
-	return nil
+	return newHealth(StatusDown, options...)
 }
 
 func OutOfService(options ...Option) Health {
-	return nil
+	return newHealth(StatusOutOfService, options...)
 }
 
-func WithDetails(map[string]any) Option {
-	return nil
+type detailsOption map[string]any
+
+func (d detailsOption) applyOption(h *health) {
+	h.details = d
+}
+
+func WithDetails(details map[string]any) Option {
+	return detailsOption(details)
 }
