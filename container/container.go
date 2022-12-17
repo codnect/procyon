@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/procyon-projects/reflector"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -13,17 +14,23 @@ type Container struct {
 	definitionRegistry *DefinitionRegistry
 	sharedInstances    *SharedInstances
 	hooks              *Hooks
-	scopes             map[string]Scope
-	muScopes           *sync.RWMutex
+
+	scopes   map[string]Scope
+	muScopes *sync.RWMutex
+
+	resolvableDependencies   map[reflect.Type]any
+	muResolvableDependencies *sync.RWMutex
 }
 
 func New() *Container {
 	return &Container{
-		definitionRegistry: NewDefinitionRegistry(copyDefinitions()),
-		sharedInstances:    NewSharedInstances(),
-		hooks:              NewHooks(),
-		scopes:             map[string]Scope{},
-		muScopes:           &sync.RWMutex{},
+		definitionRegistry:       NewDefinitionRegistry(copyDefinitions()),
+		sharedInstances:          NewSharedInstances(),
+		hooks:                    NewHooks(),
+		scopes:                   map[string]Scope{},
+		muScopes:                 &sync.RWMutex{},
+		resolvableDependencies:   map[reflect.Type]any{},
+		muResolvableDependencies: &sync.RWMutex{},
 	}
 }
 
@@ -98,6 +105,22 @@ func (c *Container) IsShared(name string) bool {
 func (c *Container) IsPrototype(name string) bool {
 	def, ok := c.definitionRegistry.Find(name)
 	return ok && def.IsPrototype()
+}
+
+func (c *Container) RegisterResolvable(typ *Type, object any) error {
+	if typ == nil {
+		return errors.New("container: type should be passed")
+	}
+
+	if object == nil {
+		return errors.New("container: object should be passed")
+	}
+
+	defer c.muResolvableDependencies.Unlock()
+	c.muResolvableDependencies.Lock()
+
+	c.resolvableDependencies[typ.ReflectType()] = object
+	return nil
 }
 
 func (c *Container) RegisterScope(scopeName string, scope Scope) error {
@@ -315,6 +338,19 @@ func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice,
 	return items, nil
 }
 
+func (c *Container) getResolvableInstance(typ *Type) (any, bool) {
+	defer c.muResolvableDependencies.Unlock()
+	c.muResolvableDependencies.Lock()
+
+	for resolvableType, instance := range c.resolvableDependencies {
+		if resolvableType.ConvertibleTo(typ.ReflectType()) {
+			return instance, true
+		}
+	}
+
+	return nil, false
+}
+
 func (c *Container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, error) {
 	arguments := make([]any, 0)
 	for _, input := range inputs {
@@ -337,6 +373,12 @@ func (c *Container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, 
 			instance any
 			err      error
 		)
+
+		resolvableInstance, exists := c.getResolvableInstance(input.Type())
+		if exists {
+			arguments = append(arguments, resolvableInstance)
+			continue
+		}
 
 		if input.Name() != "" {
 			instance, err = c.Get(ctx, input.Name())
