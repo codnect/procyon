@@ -3,5 +3,5 @@ package event
 import "context"
 
 type Publisher interface {
-	Publish(ctx context.Context, event Event)
+	PublishEvent(ctx context.Context, event Event)
 }

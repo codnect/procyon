@@ -18,36 +18,44 @@ type StartupListener interface {
 
 type startupListener struct {
 	app         Application
-	args        []string
+	args        *Arguments
 	broadcaster event.Broadcaster
 }
 
+func newStartupListener(app Application, args *Arguments) *startupListener {
+	return &startupListener{
+		app:         app,
+		args:        args,
+		broadcaster: event.NewBroadcaster(),
+	}
+}
+
 func (l *startupListener) OnStarting(ctx Context) {
-	l.broadcaster.BroadcastEvent(newStartingEvent(l.app, l.args, ctx))
+	l.broadcaster.BroadcastEvent(ctx, newStartingEvent(l.app, l.args, ctx))
 }
 
 func (l *startupListener) OnEnvironmentPrepared(ctx Context, environment env.Environment) {
-	l.broadcaster.BroadcastEvent(newEnvironmentPreparedEvent(l.app, l.args, ctx, environment))
+	l.broadcaster.BroadcastEvent(ctx, newEnvironmentPreparedEvent(l.app, l.args, ctx, environment))
 }
 
 func (l *startupListener) OnContextPrepared(ctx Context) {
-	l.broadcaster.BroadcastEvent(newContextPreparedEvent(l.app, l.args, ctx))
+	l.broadcaster.BroadcastEvent(ctx, newContextPreparedEvent(l.app, l.args, ctx))
 }
 
 func (l *startupListener) OnContextLoaded(ctx Context) {
-	l.broadcaster.BroadcastEvent(newContextLoadedEvent(l.app, l.args, ctx))
+	l.broadcaster.BroadcastEvent(ctx, newContextLoadedEvent(l.app, l.args, ctx))
 }
 
 func (l *startupListener) OnStarted(ctx Context, timeTaken time.Duration) {
-	l.broadcaster.BroadcastEvent(newStartedEvent(l.app, l.args, ctx, timeTaken))
+	l.broadcaster.BroadcastEvent(ctx, newStartedEvent(l.app, l.args, ctx, timeTaken))
 }
 
 func (l *startupListener) OnReady(ctx Context, timeTaken time.Duration) {
-	l.broadcaster.BroadcastEvent(newReadyEvent(l.app, l.args, ctx, timeTaken))
+	l.broadcaster.BroadcastEvent(ctx, newReadyEvent(l.app, l.args, ctx, timeTaken))
 }
 
 func (l *startupListener) OnFailed(ctx Context, err error) {
-	l.broadcaster.BroadcastEvent(newFailedEvent(l.app, l.args, ctx, err))
+	l.broadcaster.BroadcastEvent(ctx, newFailedEvent(l.app, l.args, ctx, err))
 }
 
 type startupListeners []StartupListener

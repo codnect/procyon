@@ -22,10 +22,13 @@ type Context interface {
 
 type appContext struct {
 	environment env.Environment
+	container   *container.Container
 }
 
-func newContext() *appContext {
-	return &appContext{}
+func newContext(container *container.Container) *appContext {
+	return &appContext{
+		container: container,
+	}
 }
 
 func (c *appContext) Deadline() (deadline time.Time, ok bool) {
@@ -44,7 +47,7 @@ func (c *appContext) Value(key any) any {
 	return nil
 }
 
-func (c *appContext) Publish(ctx context.Context, event event.Event) {
+func (c *appContext) PublishEvent(ctx context.Context, event event.Event) {
 
 }
 

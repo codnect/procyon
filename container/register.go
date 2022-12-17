@@ -17,7 +17,7 @@ func Register(constructor Constructor, options ...Option) {
 	def, err := MakeDefinition(constructor, options...)
 
 	if err != nil {
-		panic(fmt.Sprintf("container: %s", err))
+		panic(err)
 	}
 
 	if _, exists := definitions[def.Name()]; exists {

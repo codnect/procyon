@@ -8,11 +8,11 @@ import (
 type StartingEvent struct {
 	app  Application
 	ctx  Context
-	args []string
+	args *Arguments
 	time time.Time
 }
 
-func newStartingEvent(app Application, args []string, ctx Context) *StartingEvent {
+func newStartingEvent(app Application, args *Arguments, ctx Context) *StartingEvent {
 	return &StartingEvent{
 		app:  app,
 		ctx:  ctx,
@@ -29,7 +29,7 @@ func (e *StartingEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *StartingEvent) Args() []string {
+func (e *StartingEvent) Args() *Arguments {
 	return e.args
 }
 
@@ -44,12 +44,12 @@ func (e *StartingEvent) Context() Context {
 type EnvironmentPreparedEvent struct {
 	app         Application
 	ctx         Context
-	args        []string
+	args        *Arguments
 	environment env.Environment
 	time        time.Time
 }
 
-func newEnvironmentPreparedEvent(app Application, args []string, ctx Context, environment env.Environment) *EnvironmentPreparedEvent {
+func newEnvironmentPreparedEvent(app Application, args *Arguments, ctx Context, environment env.Environment) *EnvironmentPreparedEvent {
 	return &EnvironmentPreparedEvent{
 		app:         app,
 		ctx:         ctx,
@@ -67,7 +67,7 @@ func (e *EnvironmentPreparedEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *EnvironmentPreparedEvent) Args() []string {
+func (e *EnvironmentPreparedEvent) Args() *Arguments {
 	return e.args
 }
 
@@ -86,11 +86,11 @@ func (e *EnvironmentPreparedEvent) Environment() env.Environment {
 type ContextPreparedEvent struct {
 	app  Application
 	ctx  Context
-	args []string
+	args *Arguments
 	time time.Time
 }
 
-func newContextPreparedEvent(app Application, args []string, ctx Context) *ContextPreparedEvent {
+func newContextPreparedEvent(app Application, args *Arguments, ctx Context) *ContextPreparedEvent {
 	return &ContextPreparedEvent{
 		app:  app,
 		ctx:  ctx,
@@ -107,7 +107,7 @@ func (e *ContextPreparedEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *ContextPreparedEvent) Args() []string {
+func (e *ContextPreparedEvent) Args() *Arguments {
 	return e.args
 }
 
@@ -122,11 +122,11 @@ func (e *ContextPreparedEvent) Context() Context {
 type ContextLoadedEvent struct {
 	app  Application
 	ctx  Context
-	args []string
+	args *Arguments
 	time time.Time
 }
 
-func newContextLoadedEvent(app Application, args []string, ctx Context) *ContextLoadedEvent {
+func newContextLoadedEvent(app Application, args *Arguments, ctx Context) *ContextLoadedEvent {
 	return &ContextLoadedEvent{
 		app:  app,
 		ctx:  ctx,
@@ -143,7 +143,7 @@ func (e *ContextLoadedEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *ContextLoadedEvent) Args() []string {
+func (e *ContextLoadedEvent) Args() *Arguments {
 	return e.args
 }
 
@@ -158,12 +158,12 @@ func (e *ContextLoadedEvent) Context() Context {
 type StartedEvent struct {
 	app       Application
 	ctx       Context
-	args      []string
+	args      *Arguments
 	time      time.Time
 	timeTaken time.Duration
 }
 
-func newStartedEvent(app Application, args []string, ctx Context, timeTaken time.Duration) *StartedEvent {
+func newStartedEvent(app Application, args *Arguments, ctx Context, timeTaken time.Duration) *StartedEvent {
 	return &StartedEvent{
 		app:       app,
 		ctx:       ctx,
@@ -181,7 +181,7 @@ func (e *StartedEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *StartedEvent) Args() []string {
+func (e *StartedEvent) Args() *Arguments {
 	return e.args
 }
 
@@ -200,12 +200,12 @@ func (e *StartedEvent) TimeTaken() time.Duration {
 type ReadyEvent struct {
 	app       Application
 	ctx       Context
-	args      []string
+	args      *Arguments
 	time      time.Time
 	timeTaken time.Duration
 }
 
-func newReadyEvent(app Application, args []string, ctx Context, timeTaken time.Duration) *ReadyEvent {
+func newReadyEvent(app Application, args *Arguments, ctx Context, timeTaken time.Duration) *ReadyEvent {
 	return &ReadyEvent{
 		app:       app,
 		ctx:       ctx,
@@ -223,7 +223,7 @@ func (e *ReadyEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *ReadyEvent) Args() []string {
+func (e *ReadyEvent) Args() *Arguments {
 	return e.args
 }
 
@@ -242,12 +242,12 @@ func (e *ReadyEvent) TimeTaken() time.Duration {
 type FailedEvent struct {
 	app  Application
 	ctx  Context
-	args []string
+	args *Arguments
 	time time.Time
 	err  error
 }
 
-func newFailedEvent(app Application, args []string, ctx Context, err error) *FailedEvent {
+func newFailedEvent(app Application, args *Arguments, ctx Context, err error) *FailedEvent {
 	return &FailedEvent{
 		app:  app,
 		ctx:  ctx,
@@ -265,7 +265,7 @@ func (e *FailedEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *FailedEvent) Args() []string {
+func (e *FailedEvent) Args() *Arguments {
 	return e.args
 }
 

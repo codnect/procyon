@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/fatih/color v1.12.0
-	github.com/procyon-projects/reflector v0.0.6-dev
+	github.com/procyon-projects/reflector v0.0.12-dev
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.8.1
 )

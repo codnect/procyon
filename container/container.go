@@ -212,7 +212,7 @@ func (c *Container) getInstance(ctx context.Context, name string, requiredType *
 		return nil, err
 	}
 
-	return scope.Get(ctx, name, func(ctx context.Context) (any, error) {
+	return scope.GetObject(ctx, name, func(ctx context.Context) (any, error) {
 		scopeHolder := holderFromContext(ctx)
 		err = scopeHolder.beforeCreation(name)
 

@@ -2,20 +2,33 @@ package app
 
 import (
 	"fmt"
+	"github.com/procyon-projects/procyon/container"
 	"github.com/procyon-projects/procyon/env"
+	"github.com/procyon-projects/reflector"
 	"log"
 	"time"
 )
 
 type Application interface {
+	Context() Context
 	Run(args ...string)
 }
 
 func New() Application {
-	return &application{}
+	appContainer := container.New()
+	return &application{
+		ctx:       newContext(appContainer),
+		container: appContainer,
+	}
 }
 
 type application struct {
+	ctx       *appContext
+	container *container.Container
+}
+
+func (a *application) Context() Context {
+	return a.ctx
 }
 
 func (a *application) Run(args ...string) {
@@ -30,35 +43,75 @@ func (a *application) Run(args ...string) {
 	startTime := time.Now()
 
 	var listeners startupListeners
-	ctx := newContext()
+	listeners, err = a.startupListeners(arguments)
+
+	if err != nil {
+		panic(fmt.Errorf("app: failed to initialize startup listeners, err: %s", err.Error()))
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			listeners.failed(ctx, err)
+			listeners.failed(a.ctx, err)
 		}
 	}()
 
-	listeners.starting(ctx)
-	a.prepareEnvironment(ctx, arguments, listeners)
+	listeners.starting(a.ctx)
+	a.prepareEnvironment(arguments, listeners)
 
-	listeners.ready(ctx, startTime.Sub(time.Now()))
+	listeners.ready(a.ctx, startTime.Sub(time.Now()))
 
-	listeners.started(ctx, startTime.Sub(time.Now()))
+	listeners.started(a.ctx, startTime.Sub(time.Now()))
 }
 
-func (a *application) prepareEnvironment(ctx *appContext, arguments *Arguments, listeners startupListeners) env.Environment {
+func (a *application) startupListeners(arguments *Arguments) (startupListeners, error) {
+	listeners := make(startupListeners, 0)
+
+	reflApplicationType := reflector.TypeOf[Application]().ReflectType()
+	reflArgumentsType := reflector.TypeOf[*Arguments]().ReflectType()
+
+	registry := a.container.DefinitionRegistry()
+	definitionNames := registry.DefinitionNamesByType(container.TypeOf[StartupListener]())
+
+	for _, definitionName := range definitionNames {
+		definition, _ := registry.Find(definitionName)
+
+		if len(definition.Inputs()) != 2 {
+			continue
+		}
+
+		if !reflApplicationType.ConvertibleTo(definition.Inputs()[0].Type().ReflectType()) {
+			continue
+		}
+
+		if !reflArgumentsType.ConvertibleTo(definition.Inputs()[1].Type().ReflectType()) {
+			continue
+		}
+
+		listener, err := a.container.GetByNameAndArgs(a.ctx, definitionName, a, arguments)
+
+		if err != nil {
+			return nil, err
+		}
+
+		listeners = append(listeners, listener.(StartupListener))
+	}
+
+	return listeners, nil
+}
+
+func (a *application) prepareEnvironment(arguments *Arguments, listeners startupListeners) env.Environment {
 	environment := env.New()
 	propertySources := environment.PropertySources()
 
 	propertySources.AddFirst(newArgumentPropertySources(arguments))
 
-	listeners.environmentPrepared(ctx, environment)
+	listeners.environmentPrepared(a.ctx, environment)
 	return nil
 }
 
-func (a *application) prepareContext(ctx *appContext, environment env.Environment, listeners startupListeners) {
-	ctx.setEnvironment(environment)
-	listeners.contextPrepared(ctx)
+func (a *application) prepareContext(environment env.Environment, listeners startupListeners) {
+	a.ctx.setEnvironment(environment)
+	listeners.contextPrepared(a.ctx)
 
-	listeners.contextLoaded(ctx)
+	listeners.contextLoaded(a.ctx)
 }
