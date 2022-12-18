@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/procyon-projects/procyon/availability"
 	"github.com/procyon-projects/procyon/env"
 	"github.com/procyon-projects/procyon/event"
 	"time"
@@ -44,10 +45,12 @@ func (l *startupListener) OnContextPrepared(ctx Context) {
 
 func (l *startupListener) OnContextLoaded(ctx Context) {
 	l.broadcaster.BroadcastEvent(ctx, newContextLoadedEvent(l.app, l.args, ctx))
+	ctx.PublishEvent(ctx, availability.NewChangeEvent(ctx, availability.StateCorrect))
 }
 
 func (l *startupListener) OnStarted(ctx Context, timeTaken time.Duration) {
 	l.broadcaster.BroadcastEvent(ctx, newStartedEvent(l.app, l.args, ctx, timeTaken))
+	ctx.PublishEvent(ctx, availability.NewChangeEvent(ctx, availability.StateAcceptingTraffic))
 }
 
 func (l *startupListener) OnReady(ctx Context, timeTaken time.Duration) {

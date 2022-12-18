@@ -67,7 +67,7 @@ func (c *Container) Get(ctx context.Context, name string) (any, error) {
 	return c.getInstance(ctx, name, nil)
 }
 
-func (c *Container) GetByNameAndType(ctx context.Context, name string, typ *Type) (any, error) {
+func (c *Container) GetByNameAndType(ctx context.Context, name string, typ reflector.Type) (any, error) {
 	return c.getInstance(ctx, name, typ)
 }
 
@@ -75,11 +75,11 @@ func (c *Container) GetByNameAndArgs(ctx context.Context, name string, args ...a
 	return c.getInstance(ctx, name, nil, args...)
 }
 
-func (c *Container) GetByType(ctx context.Context, typ *Type) (any, error) {
+func (c *Container) GetByType(ctx context.Context, typ reflector.Type) (any, error) {
 	return c.getInstance(ctx, "", typ)
 }
 
-func (c *Container) GetInstancesByType(ctx context.Context, requiredType *Type) ([]any, error) {
+func (c *Container) GetInstancesByType(ctx context.Context, requiredType reflector.Type) ([]any, error) {
 	if requiredType == nil {
 		return nil, errors.New("container: requiredType cannot be nil")
 	}
@@ -107,7 +107,7 @@ func (c *Container) IsPrototype(name string) bool {
 	return ok && def.IsPrototype()
 }
 
-func (c *Container) RegisterResolvable(typ *Type, object any) error {
+func (c *Container) RegisterResolvable(typ reflector.Type, object any) error {
 	if typ == nil {
 		return errors.New("container: type should be passed")
 	}
@@ -164,7 +164,7 @@ func (c *Container) GetScope(scopeName string) (Scope, error) {
 	return nil, fmt.Errorf("container: no scope registered for scope name %s", scopeName)
 }
 
-func (c *Container) getInstance(ctx context.Context, name string, requiredType *Type, args ...any) (any, error) {
+func (c *Container) getInstance(ctx context.Context, name string, requiredType reflector.Type, args ...any) (any, error) {
 	if ctx == nil {
 		return nil, errors.New("container: context should be passed")
 	}
@@ -203,7 +203,7 @@ func (c *Container) getInstance(ctx context.Context, name string, requiredType *
 		}
 	}
 
-	if requiredType != nil && !c.match(def.reflectorType(), requiredType.typ) {
+	if requiredType != nil && !c.match(def.Type(), requiredType) {
 		return nil, fmt.Errorf("container: definition type with name %s does not match the required type", name)
 	}
 
@@ -298,7 +298,7 @@ func (c *Container) createInstance(ctx context.Context, definition *Definition, 
 	return c.initializeInstance(definition.name, instance)
 }
 
-func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice, itemType *Type) (any, error) {
+func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice, itemType reflector.Type) (any, error) {
 	val, err := sliceType.Instantiate()
 
 	if err != nil {
@@ -338,7 +338,7 @@ func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice,
 	return items, nil
 }
 
-func (c *Container) getResolvableInstance(typ *Type) (any, bool) {
+func (c *Container) getResolvableInstance(typ reflector.Type) (any, bool) {
 	defer c.muResolvableDependencies.Unlock()
 	c.muResolvableDependencies.Lock()
 
@@ -355,11 +355,9 @@ func (c *Container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, 
 	arguments := make([]any, 0)
 	for _, input := range inputs {
 
-		if reflector.IsSlice(input.reflectorType()) {
-			sliceType := reflector.ToSlice(input.reflectorType())
-			instances, err := c.getInstances(ctx, sliceType, &Type{
-				typ: sliceType.Elem(),
-			})
+		if reflector.IsSlice(input.Type()) {
+			sliceType := reflector.ToSlice(input.Type())
+			instances, err := c.getInstances(ctx, sliceType, sliceType.Elem())
 
 			if err != nil {
 				return nil, err
@@ -387,9 +385,9 @@ func (c *Container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, 
 		}
 
 		if err != nil {
-			if notFoundErr := (*notFoundError)(nil); errors.As(err, &notFoundErr) && !reflector.IsPointer(input.reflectorType()) && input.reflectorType().IsInstantiable() {
+			if notFoundErr := (*notFoundError)(nil); errors.As(err, &notFoundErr) && !reflector.IsPointer(input.Type()) && input.Type().IsInstantiable() {
 				var val reflector.Value
-				val, err = input.reflectorType().Instantiate()
+				val, err = input.Type().Instantiate()
 
 				if err != nil {
 					return nil, err

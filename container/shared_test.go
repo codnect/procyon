@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"github.com/procyon-projects/reflector"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -104,7 +105,7 @@ func TestInstanceRegistry_FindByTypeReturnsPointerInstanceIfRequiredTypeIsPointe
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	var result any
-	result, err = registry.FindByType(TypeOf[*AnyType]())
+	result, err = registry.FindByType(reflector.TypeOf[*AnyType]())
 	assert.Nil(t, err)
 	assert.Equal(t, instance, result)
 }
@@ -119,7 +120,7 @@ func TestInstanceRegistry_FindByTypeReturnsNonPointerInstanceIfRequiredTypeIsNot
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	var result any
-	result, err = registry.FindByType(TypeOf[AnyType]())
+	result, err = registry.FindByType(reflector.TypeOf[AnyType]())
 	assert.Nil(t, err)
 	assert.Equal(t, *instance, result)
 }
@@ -134,7 +135,7 @@ func TestInstanceRegistry_FindByTypeReturnsInstanceIfRequiredTypeIsInterface(t *
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	var result any
-	result, err = registry.FindByType(TypeOf[fmt.Stringer]())
+	result, err = registry.FindByType(reflector.TypeOf[fmt.Stringer]())
 	assert.Nil(t, err)
 	assert.Equal(t, instance, result)
 }
@@ -156,7 +157,7 @@ func TestInstanceRegistry_FindByTypeReturnsErrorIfMultipleInstancesExistForRequi
 	assert.Contains(t, registry.typesOfInstances, "anotherInstanceName")
 
 	var result any
-	result, err = registry.FindByType(TypeOf[*AnyType]())
+	result, err = registry.FindByType(reflector.TypeOf[*AnyType]())
 	assert.NotNil(t, err)
 	assert.Equal(t, "container: instances cannot be distinguished for required type *AnyType", err.Error())
 	assert.Nil(t, result)
@@ -178,7 +179,7 @@ func TestInstanceRegistry_FindAllByTypeReturnsPointerInstancesIfRequiredTypeIsPo
 	assert.Contains(t, registry.instances, "anotherInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anotherInstanceName")
 
-	result := registry.FindAllByType(TypeOf[*AnyType]())
+	result := registry.FindAllByType(reflector.TypeOf[*AnyType]())
 	assert.NotNil(t, result)
 	assert.Len(t, result, 2)
 	assert.Equal(t, []any{instance, anotherInstance}, result)
@@ -200,7 +201,7 @@ func TestInstanceRegistry_FindAllByTypeReturnsNonPointerInstancesIfRequiredTypeI
 	assert.Contains(t, registry.instances, "anotherInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anotherInstanceName")
 
-	result := registry.FindAllByType(TypeOf[AnyType]())
+	result := registry.FindAllByType(reflector.TypeOf[AnyType]())
 	assert.NotNil(t, result)
 	assert.Len(t, result, 2)
 	assert.Equal(t, []any{*instance, *anotherInstance}, result)
@@ -222,7 +223,7 @@ func TestInstanceRegistry_FindAllByTypeReturnsInstancesIfRequiredTypeIsInterface
 	assert.Contains(t, registry.instances, "anotherInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anotherInstanceName")
 
-	result := registry.FindAllByType(TypeOf[fmt.Stringer]())
+	result := registry.FindAllByType(reflector.TypeOf[fmt.Stringer]())
 	assert.NotNil(t, result)
 	assert.Len(t, result, 2)
 	assert.Equal(t, []any{instance, anotherInstance}, result)

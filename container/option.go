@@ -20,7 +20,7 @@ func Optional[T any]() Option {
 
 		exists := false
 		for _, input := range def.inputs {
-			if input.reflectorType().Compare(typ) {
+			if input.Type().Compare(typ) {
 				input.optional = true
 				exists = true
 			}
@@ -55,7 +55,7 @@ func Qualifier[T any](name string) Option {
 
 		exists := false
 		for _, input := range def.inputs {
-			if input.reflectorType().Compare(typ) {
+			if input.Type().Compare(typ) {
 				input.name = name
 				exists = true
 			}

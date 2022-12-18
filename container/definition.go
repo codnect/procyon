@@ -7,7 +7,7 @@ import (
 
 type Definition struct {
 	name            string
-	typ             *Type
+	typ             reflector.Type
 	constructorFunc reflector.Function
 	constructor     Constructor
 	scope           string
@@ -18,12 +18,8 @@ func (d *Definition) Name() string {
 	return d.name
 }
 
-func (d *Definition) Type() *Type {
+func (d *Definition) Type() reflector.Type {
 	return d.typ
-}
-
-func (d *Definition) reflectorType() reflector.Type {
-	return d.typ.typ
 }
 
 func (d *Definition) Constructor() Constructor {
@@ -83,18 +79,14 @@ func MakeDefinition(constructor Constructor, options ...Option) (*Definition, er
 		name:            lowerCamelCase(name),
 		constructor:     constructor,
 		constructorFunc: functionType,
-		typ: &Type{
-			resultType,
-		},
-		scope: SharedScope,
+		typ:             resultType,
+		scope:           SharedScope,
 	}
 
 	for index, parameterType := range functionType.Parameters() {
 		input := &Input{
 			index: index,
-			typ: &Type{
-				parameterType,
-			},
+			typ:   parameterType,
 		}
 
 		def.inputs = append(def.inputs, input)

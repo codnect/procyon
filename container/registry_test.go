@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"github.com/procyon-projects/reflector"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -162,15 +163,15 @@ func TestDefinitionRegistry_DefinitionNamesByTypeReturnsRegisteredDefinitionName
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitions, "anyType")
 
-	names := registry.DefinitionNamesByType(TypeOf[*AnyType]())
+	names := registry.DefinitionNamesByType(reflector.TypeOf[*AnyType]())
 	assert.NotNil(t, names)
 	assert.Equal(t, []string{"anyType"}, names)
 
-	names = registry.DefinitionNamesByType(TypeOf[AnyType]())
+	names = registry.DefinitionNamesByType(reflector.TypeOf[AnyType]())
 	assert.NotNil(t, names)
 	assert.Equal(t, []string{"anyType"}, names)
 
-	names = registry.DefinitionNamesByType(TypeOf[fmt.Stringer]())
+	names = registry.DefinitionNamesByType(reflector.TypeOf[fmt.Stringer]())
 	assert.NotNil(t, names)
 	assert.Equal(t, []string{"anyType"}, names)
 }

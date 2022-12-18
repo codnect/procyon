@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"github.com/procyon-projects/reflector"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -39,7 +40,7 @@ func TestContainer_DefinitionRegistry(t *testing.T) {
 
 func TestContainer_InstanceRegistry(t *testing.T) {
 	c := New()
-	instanceRegistry := c.InstanceRegistry()
+	instanceRegistry := c.SharedInstances()
 	assert.NotNil(t, instanceRegistry)
 }
 
@@ -70,8 +71,8 @@ func TestContainer_GetInstanceWithSliceDependency(t *testing.T) {
 	assert.NotNil(t, def)
 
 	c.DefinitionRegistry().Add(def)
-	c.InstanceRegistry().Add("test1", &DependencyType{})
-	c.InstanceRegistry().Add("test2", &DependencyType{})
+	c.SharedInstances().Add("test1", &DependencyType{})
+	c.SharedInstances().Add("test2", &DependencyType{})
 
 	var instance any
 	instance, err = c.Get(context.Background(), "anySliceType")
@@ -88,7 +89,7 @@ func TestContainer_GetByType(t *testing.T) {
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.GetByType(context.Background(), TypeOf[*AnyType]())
+	instance, err = c.GetByType(context.Background(), reflector.TypeOf[*AnyType]())
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 }
@@ -102,7 +103,7 @@ func TestContainer_GetByNameAndTypeReturnsInstance(t *testing.T) {
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.GetByNameAndType(context.Background(), "anyType", TypeOf[*AnyType]())
+	instance, err = c.GetByNameAndType(context.Background(), "anyType", reflector.TypeOf[*AnyType]())
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
 }
@@ -122,7 +123,7 @@ func TestContainer_GetByNameAndTypeReturnsErrorIfDefinitionTypeWithGivenNameDoes
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.GetByNameAndType(context.Background(), "anySliceType", TypeOf[*AnyType]())
+	instance, err = c.GetByNameAndType(context.Background(), "anySliceType", reflector.TypeOf[*AnyType]())
 	assert.NotNil(t, err)
 	assert.Nil(t, instance)
 	assert.Equal(t, "container: definition type with name anySliceType does not match the required type", err.Error())
@@ -165,11 +166,11 @@ func TestContainer_GetByNameAndArgsReturnsErrorIfNumberOfProvidedArgumentIsWrong
 func TestContainer_GetInstancesReturnsInstancesForRequiredTypes(t *testing.T) {
 	c := New()
 	anyInstance := &AnyType{}
-	c.InstanceRegistry().Add("instance", anyInstance)
+	c.SharedInstances().Add("instance", anyInstance)
 	anotherInstance := &AnyType{}
-	c.InstanceRegistry().Add("anotherInstance", anotherInstance)
+	c.SharedInstances().Add("anotherInstance", anotherInstance)
 
-	instances, err := c.GetInstancesByType(context.Background(), TypeOf[*AnyType]())
+	instances, err := c.GetInstancesByType(context.Background(), reflector.TypeOf[*AnyType]())
 	assert.Nil(t, err)
 	assert.NotNil(t, instances)
 	assert.Equal(t, []any{anyInstance, anotherInstance}, instances)
@@ -301,7 +302,7 @@ func TestContainer_GetByTypeReturnsErrorIfThereIsMoreThanOneDefinition(t *testin
 	c.DefinitionRegistry().Add(def)
 
 	var instance any
-	instance, err = c.GetByType(context.Background(), TypeOf[fmt.Stringer]())
+	instance, err = c.GetByType(context.Background(), reflector.TypeOf[fmt.Stringer]())
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "container: there is more than one definition for the required type Stringer, it cannot be distinguished", err.Error())

@@ -67,7 +67,7 @@ func (s *SharedInstances) InstanceNames() []string {
 	return names
 }
 
-func (s *SharedInstances) FindByType(requiredType *Type) (any, error) {
+func (s *SharedInstances) FindByType(requiredType reflector.Type) (any, error) {
 	if requiredType == nil {
 		return nil, errors.New("container: requiredType cannot be nil")
 	}
@@ -86,7 +86,7 @@ func (s *SharedInstances) FindByType(requiredType *Type) (any, error) {
 	return instances[0], nil
 }
 
-func (s *SharedInstances) FindAllByType(requiredType *Type) []any {
+func (s *SharedInstances) FindAllByType(requiredType reflector.Type) []any {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
@@ -94,12 +94,12 @@ func (s *SharedInstances) FindAllByType(requiredType *Type) []any {
 
 	for name, typ := range s.typesOfInstances {
 
-		if typ.CanConvert(requiredType.typ) {
+		if typ.CanConvert(requiredType) {
 			instances = append(instances, s.instances[name])
-		} else if reflector.IsPointer(typ) && !reflector.IsPointer(requiredType.typ) && !reflector.IsInterface(requiredType.typ) {
+		} else if reflector.IsPointer(typ) && !reflector.IsPointer(requiredType) && !reflector.IsInterface(requiredType) {
 			ptrType := reflector.ToPointer(typ)
 
-			if ptrType.Elem().CanConvert(requiredType.typ) {
+			if ptrType.Elem().CanConvert(requiredType) {
 				val, err := ptrType.Elem().Value()
 
 				if err == nil {

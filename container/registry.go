@@ -94,7 +94,7 @@ func (c *DefinitionRegistry) DefinitionNames() []string {
 	return names
 }
 
-func (c *DefinitionRegistry) DefinitionNamesByType(requiredType *Type) []string {
+func (c *DefinitionRegistry) DefinitionNamesByType(requiredType reflector.Type) []string {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
@@ -106,14 +106,14 @@ func (c *DefinitionRegistry) DefinitionNamesByType(requiredType *Type) []string 
 
 	for name, def := range c.definitions {
 
-		instanceType := def.reflectorType()
+		instanceType := def.Type()
 
-		if instanceType.CanConvert(requiredType.typ) {
+		if instanceType.CanConvert(requiredType) {
 			names = append(names, name)
-		} else if reflector.IsPointer(instanceType) && !reflector.IsPointer(requiredType.typ) && !reflector.IsInterface(requiredType.typ) {
+		} else if reflector.IsPointer(instanceType) && !reflector.IsPointer(requiredType) && !reflector.IsInterface(requiredType) {
 			ptrType := reflector.ToPointer(instanceType)
 
-			if ptrType.Elem().CanConvert(requiredType.typ) {
+			if ptrType.Elem().CanConvert(requiredType) {
 				names = append(names, name)
 			}
 		}

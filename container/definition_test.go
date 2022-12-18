@@ -48,7 +48,6 @@ func TestMakeDefinition_WithConstructorReturningPointerType(t *testing.T) {
 
 	assert.Equal(t, "anyType", def.Name())
 	assert.Equal(t, "*AnyType", def.Type().Name())
-	assert.Equal(t, "*AnyType", def.reflectorType().Name())
 	assert.Equal(t, runtime.FuncForPC(reflect.ValueOf(AnyConstructFunction).Pointer()).Name(),
 		runtime.FuncForPC(reflect.ValueOf(def.Constructor()).Pointer()).Name())
 
@@ -72,7 +71,6 @@ func TestMakeDefinition_WithConstructorReturningNonPointerType(t *testing.T) {
 
 	assert.Equal(t, "anyType", def.Name())
 	assert.Equal(t, "AnyType", def.Type().Name())
-	assert.Equal(t, "AnyType", def.reflectorType().Name())
 	assert.Equal(t, runtime.FuncForPC(reflect.ValueOf(AnyConstructFunctionReturningNonPointerValue).Pointer()).Name(),
 		runtime.FuncForPC(reflect.ValueOf(def.Constructor()).Pointer()).Name())
 
