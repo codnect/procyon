@@ -27,15 +27,15 @@ func Register(constructor Constructor, options ...Option) {
 	definitions[def.Name()] = def
 }
 
-func copyDefinitions() map[string]*Definition {
+func RegisteredDefinitions() []*Definition {
 	defer muDefinitions.Unlock()
 	muDefinitions.Lock()
 
-	m := make(map[string]*Definition)
+	copyOfDefinitions := make([]*Definition, 0)
 
-	for name, def := range definitions {
-		m[name] = def
+	for _, def := range definitions {
+		copyOfDefinitions = append(copyOfDefinitions, def)
 	}
 
-	return m
+	return copyOfDefinitions
 }

@@ -1,7 +1,7 @@
 package page
 
 import (
-	"github.com/procyon-projects/procyon/sort"
+	"github.com/procyon-projects/procyon/data/sort"
 	"math"
 )
 

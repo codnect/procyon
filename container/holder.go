@@ -16,7 +16,9 @@ type holder struct {
 }
 
 func newHolder() *holder {
-	return &holder{}
+	return &holder{
+		currentlyInCreation: map[string]struct{}{},
+	}
 }
 
 func (h *holder) isCurrentlyInCreation(name string) bool {

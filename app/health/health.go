@@ -44,6 +44,10 @@ func (h *health) Details() map[string]any {
 	return h.details
 }
 
+func Of(status Status, options ...Option) Health {
+	return newHealth(status, options...)
+}
+
 func Unknown(options ...Option) Health {
 	return newHealth(StatusUnknown, options...)
 }

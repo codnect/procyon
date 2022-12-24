@@ -1,9 +1,9 @@
 package app
 
 import (
-	"github.com/procyon-projects/procyon/availability"
-	"github.com/procyon-projects/procyon/env"
-	"github.com/procyon-projects/procyon/event"
+	"github.com/procyon-projects/procyon/app/availability"
+	"github.com/procyon-projects/procyon/app/env"
+	"github.com/procyon-projects/procyon/app/event"
 	"time"
 )
 

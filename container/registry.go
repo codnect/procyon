@@ -7,19 +7,21 @@ import (
 )
 
 type DefinitionRegistry struct {
-	definitions   map[string]*Definition
+	definitionMap map[string]*Definition
 	muDefinitions sync.RWMutex
 }
 
-func NewDefinitionRegistry(definitions map[string]*Definition) *DefinitionRegistry {
-	if definitions == nil {
-		definitions = make(map[string]*Definition)
-	}
-
-	return &DefinitionRegistry{
-		definitions:   definitions,
+func NewDefinitionRegistry(defs []*Definition) *DefinitionRegistry {
+	registry := &DefinitionRegistry{
+		definitionMap: make(map[string]*Definition),
 		muDefinitions: sync.RWMutex{},
 	}
+
+	for _, def := range defs {
+		registry.definitionMap[def.Name()] = def
+	}
+
+	return registry
 }
 
 func (c *DefinitionRegistry) Add(def *Definition) error {
@@ -30,11 +32,11 @@ func (c *DefinitionRegistry) Add(def *Definition) error {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
-	if _, exists := c.definitions[def.Name()]; exists {
+	if _, exists := c.definitionMap[def.Name()]; exists {
 		return fmt.Errorf("container: definition with name %s already exists", def.Name())
 	}
 
-	c.definitions[def.Name()] = def
+	c.definitionMap[def.Name()] = def
 
 	return nil
 }
@@ -43,11 +45,11 @@ func (c *DefinitionRegistry) Remove(name string) error {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
-	if _, exists := c.definitions[name]; !exists {
+	if _, exists := c.definitionMap[name]; !exists {
 		return fmt.Errorf("container: no found definition with name %s", name)
 	}
 
-	delete(c.definitions, name)
+	delete(c.definitionMap, name)
 	return nil
 }
 
@@ -55,7 +57,7 @@ func (c *DefinitionRegistry) Contains(name string) bool {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
-	_, exists := c.definitions[name]
+	_, exists := c.definitionMap[name]
 	return exists
 }
 
@@ -63,7 +65,7 @@ func (c *DefinitionRegistry) Find(name string) (*Definition, bool) {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
-	if def, exists := c.definitions[name]; exists {
+	if def, exists := c.definitionMap[name]; exists {
 		return def, true
 	}
 
@@ -75,7 +77,7 @@ func (c *DefinitionRegistry) Definitions() []*Definition {
 	c.muDefinitions.Lock()
 
 	defs := make([]*Definition, 0)
-	for _, def := range c.definitions {
+	for _, def := range c.definitionMap {
 		defs = append(defs, def)
 	}
 
@@ -87,7 +89,7 @@ func (c *DefinitionRegistry) DefinitionNames() []string {
 	c.muDefinitions.Lock()
 
 	names := make([]string, 0)
-	for name, _ := range c.definitions {
+	for name, _ := range c.definitionMap {
 		names = append(names, name)
 	}
 
@@ -104,7 +106,7 @@ func (c *DefinitionRegistry) DefinitionNamesByType(requiredType reflector.Type) 
 		return names
 	}
 
-	for name, def := range c.definitions {
+	for name, def := range c.definitionMap {
 
 		instanceType := def.Type()
 
@@ -127,5 +129,5 @@ func (c *DefinitionRegistry) Count() int {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
-	return len(c.definitions)
+	return len(c.definitionMap)
 }

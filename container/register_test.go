@@ -49,12 +49,12 @@ func TestRegister_WithDifferentNames(t *testing.T) {
 	definitions = map[string]*Definition{}
 }
 
-func TestCopyDefinitions_ReturnsCopyOfRegisteredDefinitions(t *testing.T) {
+func TestRegisteredDefinitions_ReturnsCopyOfRegisteredDefinitions(t *testing.T) {
 	Register(AnyConstructFunction)
 	assert.Len(t, definitions, 1)
 	assert.Contains(t, definitions, "anyType")
 
-	copiedDefinitions := copyDefinitions()
+	copiedDefinitions := RegisteredDefinitions()
 	assert.Equal(t, definitions, copiedDefinitions)
 
 	definitions = map[string]*Definition{}

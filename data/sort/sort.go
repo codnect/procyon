@@ -1,6 +1,8 @@
 package sort
 
-import "github.com/procyon-projects/procyon/sort/order"
+import (
+	order2 "github.com/procyon-projects/procyon/data/sort/order"
+)
 
 var (
 	unsorted = newSort()
@@ -10,15 +12,15 @@ type Sort interface {
 	IsEmpty() bool
 	IsSorted() bool
 	IsUnsorted() bool
-	Orders() []order.Order
+	Orders() []order2.Order
 	And(sort Sort) Sort
 }
 
 type sort struct {
-	orders []order.Order
+	orders []order2.Order
 }
 
-func newSort(orders ...order.Order) Sort {
+func newSort(orders ...order2.Order) Sort {
 	return &sort{
 		orders: orders,
 	}
@@ -36,7 +38,7 @@ func (s *sort) IsUnsorted() bool {
 	return s.IsEmpty()
 }
 
-func (s *sort) Orders() []order.Order {
+func (s *sort) Orders() []order2.Order {
 	return s.orders
 }
 
@@ -45,7 +47,7 @@ func (s *sort) And(sort Sort) Sort {
 		panic("sort must not be nil")
 	}
 
-	orders := make([]order.Order, len(s.orders))
+	orders := make([]order2.Order, len(s.orders))
 	copy(orders, s.orders)
 
 	if len(sort.Orders()) != 0 {
@@ -59,21 +61,21 @@ func Unsorted() Sort {
 	return unsorted
 }
 
-func By(direction order.Direction, properties ...string) Sort {
+func By(direction order2.Direction, properties ...string) Sort {
 	if len(properties) == 0 {
 		return unsorted
 	}
 
-	orders := make([]order.Order, len(properties))
+	orders := make([]order2.Order, len(properties))
 
 	for index, property := range properties {
-		orders[index] = order.By(property, order.WithDirection(direction))
+		orders[index] = order2.By(property, order2.WithDirection(direction))
 	}
 
 	return newSort(orders...)
 }
 
-func ByOrder(orders ...order.Order) Sort {
+func ByOrder(orders ...order2.Order) Sort {
 	if len(orders) == 0 {
 		return unsorted
 	}
@@ -82,5 +84,5 @@ func ByOrder(orders ...order.Order) Sort {
 }
 
 func ByProperties(properties ...string) Sort {
-	return By(order.Default, properties...)
+	return By(order2.Default, properties...)
 }

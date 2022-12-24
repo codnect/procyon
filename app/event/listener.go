@@ -46,10 +46,6 @@ func Listen[E Event, F ListenerFunc[E]](handler F) *Listener {
 	}
 }
 
-type Listeners interface {
-	EventListeners(registry ListenerRegistry)
-}
-
 type ListenerRegistry interface {
 	RegisterListener(listener *Listener)
 	Listeners() []*Listener

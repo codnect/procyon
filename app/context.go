@@ -2,9 +2,10 @@ package app
 
 import (
 	"context"
+	"github.com/procyon-projects/procyon/app/env"
+	"github.com/procyon-projects/procyon/app/event"
 	"github.com/procyon-projects/procyon/container"
-	"github.com/procyon-projects/procyon/env"
-	"github.com/procyon-projects/procyon/event"
+	"github.com/procyon-projects/reflector"
 	"time"
 )
 
@@ -97,17 +98,17 @@ func (c *appContext) prepareRefresh() error {
 func (c *appContext) prepareContainer() error {
 	sharedInstances := c.container.SharedInstances()
 
-	err := c.container.RegisterResolvable(container.TypeOf[*container.Container](), c.container)
+	err := c.container.RegisterResolvable(reflector.TypeOf[*container.Container](), c.container)
 	if err != nil {
 		return err
 	}
 
-	err = c.container.RegisterResolvable(container.TypeOf[Context](), c)
+	err = c.container.RegisterResolvable(reflector.TypeOf[Context](), c)
 	if err != nil {
 		return err
 	}
 
-	err = c.container.RegisterResolvable(container.TypeOf[event.Publisher](), c)
+	err = c.container.RegisterResolvable(reflector.TypeOf[event.Publisher](), c)
 	if err != nil {
 		return err
 	}

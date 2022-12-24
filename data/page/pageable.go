@@ -1,6 +1,8 @@
 package page
 
-import "github.com/procyon-projects/procyon/sort"
+import (
+	"github.com/procyon-projects/procyon/data/sort"
+)
 
 type Pageable interface {
 	PageNumber() int

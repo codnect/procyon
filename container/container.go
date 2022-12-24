@@ -23,8 +23,12 @@ type Container struct {
 }
 
 func New() *Container {
+	return WithDefinitions(RegisteredDefinitions())
+}
+
+func WithDefinitions(definitions []*Definition) *Container {
 	return &Container{
-		definitionRegistry:       NewDefinitionRegistry(copyDefinitions()),
+		definitionRegistry:       NewDefinitionRegistry(definitions),
 		sharedInstances:          NewSharedInstances(),
 		hooks:                    NewHooks(),
 		scopes:                   map[string]Scope{},

@@ -2,9 +2,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/procyon-projects/procyon/app/env"
+	"github.com/procyon-projects/procyon/app/event"
 	"github.com/procyon-projects/procyon/container"
-	"github.com/procyon-projects/procyon/env"
-	"github.com/procyon-projects/procyon/event"
 	"github.com/procyon-projects/reflector"
 	"log"
 	"time"
@@ -73,7 +73,7 @@ func (a *application) startupListeners(arguments *Arguments) (startupListeners, 
 	reflArgumentsType := reflector.TypeOf[*Arguments]().ReflectType()
 
 	registry := a.container.DefinitionRegistry()
-	definitionNames := registry.DefinitionNamesByType(container.TypeOf[StartupListener]())
+	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[StartupListener]())
 
 	for _, definitionName := range definitionNames {
 		definition, _ := registry.Find(definitionName)
