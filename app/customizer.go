@@ -4,18 +4,10 @@ type ContextCustomizer interface {
 	CustomizeContext(ctx Context) error
 }
 
-type contextCustomizers struct {
-	customizers []ContextCustomizer
-}
+type contextCustomizers []ContextCustomizer
 
-func newContextCustomizers(customizers []ContextCustomizer) *contextCustomizers {
-	return &contextCustomizers{
-		customizers: customizers,
-	}
-}
-
-func (c *contextCustomizers) invokeCustomizers(ctx Context) error {
-	for _, customizer := range c.customizers {
+func (c contextCustomizers) invoke(ctx Context) error {
+	for _, customizer := range c {
 		err := customizer.CustomizeContext(ctx)
 
 		if err != nil {

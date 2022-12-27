@@ -155,6 +155,42 @@ func (e *ContextLoadedEvent) Context() Context {
 	return e.ctx
 }
 
+type ContextRefreshedEvent struct {
+	app  Application
+	ctx  Context
+	args *Arguments
+	time time.Time
+}
+
+func newContextRefreshedEvent(app Application, args *Arguments, ctx Context) *ContextRefreshedEvent {
+	return &ContextRefreshedEvent{
+		app:  app,
+		ctx:  ctx,
+		args: args,
+		time: time.Now(),
+	}
+}
+
+func (e *ContextRefreshedEvent) EventSource() any {
+	return e.app
+}
+
+func (e *ContextRefreshedEvent) Time() time.Time {
+	return e.time
+}
+
+func (e *ContextRefreshedEvent) Args() *Arguments {
+	return e.args
+}
+
+func (e *ContextRefreshedEvent) Application() Application {
+	return e.app
+}
+
+func (e *ContextRefreshedEvent) Context() Context {
+	return e.ctx
+}
+
 type StartedEvent struct {
 	app       Application
 	ctx       Context

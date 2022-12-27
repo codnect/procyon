@@ -10,10 +10,28 @@ import (
 	"sync"
 )
 
-type Container struct {
-	definitionRegistry *DefinitionRegistry
-	sharedInstances    *SharedInstances
-	hooks              *Hooks
+type Container interface {
+	Start() error
+	DefinitionRegistry() DefinitionRegistry
+	SharedInstances() SharedInstances
+	Hooks() Hooks
+	Get(ctx context.Context, name string) (any, error)
+	GetByNameAndType(ctx context.Context, name string, typ reflector.Type) (any, error)
+	GetByNameAndArgs(ctx context.Context, name string, args ...any) (any, error)
+	GetByType(ctx context.Context, typ reflector.Type) (any, error)
+	GetInstancesByType(ctx context.Context, requiredType reflector.Type) ([]any, error)
+	Contains(name string) bool
+	IsShared(name string) bool
+	IsPrototype(name string) bool
+	RegisterResolvable(typ reflector.Type, object any) error
+	ScopeNames() []string
+	GetScope(scopeName string) (Scope, error)
+}
+
+type container struct {
+	definitionRegistry DefinitionRegistry
+	sharedInstances    SharedInstances
+	hooks              Hooks
 
 	scopes   map[string]Scope
 	muScopes *sync.RWMutex
@@ -22,12 +40,12 @@ type Container struct {
 	muResolvableDependencies *sync.RWMutex
 }
 
-func New() *Container {
-	return WithDefinitions(RegisteredDefinitions())
+func New() Container {
+	return WithDefinitions(nil)
 }
 
-func WithDefinitions(definitions []*Definition) *Container {
-	return &Container{
+func WithDefinitions(definitions []*Definition) Container {
+	return &container{
 		definitionRegistry:       NewDefinitionRegistry(definitions),
 		sharedInstances:          NewSharedInstances(),
 		hooks:                    NewHooks(),
@@ -38,7 +56,7 @@ func WithDefinitions(definitions []*Definition) *Container {
 	}
 }
 
-func (c *Container) Start() error {
+func (c *container) Start() error {
 	ctx := contextWithHolder(context.Background())
 
 	for _, name := range c.definitionRegistry.DefinitionNames() {
@@ -55,35 +73,35 @@ func (c *Container) Start() error {
 	return nil
 }
 
-func (c *Container) DefinitionRegistry() *DefinitionRegistry {
+func (c *container) DefinitionRegistry() DefinitionRegistry {
 	return c.definitionRegistry
 }
 
-func (c *Container) SharedInstances() *SharedInstances {
+func (c *container) SharedInstances() SharedInstances {
 	return c.sharedInstances
 }
 
-func (c *Container) Hooks() *Hooks {
+func (c *container) Hooks() Hooks {
 	return c.hooks
 }
 
-func (c *Container) Get(ctx context.Context, name string) (any, error) {
+func (c *container) Get(ctx context.Context, name string) (any, error) {
 	return c.getInstance(ctx, name, nil)
 }
 
-func (c *Container) GetByNameAndType(ctx context.Context, name string, typ reflector.Type) (any, error) {
+func (c *container) GetByNameAndType(ctx context.Context, name string, typ reflector.Type) (any, error) {
 	return c.getInstance(ctx, name, typ)
 }
 
-func (c *Container) GetByNameAndArgs(ctx context.Context, name string, args ...any) (any, error) {
+func (c *container) GetByNameAndArgs(ctx context.Context, name string, args ...any) (any, error) {
 	return c.getInstance(ctx, name, nil, args...)
 }
 
-func (c *Container) GetByType(ctx context.Context, typ reflector.Type) (any, error) {
+func (c *container) GetByType(ctx context.Context, typ reflector.Type) (any, error) {
 	return c.getInstance(ctx, "", typ)
 }
 
-func (c *Container) GetInstancesByType(ctx context.Context, requiredType reflector.Type) ([]any, error) {
+func (c *container) GetInstancesByType(ctx context.Context, requiredType reflector.Type) ([]any, error) {
 	if requiredType == nil {
 		return nil, errors.New("container: requiredType cannot be nil")
 	}
@@ -97,21 +115,21 @@ func (c *Container) GetInstancesByType(ctx context.Context, requiredType reflect
 	return instances.([]any), nil
 }
 
-func (c *Container) Contains(name string) bool {
+func (c *container) Contains(name string) bool {
 	return c.sharedInstances.Contains(name)
 }
 
-func (c *Container) IsShared(name string) bool {
+func (c *container) IsShared(name string) bool {
 	def, ok := c.definitionRegistry.Find(name)
 	return ok && def.IsShared()
 }
 
-func (c *Container) IsPrototype(name string) bool {
+func (c *container) IsPrototype(name string) bool {
 	def, ok := c.definitionRegistry.Find(name)
 	return ok && def.IsPrototype()
 }
 
-func (c *Container) RegisterResolvable(typ reflector.Type, object any) error {
+func (c *container) RegisterResolvable(typ reflector.Type, object any) error {
 	if typ == nil {
 		return errors.New("container: type should be passed")
 	}
@@ -127,7 +145,7 @@ func (c *Container) RegisterResolvable(typ reflector.Type, object any) error {
 	return nil
 }
 
-func (c *Container) RegisterScope(scopeName string, scope Scope) error {
+func (c *container) RegisterScope(scopeName string, scope Scope) error {
 	if strings.TrimSpace(scopeName) == "" {
 		panic("container: scopeName cannot be empty or blank")
 	}
@@ -146,7 +164,7 @@ func (c *Container) RegisterScope(scopeName string, scope Scope) error {
 	return errors.New("container: cannot replace existing scopes 'shared' and 'prototype'")
 }
 
-func (c *Container) ScopeNames() []string {
+func (c *container) ScopeNames() []string {
 	defer c.muScopes.Unlock()
 	c.muScopes.Lock()
 
@@ -158,7 +176,7 @@ func (c *Container) ScopeNames() []string {
 	return scopeNames
 }
 
-func (c *Container) GetScope(scopeName string) (Scope, error) {
+func (c *container) GetScope(scopeName string) (Scope, error) {
 	defer c.muScopes.Unlock()
 	c.muScopes.Lock()
 	if scope, ok := c.scopes[scopeName]; ok {
@@ -168,7 +186,7 @@ func (c *Container) GetScope(scopeName string) (Scope, error) {
 	return nil, fmt.Errorf("container: no scope registered for scope name %s", scopeName)
 }
 
-func (c *Container) getInstance(ctx context.Context, name string, requiredType reflector.Type, args ...any) (any, error) {
+func (c *container) getInstance(ctx context.Context, name string, requiredType reflector.Type, args ...any) (any, error) {
 	if ctx == nil {
 		return nil, errors.New("container: context should be passed")
 	}
@@ -252,7 +270,7 @@ func (c *Container) getInstance(ctx context.Context, name string, requiredType r
 	})
 }
 
-func (c *Container) match(instanceType reflector.Type, requiredType reflector.Type) bool {
+func (c *container) match(instanceType reflector.Type, requiredType reflector.Type) bool {
 	if instanceType.CanConvert(requiredType) {
 		return true
 	} else if reflector.IsPointer(instanceType) && !reflector.IsPointer(requiredType) && !reflector.IsInterface(requiredType) {
@@ -266,7 +284,7 @@ func (c *Container) match(instanceType reflector.Type, requiredType reflector.Ty
 	return false
 }
 
-func (c *Container) createInstance(ctx context.Context, definition *Definition, args []any) (instance any, err error) {
+func (c *container) createInstance(ctx context.Context, definition *Definition, args []any) (instance any, err error) {
 	newFunc := definition.constructorFunc
 	parameterCount := len(definition.Inputs())
 
@@ -302,7 +320,7 @@ func (c *Container) createInstance(ctx context.Context, definition *Definition, 
 	return c.initializeInstance(definition.name, instance)
 }
 
-func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice, itemType reflector.Type) (any, error) {
+func (c *container) getInstances(ctx context.Context, sliceType reflector.Slice, itemType reflector.Type) (any, error) {
 	val, err := sliceType.Instantiate()
 
 	if err != nil {
@@ -342,7 +360,7 @@ func (c *Container) getInstances(ctx context.Context, sliceType reflector.Slice,
 	return items, nil
 }
 
-func (c *Container) getResolvableInstance(typ reflector.Type) (any, bool) {
+func (c *container) getResolvableInstance(typ reflector.Type) (any, bool) {
 	defer c.muResolvableDependencies.Unlock()
 	c.muResolvableDependencies.Lock()
 
@@ -355,7 +373,7 @@ func (c *Container) getResolvableInstance(typ reflector.Type) (any, bool) {
 	return nil, false
 }
 
-func (c *Container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, error) {
+func (c *container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, error) {
 	arguments := make([]any, 0)
 	for _, input := range inputs {
 
@@ -415,7 +433,7 @@ func (c *Container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, 
 	return arguments, nil
 }
 
-func (c *Container) initializeInstance(name string, instance any) (any, error) {
+func (c *container) initializeInstance(name string, instance any) (any, error) {
 	var (
 		err error
 	)

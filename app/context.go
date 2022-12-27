@@ -18,25 +18,23 @@ type Context interface {
 	DisplayName() string
 	StartupTime() time.Time
 	Environment() env.Environment
-	Container() *container.Container
+	Container() container.Container
 	Refresh() error
 }
 
 type appContext struct {
 	environment env.Environment
-	container   *container.Container
+	container   container.Container
 	broadcaster event.Broadcaster
 	listeners   []*event.Listener
-	customizers *contextCustomizers
 	values      map[any]any
 }
 
-func newContext(container *container.Container, broadcaster event.Broadcaster) *appContext {
+func newContext(container container.Container, broadcaster event.Broadcaster) *appContext {
 	return &appContext{
 		container:   container,
 		broadcaster: broadcaster,
 		listeners:   make([]*event.Listener, 0),
-		customizers: newContextCustomizers(make([]ContextCustomizer, 0)),
 		values:      map[any]any{},
 	}
 }
@@ -87,7 +85,7 @@ func (c *appContext) Environment() env.Environment {
 	return nil
 }
 
-func (c *appContext) Container() *container.Container {
+func (c *appContext) Container() container.Container {
 	return c.container
 }
 
@@ -98,7 +96,7 @@ func (c *appContext) prepareRefresh() error {
 func (c *appContext) prepareContainer() error {
 	sharedInstances := c.container.SharedInstances()
 
-	err := c.container.RegisterResolvable(reflector.TypeOf[*container.Container](), c.container)
+	err := c.container.RegisterResolvable(reflector.TypeOf[container.Container](), c.container)
 	if err != nil {
 		return err
 	}
@@ -113,7 +111,7 @@ func (c *appContext) prepareContainer() error {
 		return err
 	}
 
-	err = sharedInstances.Add("environment", c.environment)
+	err = sharedInstances.Register("environment", c.environment)
 	if err != nil {
 		return err
 	}
@@ -128,11 +126,6 @@ func (c *appContext) Refresh() error {
 	}
 
 	err = c.prepareContainer()
-	if err != nil {
-		return err
-	}
-
-	err = c.customizers.invokeCustomizers(c)
 	if err != nil {
 		return err
 	}

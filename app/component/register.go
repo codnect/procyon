@@ -34,8 +34,8 @@ func RegisteredComponents() []*Component {
 	defer muComponents.Unlock()
 	muComponents.Lock()
 
-	copyOfComponents := make([]*Component, len(components))
-	for _, component := range copyOfComponents {
+	copyOfComponents := make([]*Component, 0)
+	for _, component := range components {
 		copyOfComponents = append(copyOfComponents, component)
 	}
 
