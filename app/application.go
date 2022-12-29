@@ -11,20 +11,6 @@ import (
 	"time"
 )
 
-type eventCustomizers []env.Customizer
-
-func (e eventCustomizers) invoke(environment env.Environment) error {
-	for _, customizer := range e {
-		err := customizer.CustomizeEnvironment(environment)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 type Application interface {
 	Context() Context
 	Run(args ...string)
@@ -163,9 +149,9 @@ func (a *application) eventCustomizers() (eventCustomizers, error) {
 func (a *application) prepareEnvironment(arguments *Arguments, listeners startupListeners) (env.Environment, error) {
 	environment := env.New()
 
-	//	propertySources := environment.PropertySources()
+	propertySources := environment.PropertySources()
 
-	//	propertySources.AddFirst(newArgumentPropertySources(arguments))
+	propertySources.AddFirst(newArgumentPropertySources(arguments))
 
 	customizers, err := a.eventCustomizers()
 	if err != nil {
