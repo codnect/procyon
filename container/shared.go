@@ -7,15 +7,26 @@ import (
 	"sync"
 )
 
-type SharedInstances struct {
+type SharedInstances interface {
+	Register(name string, instance any) error
+	Find(name string) (any, bool)
+	Contains(name string) bool
+	InstanceNames() []string
+	FindByType(requiredType reflector.Type) (any, error)
+	FindAllByType(requiredType reflector.Type) []any
+	OrElseGet(name string, supplier func() (any, error)) (any, error)
+	Count() int
+}
+
+type sharedInstances struct {
 	instances              map[string]any
 	instancesInPreparation map[string]struct{}
 	typesOfInstances       map[string]reflector.Type
 	muInstances            sync.RWMutex
 }
 
-func NewSharedInstances() *SharedInstances {
-	return &SharedInstances{
+func NewSharedInstances() SharedInstances {
+	return &sharedInstances{
 		instances:              make(map[string]any),
 		instancesInPreparation: make(map[string]struct{}),
 		typesOfInstances:       make(map[string]reflector.Type),
@@ -23,7 +34,7 @@ func NewSharedInstances() *SharedInstances {
 	}
 }
 
-func (s *SharedInstances) Add(name string, instance any) error {
+func (s *sharedInstances) Register(name string, instance any) error {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
@@ -36,7 +47,7 @@ func (s *SharedInstances) Add(name string, instance any) error {
 	return nil
 }
 
-func (s *SharedInstances) Find(name string) (any, bool) {
+func (s *sharedInstances) Find(name string) (any, bool) {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
@@ -47,7 +58,7 @@ func (s *SharedInstances) Find(name string) (any, bool) {
 	return nil, false
 }
 
-func (s *SharedInstances) Contains(name string) bool {
+func (s *sharedInstances) Contains(name string) bool {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
@@ -55,7 +66,7 @@ func (s *SharedInstances) Contains(name string) bool {
 	return exists
 }
 
-func (s *SharedInstances) InstanceNames() []string {
+func (s *sharedInstances) InstanceNames() []string {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
@@ -67,7 +78,7 @@ func (s *SharedInstances) InstanceNames() []string {
 	return names
 }
 
-func (s *SharedInstances) FindByType(requiredType reflector.Type) (any, error) {
+func (s *sharedInstances) FindByType(requiredType reflector.Type) (any, error) {
 	if requiredType == nil {
 		return nil, errors.New("container: requiredType cannot be nil")
 	}
@@ -86,7 +97,7 @@ func (s *SharedInstances) FindByType(requiredType reflector.Type) (any, error) {
 	return instances[0], nil
 }
 
-func (s *SharedInstances) FindAllByType(requiredType reflector.Type) []any {
+func (s *sharedInstances) FindAllByType(requiredType reflector.Type) []any {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
@@ -113,7 +124,7 @@ func (s *SharedInstances) FindAllByType(requiredType reflector.Type) []any {
 	return instances
 }
 
-func (s *SharedInstances) OrElseGet(name string, supplier func() (any, error)) (any, error) {
+func (s *sharedInstances) OrElseGet(name string, supplier func() (any, error)) (any, error) {
 	instance, ok := s.Find(name)
 
 	if ok {
@@ -142,14 +153,14 @@ func (s *SharedInstances) OrElseGet(name string, supplier func() (any, error)) (
 	return instance, nil
 }
 
-func (s *SharedInstances) Count() int {
+func (s *sharedInstances) Count() int {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
 	return len(s.instances)
 }
 
-func (s *SharedInstances) putToPreparation(name string) error {
+func (s *sharedInstances) putToPreparation(name string) error {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 
@@ -161,7 +172,7 @@ func (s *SharedInstances) putToPreparation(name string) error {
 	return nil
 }
 
-func (s *SharedInstances) removeFromPreparation(name string) {
+func (s *sharedInstances) removeFromPreparation(name string) {
 	defer s.muInstances.Unlock()
 	s.muInstances.Lock()
 	delete(s.instancesInPreparation, name)

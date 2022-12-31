@@ -9,6 +9,7 @@ import (
 func init() {
 	// app
 	component.Register(newStartupListener, component.Name("procyonStartupListener"))
+	component.Register(newEnvironmentCustomizer, component.Name("procyonEnvironmentCustomizer"))
 
 	// availability
 	component.Register(availability.NewStateHolder, component.Name("availabilityStateHolder"))

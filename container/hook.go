@@ -34,19 +34,27 @@ type Hook struct {
 	OnPostInitialization func(string, any) (any, error)
 }
 
-type Hooks struct {
+type Hooks interface {
+	Add(hook *Hook) error
+	Remove(hook *Hook)
+	RemoveAll()
+	ToSlice() []*Hook
+	Count() int
+}
+
+type hooks struct {
 	hooks map[*Hook]struct{}
 	mu    sync.RWMutex
 }
 
-func NewHooks() *Hooks {
-	return &Hooks{
+func NewHooks() Hooks {
+	return &hooks{
 		make(map[*Hook]struct{}),
 		sync.RWMutex{},
 	}
 }
 
-func (h *Hooks) Add(hook *Hook) error {
+func (h *hooks) Add(hook *Hook) error {
 	defer h.mu.Unlock()
 	h.mu.Lock()
 
@@ -62,7 +70,7 @@ func (h *Hooks) Add(hook *Hook) error {
 	return nil
 }
 
-func (h *Hooks) Remove(hook *Hook) {
+func (h *hooks) Remove(hook *Hook) {
 	defer h.mu.Unlock()
 	h.mu.Lock()
 
@@ -71,7 +79,7 @@ func (h *Hooks) Remove(hook *Hook) {
 	}
 }
 
-func (h *Hooks) ToSlice() []*Hook {
+func (h *hooks) ToSlice() []*Hook {
 	defer h.mu.Unlock()
 	h.mu.Lock()
 
@@ -84,13 +92,13 @@ func (h *Hooks) ToSlice() []*Hook {
 	return hooks
 }
 
-func (h *Hooks) Count() int {
+func (h *hooks) Count() int {
 	defer h.mu.Unlock()
 	h.mu.Lock()
 	return len(h.hooks)
 }
 
-func (h *Hooks) RemoveAll() {
+func (h *hooks) RemoveAll() {
 	defer h.mu.Unlock()
 	h.mu.Lock()
 

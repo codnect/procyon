@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/procyon-projects/procyon/app/component"
 	"github.com/procyon-projects/procyon/app/env"
 	"github.com/procyon-projects/procyon/app/event"
 	"github.com/procyon-projects/procyon/container"
@@ -27,7 +28,8 @@ func New() Application {
 
 type application struct {
 	ctx       *appContext
-	container *container.Container
+	container container.Container
+	env       env.Environment
 }
 
 func (a *application) Context() Context {
@@ -45,6 +47,12 @@ func (a *application) Run(args ...string) {
 
 	startTime := time.Now()
 
+	err = a.registerComponentDefinitions()
+
+	if err != nil {
+		panic(fmt.Errorf("app: failed to register component definitions, err: %s", err.Error()))
+	}
+
 	var listeners startupListeners
 	listeners, err = a.startupListeners(arguments)
 
@@ -55,11 +63,22 @@ func (a *application) Run(args ...string) {
 	defer func() {
 		if r := recover(); r != nil {
 			listeners.failed(a.ctx, err)
+			log.Panic(err)
 		}
 	}()
 
 	listeners.starting(a.ctx)
-	a.prepareEnvironment(arguments, listeners)
+
+	var environment env.Environment
+	environment, err = a.prepareEnvironment(arguments, listeners)
+	if err != nil {
+		panic(err)
+	}
+
+	err = a.prepareContext(environment, listeners)
+	if err != nil {
+		panic(err)
+	}
 
 	listeners.ready(a.ctx, startTime.Sub(time.Now()))
 
@@ -102,19 +121,111 @@ func (a *application) startupListeners(arguments *Arguments) (startupListeners, 
 	return listeners, nil
 }
 
-func (a *application) prepareEnvironment(arguments *Arguments, listeners startupListeners) env.Environment {
-	environment := env.New()
-	propertySources := environment.PropertySources()
+func (a *application) eventCustomizers() (eventCustomizers, error) {
+	customizers := make(eventCustomizers, 0)
 
-	propertySources.AddFirst(newArgumentPropertySources(arguments))
+	registry := a.container.DefinitionRegistry()
+	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[env.Customizer]())
 
-	listeners.environmentPrepared(a.ctx, environment)
-	return nil
+	for _, definitionName := range definitionNames {
+		definition, _ := registry.Find(definitionName)
+
+		if len(definition.Inputs()) != 0 {
+			continue
+		}
+
+		customizer, err := a.container.Get(a.ctx, definitionName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		customizers = append(customizers, customizer.(env.Customizer))
+	}
+
+	return customizers, nil
 }
 
-func (a *application) prepareContext(environment env.Environment, listeners startupListeners) {
+func (a *application) prepareEnvironment(arguments *Arguments, listeners startupListeners) (env.Environment, error) {
+	environment := env.New()
+
+	propertySources := environment.PropertySources()
+
+	propertySources.AddLast(newArgumentPropertySources(arguments))
+	propertySources.AddLast(newSystemEnvironmentPropertySource())
+
+	customizers, err := a.eventCustomizers()
+	if err != nil {
+		return nil, err
+	}
+
+	err = customizers.invoke(environment)
+	if err != nil {
+		return nil, err
+	}
+
+	listeners.environmentPrepared(a.ctx, environment)
+	return environment, nil
+}
+
+func (a *application) contextCustomizers() (contextCustomizers, error) {
+	customizers := make(contextCustomizers, 0)
+
+	registry := a.container.DefinitionRegistry()
+	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[ContextCustomizer]())
+
+	for _, definitionName := range definitionNames {
+		definition, _ := registry.Find(definitionName)
+
+		if len(definition.Inputs()) != 0 {
+			continue
+		}
+
+		customizer, err := a.container.Get(a.ctx, definitionName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		customizers = append(customizers, customizer.(ContextCustomizer))
+	}
+
+	return customizers, nil
+}
+
+func (a *application) prepareContext(environment env.Environment, listeners startupListeners) error {
 	a.ctx.setEnvironment(environment)
+
+	customizers, err := a.contextCustomizers()
+	if err != nil {
+		return err
+	}
+
+	err = customizers.invoke(a.ctx)
+	if err != nil {
+		return err
+	}
+
 	listeners.contextPrepared(a.ctx)
 
 	listeners.contextLoaded(a.ctx)
+
+	err = a.ctx.Refresh()
+	if err != nil {
+		return err
+	}
+
+	listeners.contextRefreshed(a.ctx)
+	return nil
+}
+
+func (a *application) registerComponentDefinitions() error {
+	for _, registeredComponent := range component.RegisteredComponents() {
+		err := a.container.DefinitionRegistry().Register(registeredComponent.Definition())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
