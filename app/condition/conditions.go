@@ -55,3 +55,14 @@ func OnMissingType[T any]() *OnMissingTypeCondition {
 func (c *OnMissingTypeCondition) Matches(ctx Context) bool {
 	return false
 }
+
+type OnProfileCondition struct {
+}
+
+func OnProfile(profiles ...string) *OnProfileCondition {
+	return nil
+}
+
+func (c *OnProfileCondition) Matches(ctx Context) bool {
+	return false
+}

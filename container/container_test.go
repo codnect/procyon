@@ -26,7 +26,7 @@ func TestContainer_Start(t *testing.T) {
 	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	err = c.Start()
 	assert.Nil(t, err)
@@ -56,7 +56,7 @@ func TestContainer_Get(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	var instance any
 	instance, err = c.Get(context.Background(), "anyType")
@@ -70,9 +70,9 @@ func TestContainer_GetInstanceWithSliceDependency(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
-	c.SharedInstances().Add("test1", &DependencyType{})
-	c.SharedInstances().Add("test2", &DependencyType{})
+	c.DefinitionRegistry().Register(def)
+	c.SharedInstances().Register("test1", &DependencyType{})
+	c.SharedInstances().Register("test2", &DependencyType{})
 
 	var instance any
 	instance, err = c.Get(context.Background(), "anySliceType")
@@ -86,7 +86,7 @@ func TestContainer_GetByType(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	var instance any
 	instance, err = c.GetByType(context.Background(), reflector.TypeOf[*AnyType]())
@@ -100,7 +100,7 @@ func TestContainer_GetByNameAndTypeReturnsInstance(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	var instance any
 	instance, err = c.GetByNameAndType(context.Background(), "anyType", reflector.TypeOf[*AnyType]())
@@ -114,13 +114,13 @@ func TestContainer_GetByNameAndTypeReturnsErrorIfDefinitionTypeWithGivenNameDoes
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	def, err = MakeDefinition(AnySliceConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	var instance any
 	instance, err = c.GetByNameAndType(context.Background(), "anySliceType", reflector.TypeOf[*AnyType]())
@@ -135,7 +135,7 @@ func TestContainer_GetByNameAndArgsReturnsInstanceWithArguments(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	depType := &DependencyType{}
 
@@ -152,7 +152,7 @@ func TestContainer_GetByNameAndArgsReturnsErrorIfNumberOfProvidedArgumentIsWrong
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	depType := &DependencyType{}
 
@@ -166,9 +166,9 @@ func TestContainer_GetByNameAndArgsReturnsErrorIfNumberOfProvidedArgumentIsWrong
 func TestContainer_GetInstancesReturnsInstancesForRequiredTypes(t *testing.T) {
 	c := New()
 	anyInstance := &AnyType{}
-	c.SharedInstances().Add("instance", anyInstance)
+	c.SharedInstances().Register("instance", anyInstance)
 	anotherInstance := &AnyType{}
-	c.SharedInstances().Add("anotherInstance", anotherInstance)
+	c.SharedInstances().Register("anotherInstance", anotherInstance)
 
 	instances, err := c.GetInstancesByType(context.Background(), reflector.TypeOf[*AnyType]())
 	assert.Nil(t, err)
@@ -189,7 +189,7 @@ func TestContainer_IsPrototype(t *testing.T) {
 	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	assert.True(t, c.IsPrototype("anyType"))
 }
@@ -199,7 +199,7 @@ func TestContainer_IsShared(t *testing.T) {
 	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	assert.True(t, c.IsShared("anyType"))
 }
@@ -210,7 +210,7 @@ func TestContainer_PostConstructorShouldBeCalled(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	var instance any
 	instance, err = c.Get(context.Background(), "anyType")
@@ -226,7 +226,7 @@ func TestContainer_ContainsChecksIfInstanceExists(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	assert.False(t, c.Contains("anyType"))
 
@@ -244,7 +244,7 @@ func TestContainer_GetReturnsDifferentInstanceForEachCallIfTypeScopeIsPrototype(
 	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	var instance any
 	instance, err = c.Get(context.Background(), "anyType")
@@ -264,7 +264,7 @@ func TestContainer_HooksShouldBeCalledDuringInitialization(t *testing.T) {
 	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	preHookCalled := false
 	err = c.Hooks().Add(PreInitialization(func(name string, instance any) (any, error) {
@@ -294,12 +294,12 @@ func TestContainer_GetByTypeReturnsErrorIfThereIsMoreThanOneDefinition(t *testin
 	def, err := MakeDefinition(AnyConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	def, err = MakeDefinition(AnySliceConstructFunction, OptionalAt(0), Scoped(PrototypeScope))
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
-	c.DefinitionRegistry().Add(def)
+	c.DefinitionRegistry().Register(def)
 
 	var instance any
 	instance, err = c.GetByType(context.Background(), reflector.TypeOf[fmt.Stringer]())

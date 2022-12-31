@@ -7,35 +7,35 @@ import (
 	"testing"
 )
 
-func TestInstanceRegistry_Add(t *testing.T) {
+func TestSharedInstances_Register(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 }
 
-func TestInstanceRegistry_AddReturnsErrorIfInstanceIsDuplicated(t *testing.T) {
+func TestSharedInstances_AddReturnsErrorIfInstanceIsDuplicated(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
-	err = registry.Add("anyInstanceName", instance)
+	err = registry.Register("anyInstanceName", instance)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "container: instance with name anyInstanceName already exists", err.Error())
 }
 
-func TestInstanceRegistry_FindReturnsInstance(t *testing.T) {
+func TestSharedInstances_FindReturnsInstance(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
@@ -46,17 +46,17 @@ func TestInstanceRegistry_FindReturnsInstance(t *testing.T) {
 	assert.Equal(t, instance, result)
 }
 
-func TestInstanceRegistry_FindReturnsNilIfInstanceIsNotFound(t *testing.T) {
+func TestSharedInstances_FindReturnsNilIfInstanceIsNotFound(t *testing.T) {
 	registry := NewSharedInstances()
 	result, ok := registry.Find("anyInstanceName")
 	assert.False(t, ok)
 	assert.Nil(t, result)
 }
 
-func TestInstanceRegistry_ContainsReturnsTrueIfInstanceExistsInRegistry(t *testing.T) {
+func TestSharedInstances_ContainsReturnsTrueIfInstanceExistsInRegistry(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
@@ -66,16 +66,16 @@ func TestInstanceRegistry_ContainsReturnsTrueIfInstanceExistsInRegistry(t *testi
 	assert.True(t, ok)
 }
 
-func TestInstanceRegistry_ContainsReturnsFalseIfInstanceIsNotFoundInRegistry(t *testing.T) {
+func TestSharedInstances_ContainsReturnsFalseIfInstanceIsNotFoundInRegistry(t *testing.T) {
 	registry := NewSharedInstances()
 	ok := registry.Contains("anyInstanceName")
 	assert.False(t, ok)
 }
 
-func TestInstanceRegistry_InstanceNames(t *testing.T) {
+func TestSharedInstances_InstanceNames(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
@@ -87,7 +87,7 @@ func TestInstanceRegistry_InstanceNames(t *testing.T) {
 	assert.Equal(t, result, []string{"anyInstanceName"})
 }
 
-func TestInstanceRegistry_FindByTypeReturnsErrorIfRequiredTypeIsNil(t *testing.T) {
+func TestSharedInstances_FindByTypeReturnsErrorIfRequiredTypeIsNil(t *testing.T) {
 	registry := NewSharedInstances()
 	result, err := registry.FindByType(nil)
 	assert.NotNil(t, err)
@@ -95,10 +95,10 @@ func TestInstanceRegistry_FindByTypeReturnsErrorIfRequiredTypeIsNil(t *testing.T
 	assert.Nil(t, result)
 }
 
-func TestInstanceRegistry_FindByTypeReturnsPointerInstanceIfRequiredTypeIsPointer(t *testing.T) {
+func TestSharedInstances_FindByTypeReturnsPointerInstanceIfRequiredTypeIsPointer(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
@@ -110,10 +110,10 @@ func TestInstanceRegistry_FindByTypeReturnsPointerInstanceIfRequiredTypeIsPointe
 	assert.Equal(t, instance, result)
 }
 
-func TestInstanceRegistry_FindByTypeReturnsNonPointerInstanceIfRequiredTypeIsNotPointer(t *testing.T) {
+func TestSharedInstances_FindByTypeReturnsNonPointerInstanceIfRequiredTypeIsNotPointer(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
@@ -125,10 +125,10 @@ func TestInstanceRegistry_FindByTypeReturnsNonPointerInstanceIfRequiredTypeIsNot
 	assert.Equal(t, *instance, result)
 }
 
-func TestInstanceRegistry_FindByTypeReturnsInstanceIfRequiredTypeIsInterface(t *testing.T) {
+func TestSharedInstances_FindByTypeReturnsInstanceIfRequiredTypeIsInterface(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
@@ -140,17 +140,17 @@ func TestInstanceRegistry_FindByTypeReturnsInstanceIfRequiredTypeIsInterface(t *
 	assert.Equal(t, instance, result)
 }
 
-func TestInstanceRegistry_FindByTypeReturnsErrorIfMultipleInstancesExistForRequiredType(t *testing.T) {
+func TestSharedInstances_FindByTypeReturnsErrorIfMultipleInstancesExistForRequiredType(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	anotherInstance := &AnyType{}
-	err = registry.Add("anotherInstanceName", anotherInstance)
+	err = registry.Register("anotherInstanceName", anotherInstance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anotherInstanceName")
@@ -163,17 +163,17 @@ func TestInstanceRegistry_FindByTypeReturnsErrorIfMultipleInstancesExistForRequi
 	assert.Nil(t, result)
 }
 
-func TestInstanceRegistry_FindAllByTypeReturnsPointerInstancesIfRequiredTypeIsPointer(t *testing.T) {
+func TestSharedInstances_FindAllByTypeReturnsPointerInstancesIfRequiredTypeIsPointer(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	anotherInstance := &AnyType{}
-	err = registry.Add("anotherInstanceName", anotherInstance)
+	err = registry.Register("anotherInstanceName", anotherInstance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anotherInstanceName")
@@ -185,17 +185,17 @@ func TestInstanceRegistry_FindAllByTypeReturnsPointerInstancesIfRequiredTypeIsPo
 	assert.Equal(t, []any{instance, anotherInstance}, result)
 }
 
-func TestInstanceRegistry_FindAllByTypeReturnsNonPointerInstancesIfRequiredTypeIsNotPointer(t *testing.T) {
+func TestSharedInstances_FindAllByTypeReturnsNonPointerInstancesIfRequiredTypeIsNotPointer(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	anotherInstance := &AnyType{}
-	err = registry.Add("anotherInstanceName", anotherInstance)
+	err = registry.Register("anotherInstanceName", anotherInstance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anotherInstanceName")
@@ -207,17 +207,17 @@ func TestInstanceRegistry_FindAllByTypeReturnsNonPointerInstancesIfRequiredTypeI
 	assert.Equal(t, []any{*instance, *anotherInstance}, result)
 }
 
-func TestInstanceRegistry_FindAllByTypeReturnsInstancesIfRequiredTypeIsInterface(t *testing.T) {
+func TestSharedInstances_FindAllByTypeReturnsInstancesIfRequiredTypeIsInterface(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	anotherInstance := &AnyType{}
-	err = registry.Add("anotherInstanceName", anotherInstance)
+	err = registry.Register("anotherInstanceName", anotherInstance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anotherInstanceName")
@@ -229,17 +229,17 @@ func TestInstanceRegistry_FindAllByTypeReturnsInstancesIfRequiredTypeIsInterface
 	assert.Equal(t, []any{instance, anotherInstance}, result)
 }
 
-func TestInstanceRegistry_CountReturnsNumberOfRegisteredInstances(t *testing.T) {
+func TestSharedInstances_CountReturnsNumberOfRegisteredInstances(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
 	assert.Contains(t, registry.typesOfInstances, "anyInstanceName")
 
 	anotherInstance := &AnyType{}
-	err = registry.Add("anotherInstanceName", anotherInstance)
+	err = registry.Register("anotherInstanceName", anotherInstance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anotherInstanceName")
@@ -249,10 +249,10 @@ func TestInstanceRegistry_CountReturnsNumberOfRegisteredInstances(t *testing.T) 
 	assert.Equal(t, 2, count)
 }
 
-func TestInstanceRegistry_OrElseGetReturnsInstanceIfThereIsAnyInstanceWithSpecifiedName(t *testing.T) {
+func TestSharedInstances_OrElseGetReturnsInstanceIfThereIsAnyInstanceWithSpecifiedName(t *testing.T) {
 	instance := &AnyType{}
-	registry := NewSharedInstances()
-	err := registry.Add("anyInstanceName", instance)
+	registry := NewSharedInstances().(*sharedInstances)
+	err := registry.Register("anyInstanceName", instance)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.instances, "anyInstanceName")
@@ -266,7 +266,7 @@ func TestInstanceRegistry_OrElseGetReturnsInstanceIfThereIsAnyInstanceWithSpecif
 	assert.Equal(t, instance, result)
 }
 
-func TestInstanceRegistry_OrElseGetCreatesAndReturnsNewInstanceIfInstanceIsNotFound(t *testing.T) {
+func TestSharedInstances_OrElseGetCreatesAndReturnsNewInstanceIfInstanceIsNotFound(t *testing.T) {
 	instance := &AnyType{}
 	registry := NewSharedInstances()
 

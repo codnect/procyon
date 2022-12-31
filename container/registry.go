@@ -6,13 +6,24 @@ import (
 	"sync"
 )
 
-type DefinitionRegistry struct {
+type DefinitionRegistry interface {
+	Register(def *Definition) error
+	Remove(name string) error
+	Contains(name string) bool
+	Find(name string) (*Definition, bool)
+	Definitions() []*Definition
+	DefinitionNames() []string
+	DefinitionNamesByType(requiredType reflector.Type) []string
+	Count() int
+}
+
+type definitionRegistry struct {
 	definitionMap map[string]*Definition
 	muDefinitions sync.RWMutex
 }
 
-func NewDefinitionRegistry(defs []*Definition) *DefinitionRegistry {
-	registry := &DefinitionRegistry{
+func NewDefinitionRegistry(defs []*Definition) DefinitionRegistry {
+	registry := &definitionRegistry{
 		definitionMap: make(map[string]*Definition),
 		muDefinitions: sync.RWMutex{},
 	}
@@ -24,7 +35,7 @@ func NewDefinitionRegistry(defs []*Definition) *DefinitionRegistry {
 	return registry
 }
 
-func (c *DefinitionRegistry) Add(def *Definition) error {
+func (c *definitionRegistry) Register(def *Definition) error {
 	if def == nil {
 		return fmt.Errorf("container: definition should not be nil")
 	}
@@ -41,7 +52,7 @@ func (c *DefinitionRegistry) Add(def *Definition) error {
 	return nil
 }
 
-func (c *DefinitionRegistry) Remove(name string) error {
+func (c *definitionRegistry) Remove(name string) error {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
@@ -53,7 +64,7 @@ func (c *DefinitionRegistry) Remove(name string) error {
 	return nil
 }
 
-func (c *DefinitionRegistry) Contains(name string) bool {
+func (c *definitionRegistry) Contains(name string) bool {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
@@ -61,7 +72,7 @@ func (c *DefinitionRegistry) Contains(name string) bool {
 	return exists
 }
 
-func (c *DefinitionRegistry) Find(name string) (*Definition, bool) {
+func (c *definitionRegistry) Find(name string) (*Definition, bool) {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
@@ -72,7 +83,7 @@ func (c *DefinitionRegistry) Find(name string) (*Definition, bool) {
 	return nil, false
 }
 
-func (c *DefinitionRegistry) Definitions() []*Definition {
+func (c *definitionRegistry) Definitions() []*Definition {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
@@ -84,7 +95,7 @@ func (c *DefinitionRegistry) Definitions() []*Definition {
 	return defs
 }
 
-func (c *DefinitionRegistry) DefinitionNames() []string {
+func (c *definitionRegistry) DefinitionNames() []string {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
@@ -96,7 +107,7 @@ func (c *DefinitionRegistry) DefinitionNames() []string {
 	return names
 }
 
-func (c *DefinitionRegistry) DefinitionNamesByType(requiredType reflector.Type) []string {
+func (c *definitionRegistry) DefinitionNamesByType(requiredType reflector.Type) []string {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 
@@ -125,7 +136,7 @@ func (c *DefinitionRegistry) DefinitionNamesByType(requiredType reflector.Type) 
 	return names
 }
 
-func (c *DefinitionRegistry) Count() int {
+func (c *definitionRegistry) Count() int {
 	defer c.muDefinitions.Unlock()
 	c.muDefinitions.Lock()
 

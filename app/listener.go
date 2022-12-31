@@ -12,6 +12,7 @@ type StartupListener interface {
 	OnEnvironmentPrepared(ctx Context, environment env.Environment)
 	OnContextPrepared(ctx Context)
 	OnContextLoaded(ctx Context)
+	OnContextRefreshed(ctx Context)
 	OnStarted(ctx Context, timeTaken time.Duration)
 	OnReady(ctx Context, timeTaken time.Duration)
 	OnFailed(ctx Context, err error)
@@ -46,6 +47,10 @@ func (l *startupListener) OnContextPrepared(ctx Context) {
 func (l *startupListener) OnContextLoaded(ctx Context) {
 	l.broadcaster.BroadcastEvent(ctx, newContextLoadedEvent(l.app, l.args, ctx))
 	ctx.PublishEvent(ctx, availability.NewChangeEvent(ctx, availability.StateCorrect))
+}
+
+func (l *startupListener) OnContextRefreshed(ctx Context) {
+	l.broadcaster.BroadcastEvent(ctx, newContextRefreshedEvent(l.app, l.args, ctx))
 }
 
 func (l *startupListener) OnStarted(ctx Context, timeTaken time.Duration) {
@@ -84,6 +89,12 @@ func (l startupListeners) contextPrepared(ctx Context) {
 func (l startupListeners) contextLoaded(ctx Context) {
 	for _, listener := range l {
 		listener.OnContextLoaded(ctx)
+	}
+}
+
+func (l startupListeners) contextRefreshed(ctx Context) {
+	for _, listener := range l {
+		listener.OnContextRefreshed(ctx)
 	}
 }
 

@@ -7,45 +7,45 @@ import (
 	"testing"
 )
 
-func TestDefinitionRegistry_AddReturnsErrorIfDefinitionIsNil(t *testing.T) {
+func TestDefinitionRegistry_RegisterReturnsErrorIfDefinitionIsNil(t *testing.T) {
 	registry := NewDefinitionRegistry(nil)
-	err := registry.Add(nil)
+	err := registry.Register(nil)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "container: definition should not be nil", err.Error())
 }
 
-func TestDefinitionRegistry_AddReturnNilIfDefinitionIsAddedSuccessfully(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+func TestDefinitionRegistry_RegisterReturnNilIfDefinitionIsAddedSuccessfully(t *testing.T) {
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
 }
 
-func TestDefinitionRegistry_AddReturnsErrorIfDefinitionIsDuplicated(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+func TestDefinitionRegistry_RegisterReturnsErrorIfDefinitionIsDuplicated(t *testing.T) {
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "container: definition with name anyType already exists", err.Error())
 }
 
 func TestDefinitionRegistry_RemoveReturnsErrorIfDefinitionIsNotFound(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 
 	err := registry.Remove("anyType")
 
@@ -54,12 +54,12 @@ func TestDefinitionRegistry_RemoveReturnsErrorIfDefinitionIsNotFound(t *testing.
 }
 
 func TestDefinitionRegistry_RemoveDeletesDefinitionFromRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
@@ -71,12 +71,12 @@ func TestDefinitionRegistry_RemoveDeletesDefinitionFromRegistry(t *testing.T) {
 }
 
 func TestDefinitionRegistry_ContainsReturnsTrueIfDefinitionExistsInRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
@@ -90,12 +90,12 @@ func TestDefinitionRegistry_ContainsReturnsFalseIfDefinitionDoesNotExistInRegist
 }
 
 func TestDefinitionRegistry_FindReturnsDefinitionIfItExistsInRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
@@ -106,7 +106,7 @@ func TestDefinitionRegistry_FindReturnsDefinitionIfItExistsInRegistry(t *testing
 }
 
 func TestDefinitionRegistry_FindReturnsNilIfDefinitionDoesNotExistInRegistry(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 
 	result, ok := registry.Find("anyType")
 	assert.False(t, ok)
@@ -114,12 +114,12 @@ func TestDefinitionRegistry_FindReturnsNilIfDefinitionDoesNotExistInRegistry(t *
 }
 
 func TestDefinitionRegistry_DefinitionsReturnsRegisteredDefinitions(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
@@ -130,12 +130,12 @@ func TestDefinitionRegistry_DefinitionsReturnsRegisteredDefinitions(t *testing.T
 }
 
 func TestDefinitionRegistry_DefinitionNamesReturnsRegisteredDefinitionNames(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
@@ -146,19 +146,19 @@ func TestDefinitionRegistry_DefinitionNamesReturnsRegisteredDefinitionNames(t *t
 }
 
 func TestDefinitionRegistry_DefinitionNamesByTypeReturnsEmptyNamesIfRequiredTypeIsNil(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	names := registry.DefinitionNamesByType(nil)
 	assert.NotNil(t, names)
 	assert.Len(t, names, 0)
 }
 
 func TestDefinitionRegistry_DefinitionNamesByTypeReturnsRegisteredDefinitionNamesBasedOnType(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
@@ -177,12 +177,12 @@ func TestDefinitionRegistry_DefinitionNamesByTypeReturnsRegisteredDefinitionName
 }
 
 func TestDefinitionRegistry_CountReturnsNumberOfDefinitions(t *testing.T) {
-	registry := NewDefinitionRegistry(nil)
+	registry := NewDefinitionRegistry(nil).(*definitionRegistry)
 	def, err := MakeDefinition(AnyConstructFunction)
 	assert.Nil(t, err)
 	assert.NotNil(t, def)
 
-	err = registry.Add(def)
+	err = registry.Register(def)
 
 	assert.Nil(t, err)
 	assert.Contains(t, registry.definitionMap, "anyType")
