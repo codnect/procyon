@@ -1,8 +1,10 @@
 package app
 
 import (
+	"github.com/procyon-projects/procyon/app/config"
 	"github.com/procyon-projects/procyon/app/env"
 	"github.com/procyon-projects/procyon/app/env/property"
+	"strings"
 )
 
 type ContextCustomizer interface {
@@ -50,43 +52,93 @@ func newEnvironmentCustomizer() *environmentCustomizer {
 }
 
 func (c *environmentCustomizer) CustomizeEnvironment(environment env.Environment) error {
-	resolver := newConfigResourceResolver(environment, c.sourceLoaders)
-	importer := newConfigImporter([]*configResourceResolver{resolver})
+	return c.importConfig(environment)
+}
+
+func (c *environmentCustomizer) importConfig(environment env.Environment) error {
+	importer := config.NewFileImporter(environment)
 
 	defaultConfigs, err := importer.Load(environment.DefaultProfiles(), "resources")
 	if err != nil {
 		return err
 	}
 
-	for _, config := range defaultConfigs {
-		environment.PropertySources().AddLast(config.PropertySource())
+	sources := property.NewPropertySources()
+
+	for _, defaultConfig := range defaultConfigs {
+		sources.AddLast(defaultConfig.PropertySource())
 	}
 
 	activeProfiles := environment.ActiveProfiles()
-	if len(activeProfiles) != 0 {
-		for _, activeProfile := range activeProfiles {
-			err = environment.AddActiveProfile(activeProfile)
 
-			if err != nil {
-				return err
-			}
+	if len(activeProfiles) == 0 {
+		resolver := property.NewSourcesResolver(sources)
+		value, ok := resolver.Property("procyon.profiles.active")
+
+		if ok {
+			activeProfiles = strings.Split(strings.TrimSpace(value), ",")
 		}
-
-		return c.loadActiveProfiles(importer, environment, activeProfiles)
 	}
 
+	if len(activeProfiles) != 0 {
+		err = environment.SetActiveProfiles(activeProfiles...)
+		if err != nil {
+			return err
+		}
+
+		err = c.loadActiveProfiles(importer, environment, sources, activeProfiles)
+		if err != nil {
+			return err
+		}
+	}
+
+	c.mergeSources(environment, sources)
 	return nil
 }
 
-func (c *environmentCustomizer) loadActiveProfiles(importer *configImporter, environment env.Environment, activeProfiles []string) error {
+func (c *environmentCustomizer) loadActiveProfiles(importer config.Importer, environment env.Environment, propertySources *property.Sources, activeProfiles []string) error {
 	configs, err := importer.Load(activeProfiles, "resources")
 	if err != nil {
 		return err
 	}
 
-	for _, config := range configs {
-		environment.PropertySources().AddLast(config.PropertySource())
+	for _, cfg := range configs {
+		propertySource := cfg.PropertySource()
+		propertySources.AddFirst(propertySource)
+
+		err = c.activateIncludeProfiles(importer, environment, propertySources, propertySource)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func (c *environmentCustomizer) activateIncludeProfiles(importer config.Importer, environment env.Environment, propertySources *property.Sources, source property.Source) error {
+	value, ok := source.Property("procyon.profiles.include")
+
+	if ok {
+		profiles := strings.Split(strings.TrimSpace(value.(string)), ",")
+
+		for _, profile := range profiles {
+			err := environment.AddActiveProfile(strings.TrimSpace(profile))
+			if err != nil {
+				return err
+			}
+		}
+
+		err := c.loadActiveProfiles(importer, environment, propertySources, profiles)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *environmentCustomizer) mergeSources(environment env.Environment, sources *property.Sources) {
+	for _, source := range sources.ToSlice() {
+		environment.PropertySources().AddLast(source)
+	}
 }

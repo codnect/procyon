@@ -12,16 +12,15 @@ type Variables map[string]string
 type Environment interface {
 	ActiveProfiles() []string
 	DefaultProfiles() []string
-	AcceptProfiles(profiles ...string)
-	IsProfileActive(profile string)
+	IsProfileActive(profile string) bool
 
 	SetActiveProfiles(profiles ...string) error
-	AddActiveProfile(profile string) error
+	AddActiveProfile(profile ...string) error
 	SetDefaultProfiles(profiles ...string) error
 	Merge(parent Environment)
 
 	Variables() Variables
-	PropertySources() property.Sources
+	PropertySources() *property.Sources
 	PropertyResolver() property.Resolver
 }
 
@@ -29,7 +28,7 @@ type environment struct {
 	activeProfiles  map[string]struct{}
 	defaultProfiles map[string]struct{}
 
-	sources             property.Sources
+	sources             *property.Sources
 	resolver            property.Resolver
 	activeProfilesOnce  sync.Once
 	defaultProfilesOnce sync.Once
@@ -41,7 +40,7 @@ func New() Environment {
 	return WithSources(property.NewPropertySources())
 }
 
-func WithSources(sources property.Sources) Environment {
+func WithSources(sources *property.Sources) Environment {
 	if sources == nil {
 		panic(fmt.Errorf("env: sources cannot be nil"))
 	}
@@ -68,16 +67,14 @@ func (e *environment) validateProfile(profile string) error {
 
 func (e *environment) doGetActiveProfiles() {
 	e.activeProfilesOnce.Do(func() {
-		if len(e.activeProfiles) == 0 {
-			propertyValue, ok := e.PropertyResolver().Property("procyon.profiles.active")
+		propertyValue, ok := e.PropertyResolver().Property("procyon.profiles.active")
 
-			if ok {
-				activeProfiles := strings.Split(strings.TrimSpace(propertyValue), ",")
-				err := e.SetActiveProfiles(activeProfiles...)
+		if ok {
+			activeProfiles := strings.Split(strings.TrimSpace(propertyValue), ",")
+			err := e.SetActiveProfiles(activeProfiles...)
 
-				if err != nil {
-					panic(err)
-				}
+			if err != nil {
+				panic(err)
 			}
 		}
 	})
@@ -99,16 +96,14 @@ func (e *environment) ActiveProfiles() []string {
 
 func (e *environment) doGetDefaultProfiles() {
 	e.defaultProfilesOnce.Do(func() {
-		if len(e.defaultProfiles) == 0 {
-			propertyValue, ok := e.PropertyResolver().Property("procyon.profiles.default")
+		propertyValue, ok := e.PropertyResolver().Property("procyon.profiles.default")
 
-			if ok {
-				defaultProfiles := strings.Split(strings.TrimSpace(propertyValue), ",")
-				err := e.SetDefaultProfiles(defaultProfiles...)
+		if ok {
+			defaultProfiles := strings.Split(strings.TrimSpace(propertyValue), ",")
+			err := e.SetDefaultProfiles(defaultProfiles...)
 
-				if err != nil {
-					panic(err)
-				}
+			if err != nil {
+				panic(err)
 			}
 		}
 	})
@@ -128,11 +123,15 @@ func (e *environment) DefaultProfiles() []string {
 	return profiles
 }
 
-func (e *environment) AcceptProfiles(profiles ...string) {
-	// TODO
-}
-func (e *environment) IsProfileActive(profile string) {
-	// TODO
+func (e *environment) IsProfileActive(profile string) bool {
+	defer e.mu.Unlock()
+	e.mu.Lock()
+
+	if _, ok := e.activeProfiles[profile]; ok {
+		return true
+	}
+
+	return false
 }
 
 func (e *environment) clearActiveProfiles() {
@@ -161,17 +160,24 @@ func (e *environment) SetActiveProfiles(profiles ...string) error {
 
 	return nil
 }
-func (e *environment) AddActiveProfile(profile string) error {
-	err := e.validateProfile(profile)
-	if err != nil {
-		return err
+func (e *environment) AddActiveProfile(profiles ...string) error {
+	for _, profile := range profiles {
+		err := e.validateProfile(profile)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	e.doGetActiveProfiles()
 
 	defer e.mu.Unlock()
 	e.mu.Lock()
-	e.activeProfiles[profile] = struct{}{}
+
+	for _, profile := range profiles {
+		e.activeProfiles[profile] = struct{}{}
+	}
+
 	return nil
 }
 
@@ -235,7 +241,7 @@ func (e *environment) Variables() Variables {
 	return nil
 }
 
-func (e *environment) PropertySources() property.Sources {
+func (e *environment) PropertySources() *property.Sources {
 	return e.sources
 }
 

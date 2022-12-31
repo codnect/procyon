@@ -8,10 +8,10 @@ type Resolver interface {
 }
 
 type SourcesResolver struct {
-	sources Sources
+	sources *Sources
 }
 
-func NewSourcesResolver(sources Sources) *SourcesResolver {
+func NewSourcesResolver(sources *Sources) *SourcesResolver {
 	if sources == nil {
 		panic("property: sources cannot be nil")
 	}

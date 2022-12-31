@@ -11,36 +11,23 @@ type Source interface {
 	PropertyNames() []string
 }
 
-type Sources interface {
-	Contains(name string) bool
-	Find(name string) (Source, bool)
-	Size() int
-	AddFirst(source Source)
-	AddLast(source Source)
-	AddAtIndex(index int, source Source)
-	Remove(name string) Source
-	Replace(name string, source Source)
-	PrecendenceOf(source Source) int
-	ToSlice() []Source
-}
-
-type propertySources struct {
+type Sources struct {
 	sources []Source
 	mu      sync.RWMutex
 }
 
-func NewPropertySources() Sources {
-	return &propertySources{
+func NewPropertySources() *Sources {
+	return &Sources{
 		sources: make([]Source, 0),
 		mu:      sync.RWMutex{},
 	}
 }
 
-func (p *propertySources) Contains(name string) bool {
-	defer p.mu.Unlock()
-	p.mu.Lock()
+func (s *Sources) Contains(name string) bool {
+	defer s.mu.Unlock()
+	s.mu.Lock()
 
-	for _, source := range p.sources {
+	for _, source := range s.sources {
 		if source != nil && source.Name() == name {
 			return true
 		}
@@ -49,11 +36,11 @@ func (p *propertySources) Contains(name string) bool {
 	return false
 }
 
-func (p *propertySources) Find(name string) (Source, bool) {
-	defer p.mu.Unlock()
-	p.mu.Lock()
+func (s *Sources) Find(name string) (Source, bool) {
+	defer s.mu.Unlock()
+	s.mu.Lock()
 
-	for _, source := range p.sources {
+	for _, source := range s.sources {
 		if source != nil && source.Name() == name {
 			return source, true
 		}
@@ -62,49 +49,49 @@ func (p *propertySources) Find(name string) (Source, bool) {
 	return nil, false
 }
 
-func (p *propertySources) AddFirst(source Source) {
-	defer p.mu.Unlock()
-	p.mu.Lock()
+func (s *Sources) AddFirst(source Source) {
+	defer s.mu.Unlock()
+	s.mu.Lock()
 
-	p.removeIfPresent(source)
-	if len(p.sources) == 0 {
-		p.sources = append(p.sources, source)
+	s.removeIfPresent(source)
+	if len(s.sources) == 0 {
+		s.sources = append(s.sources, source)
 		return
 	}
 
-	p.sources = append(p.sources[:1], p.sources[0:]...)
-	p.sources[0] = source
+	s.sources = append(s.sources[:1], s.sources[0:]...)
+	s.sources[0] = source
 }
 
-func (p *propertySources) AddLast(source Source) {
-	defer p.mu.Unlock()
-	p.mu.Lock()
+func (s *Sources) AddLast(source Source) {
+	defer s.mu.Unlock()
+	s.mu.Lock()
 
-	p.removeIfPresent(source)
-	p.sources = append(p.sources, source)
+	s.removeIfPresent(source)
+	s.sources = append(s.sources, source)
 }
 
-func (p *propertySources) AddAtIndex(index int, source Source) {
-	defer p.mu.Unlock()
-	p.mu.Lock()
+func (s *Sources) AddAtIndex(index int, source Source) {
+	defer s.mu.Unlock()
+	s.mu.Lock()
 
-	p.removeIfPresent(source)
+	s.removeIfPresent(source)
 
-	if len(p.sources) == index {
-		p.mu.Unlock()
-		p.AddLast(source)
+	if len(s.sources) == index {
+		s.mu.Unlock()
+		s.AddLast(source)
 		return
 	}
 
-	p.sources = append(p.sources[:index+1], p.sources[index:]...)
-	p.sources[index] = source
+	s.sources = append(s.sources[:index+1], s.sources[index:]...)
+	s.sources[index] = source
 }
 
-func (p *propertySources) Remove(name string) Source {
-	source, index := p.findPropertySourceByName(name)
+func (s *Sources) Remove(name string) Source {
+	source, index := s.findPropertySourceByName(name)
 
 	if index != -1 {
-		p.sources = append(p.sources[:index], p.sources[index+1:]...)
+		s.sources = append(s.sources[:index], s.sources[index+1:]...)
 	} else {
 		return nil
 	}
@@ -112,42 +99,42 @@ func (p *propertySources) Remove(name string) Source {
 	return source
 }
 
-func (p *propertySources) Replace(name string, source Source) {
-	_, index := p.findPropertySourceByName(name)
+func (s *Sources) Replace(name string, source Source) {
+	_, index := s.findPropertySourceByName(name)
 
 	if index != -1 {
-		p.sources[index] = source
+		s.sources[index] = source
 	}
 }
 
-func (p *propertySources) Size() int {
-	return len(p.sources)
+func (s *Sources) Size() int {
+	return len(s.sources)
 }
 
-func (p *propertySources) PrecendenceOf(source Source) int {
+func (s *Sources) PrecendenceOf(source Source) int {
 	return 0
 }
 
-func (p *propertySources) ToSlice() []Source {
-	sources := make([]Source, len(p.sources))
-	copy(sources, p.sources)
+func (s *Sources) ToSlice() []Source {
+	sources := make([]Source, len(s.sources))
+	copy(sources, s.sources)
 	return sources
 }
 
-func (p *propertySources) removeIfPresent(source Source) {
+func (s *Sources) removeIfPresent(source Source) {
 	if source == nil {
 		return
 	}
 
-	_, index := p.findPropertySourceByName(source.Name())
+	_, index := s.findPropertySourceByName(source.Name())
 
 	if index != -1 {
-		p.sources = append(p.sources[:index], p.sources[index+1:]...)
+		s.sources = append(s.sources[:index], s.sources[index+1:]...)
 	}
 }
 
-func (p *propertySources) findPropertySourceByName(name string) (Source, int) {
-	for index, source := range p.sources {
+func (s *Sources) findPropertySourceByName(name string) (Source, int) {
+	for index, source := range s.sources {
 
 		if source.Name() == name {
 			return source, index

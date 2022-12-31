@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"fmt"
@@ -10,13 +10,18 @@ import (
 	"strings"
 )
 
-type configResourceResolver struct {
+type Resolver interface {
+	Resolve(location string) ([]Resource, error)
+	ResolveProfiles(profiles []string, location string) ([]Resource, error)
+}
+
+type FileResolver struct {
 	environment   env.Environment
 	sourceLoaders []property.SourceLoader
 	configName    string
 }
 
-func newConfigResourceResolver(environment env.Environment, sourceLoaders []property.SourceLoader) *configResourceResolver {
+func NewFileResolver(environment env.Environment, sourceLoaders []property.SourceLoader) *FileResolver {
 	if environment == nil {
 		panic("app: environment cannot be nil")
 	}
@@ -25,7 +30,7 @@ func newConfigResourceResolver(environment env.Environment, sourceLoaders []prop
 		panic("app: sourceLoaders cannot be empty")
 	}
 
-	resolver := &configResourceResolver{
+	resolver := &FileResolver{
 		environment:   environment,
 		sourceLoaders: sourceLoaders,
 	}
@@ -40,12 +45,12 @@ func newConfigResourceResolver(environment env.Environment, sourceLoaders []prop
 	return resolver
 }
 
-func (r *configResourceResolver) Resolve(location string) ([]*configResource, error) {
+func (r *FileResolver) Resolve(location string) ([]Resource, error) {
 	return r.ResolveProfiles(nil, location)
 }
 
-func (r *configResourceResolver) ResolveProfiles(profiles []string, location string) ([]*configResource, error) {
-	resources := make([]*configResource, 0)
+func (r *FileResolver) ResolveProfiles(profiles []string, location string) ([]Resource, error) {
+	resources := make([]Resource, 0)
 	if profiles == nil {
 		resources = append(resources, r.getResources("", location)...)
 		return resources, nil
@@ -62,8 +67,8 @@ func (r *configResourceResolver) ResolveProfiles(profiles []string, location str
 	return resources, nil
 }
 
-func (r *configResourceResolver) getResources(profile string, location string) []*configResource {
-	resources := make([]*configResource, 0)
+func (r *FileResolver) getResources(profile string, location string) []Resource {
+	resources := make([]Resource, 0)
 	var configFile fs.File
 
 	for _, loader := range r.sourceLoaders {
@@ -85,7 +90,7 @@ func (r *configResourceResolver) getResources(profile string, location string) [
 					continue
 				}
 
-				resources = append(resources, newConfigResource(filePath, configFile, loader))
+				resources = append(resources, NewFileResource(filePath, configFile, loader))
 			}
 		}
 	}
