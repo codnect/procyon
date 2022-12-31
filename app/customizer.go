@@ -58,7 +58,7 @@ func (c *environmentCustomizer) CustomizeEnvironment(environment env.Environment
 func (c *environmentCustomizer) importConfig(environment env.Environment) error {
 	importer := config.NewFileImporter(environment)
 
-	defaultConfigs, err := importer.Load(environment.DefaultProfiles(), "resources")
+	defaultConfigs, err := importer.Load(environment.DefaultProfiles(), "config")
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (c *environmentCustomizer) importConfig(environment env.Environment) error 
 }
 
 func (c *environmentCustomizer) loadActiveProfiles(importer config.Importer, environment env.Environment, propertySources *property.Sources, activeProfiles []string) error {
-	configs, err := importer.Load(activeProfiles, "resources")
+	configs, err := importer.Load(activeProfiles, "config")
 	if err != nil {
 		return err
 	}
