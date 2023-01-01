@@ -10,19 +10,19 @@ type ctxTransactionContext struct{}
 
 var (
 	ctxTransactionContextKey = &ctxTransactionContext{}
-	reflTransactionContext   = reflect.TypeOf((*TransactionContext)(nil)).Elem()
+	reflTransactionContext   = reflect.TypeOf((*Context)(nil)).Elem()
 )
 
-type TransactionContext interface {
+type Context interface {
 	Transaction() Transaction
-	Parent() TransactionContext
+	Parent() Context
 	Resources() any
 }
 
 type transactionContext struct {
 }
 
-func NewTransactionContext() TransactionContext {
+func NewContext() Context {
 	return &transactionContext{}
 }
 
@@ -30,7 +30,7 @@ func (t *transactionContext) Transaction() Transaction {
 	return nil
 }
 
-func (t *transactionContext) Parent() TransactionContext {
+func (t *transactionContext) Parent() Context {
 	return nil
 }
 
@@ -58,11 +58,11 @@ func FromContext[T any](ctx context.Context) T {
 
 func ToContext[T any](parent context.Context, value T) context.Context {
 	switch any(value).(type) {
-	case TransactionContext:
+	case Context:
 		return context.WithValue(parent, ctxTransactionContextKey, value)
-	case TransactionExecutor:
+	case Executor:
 		return context.WithValue(parent, ctxTransactionExecutorKey, value)
-	case TransactionManager:
+	case Manager:
 		return context.WithValue(parent, ctxTransactionManagerKey, value)
 	}
 

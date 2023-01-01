@@ -9,23 +9,23 @@ type ctxTransactionExecutor struct{}
 
 var (
 	ctxTransactionExecutorKey = &ctxTransactionExecutor{}
-	reflTransactionExecutor   = reflect.TypeOf((*TransactionContext)(nil)).Elem()
+	reflTransactionExecutor   = reflect.TypeOf((*Executor)(nil)).Elem()
 )
 
 type Func func(ctx context.Context, template Template) (any, error)
 
-type TransactionExecutor interface {
+type Executor interface {
 	Execute(ctx context.Context, fn Func) (any, error)
 	ExecutorInTransaction(ctx context.Context, fn Func, options ...Option) (any, error)
-	TransactionManager() TransactionManager
+	TransactionManager() Manager
 }
 
 type transactionExecutor struct {
-	manager TransactionManager
+	manager Manager
 	options *Options
 }
 
-func NewTransactionExecutor(manager TransactionManager, options ...Option) TransactionExecutor {
+func NewExecutor(manager Manager, options ...Option) Executor {
 	return &transactionExecutor{
 		manager: manager,
 		options: NewOptions(options...),
@@ -81,6 +81,6 @@ func (e *transactionExecutor) ExecutorInTransaction(ctx context.Context, fn Func
 	return result, err
 }
 
-func (e *transactionExecutor) TransactionManager() TransactionManager {
+func (e *transactionExecutor) TransactionManager() Manager {
 	return e.manager
 }

@@ -20,7 +20,7 @@ type transaction struct {
 	completed      bool
 }
 
-func NewTransaction(tx *sql.Tx, newTransaction bool, readOnly bool) Transaction {
+func New(tx *sql.Tx, newTransaction bool, readOnly bool) Transaction {
 	return &transaction{
 		tx,
 		false,

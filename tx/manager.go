@@ -10,11 +10,11 @@ type ctxTransactionManager struct{}
 
 var (
 	ctxTransactionManagerKey = &ctxTransactionManager{}
-	reflTransactionManager   = reflect.TypeOf((*TransactionManager)(nil)).Elem()
+	reflTransactionManager   = reflect.TypeOf((*Manager)(nil)).Elem()
 )
 
-type TransactionManager interface {
-	CreateContext() TransactionContext
+type Manager interface {
+	CreateContext() Context
 	Connection() *sql.DB
 	GetOrCreateTransaction(ctx context.Context, options ...Option) (Transaction, error)
 	Commit(ctx context.Context, tx Transaction) error
@@ -26,14 +26,14 @@ type transactionManager struct {
 	options *Options
 }
 
-func NewTransactionManager(db *sql.DB, options ...Option) TransactionManager {
+func NewManager(db *sql.DB, options ...Option) Manager {
 	return &transactionManager{
 		db:      db,
 		options: NewOptions(options...),
 	}
 }
 
-func (m *transactionManager) CreateContext() TransactionContext {
+func (m *transactionManager) CreateContext() Context {
 	return nil
 }
 
