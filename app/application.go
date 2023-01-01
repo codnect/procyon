@@ -8,6 +8,7 @@ import (
 	"github.com/procyon-projects/procyon/container"
 	"github.com/procyon-projects/reflector"
 	"log"
+	"os"
 	"time"
 )
 
@@ -21,15 +22,17 @@ func New() Application {
 	broadcaster := event.NewBroadcaster()
 
 	return &application{
-		ctx:       newContext(appContainer, broadcaster),
-		container: appContainer,
+		ctx:           newContext(appContainer, broadcaster),
+		container:     appContainer,
+		bannerPrinter: defaultBannerPrinter(),
 	}
 }
 
 type application struct {
-	ctx       *appContext
-	container container.Container
-	env       env.Environment
+	ctx           *appContext
+	container     container.Container
+	env           env.Environment
+	bannerPrinter *bannerPrinter
 }
 
 func (a *application) Context() Context {
@@ -71,6 +74,11 @@ func (a *application) Run(args ...string) {
 
 	var environment env.Environment
 	environment, err = a.prepareEnvironment(arguments, listeners)
+	if err != nil {
+		panic(err)
+	}
+
+	err = a.bannerPrinter.PrintBanner(environment, os.Stdout)
 	if err != nil {
 		panic(err)
 	}
