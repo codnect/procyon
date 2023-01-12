@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 	"github.com/procyon-projects/procyon/app/env"
 	"io"
 )
@@ -23,20 +23,14 @@ func defaultBannerPrinter() *bannerPrinter {
 }
 
 func (p *bannerPrinter) PrintBanner(environment env.Environment, w io.Writer) error {
-	blue := color.New(color.FgHiBlue).Add(color.Bold)
+	blue := color.New(color.FgBlue, color.Bold)
 
 	for _, line := range bannerText {
-		_, err := blue.Fprint(w, line)
-		if err != nil {
-			return nil
-		}
+		color.Fprintf(w, blue.Sprintf(line))
 	}
 
-	yellow := color.New(color.FgHiYellow)
-	_, err := yellow.Fprintf(w, "%24s%s)", "(", Version)
-	if err != nil {
-		return nil
-	}
+	yellow := color.New(color.FgLightYellow)
+	color.Fprintf(w, yellow.Sprintf("%24s%s)\n", "(", Version))
 
 	return nil
 }
