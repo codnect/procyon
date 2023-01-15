@@ -17,8 +17,7 @@ go get -u github.com/procyon-projects/procyon/...
 
 # What is Procyon? 
 
-Procyon is an HTTP web framework written in Go, powered by [fasthttp](https://github.com/valyala/fasthttp) 
-and third-party libraries. If you need a comprehensive web framework, then I recommend you to use Procyon. Because it provides a lot of modules including several features.
+Procyon is an HTTP web framework written in Go. If you need a comprehensive web framework, then I recommend you to use Procyon. Because it provides a lot of modules including several features.
 
 * It makes it easy to create production-grade applications. 
 * It aims to ease to build, develop and deploy your web applications quickly in Go.
