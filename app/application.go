@@ -2,14 +2,19 @@ package app
 
 import (
 	"fmt"
+	"github.com/procyon-projects/logy"
 	"github.com/procyon-projects/procyon/app/component"
 	"github.com/procyon-projects/procyon/app/env"
 	"github.com/procyon-projects/procyon/app/event"
 	"github.com/procyon-projects/procyon/container"
 	"github.com/procyon-projects/reflector"
-	"log"
 	"os"
+	"runtime"
 	"time"
+)
+
+var (
+	log = logy.Get()
 )
 
 type Application interface {
@@ -40,7 +45,6 @@ func (a *application) Context() Context {
 }
 
 func (a *application) Run(args ...string) {
-	log.SetFlags(0)
 
 	arguments, err := parseArguments(mergeArguments(args...))
 
@@ -66,7 +70,6 @@ func (a *application) Run(args ...string) {
 	defer func() {
 		if r := recover(); r != nil {
 			listeners.failed(a.ctx, err)
-			log.Panic(err)
 		}
 	}()
 
@@ -88,9 +91,10 @@ func (a *application) Run(args ...string) {
 		panic(err)
 	}
 
-	listeners.ready(a.ctx, startTime.Sub(time.Now()))
-
-	listeners.started(a.ctx, startTime.Sub(time.Now()))
+	timeTaken := time.Now().Sub(startTime)
+	listeners.ready(a.ctx, timeTaken)
+	a.logStarted(a.ctx, timeTaken)
+	listeners.started(a.ctx, timeTaken)
 }
 
 func (a *application) startupListeners(arguments *Arguments) (startupListeners, error) {
@@ -216,6 +220,9 @@ func (a *application) prepareContext(environment env.Environment, listeners star
 
 	listeners.contextPrepared(a.ctx)
 
+	a.logStartup(a.ctx)
+	a.logProfileInfo(environment)
+
 	listeners.contextLoaded(a.ctx)
 
 	err = a.ctx.Refresh()
@@ -236,4 +243,41 @@ func (a *application) registerComponentDefinitions() error {
 	}
 
 	return nil
+}
+
+func (a *application) logStartup(ctx Context) {
+	appName := ctx.ApplicationName()
+
+	if appName == "" {
+		appName = "application"
+	}
+
+	log.Info("Starting {} using Go {}", appName, runtime.Version()[2:])
+	log.Debug("Running with Procyon {}", Version)
+}
+
+func (a *application) logProfileInfo(environment env.Environment) {
+	if log.IsInfoEnabled() {
+		activeProfiles := environment.ActiveProfiles()
+		if len(activeProfiles) == 0 {
+			defaultProfiles := environment.DefaultProfiles()
+			log.Info("No active profile, using default profile(s): {}", sliceToDelimitedString(defaultProfiles))
+		} else {
+			if len(activeProfiles) == 1 {
+				log.Info("The following profile is active: {}", sliceToDelimitedString(activeProfiles))
+			} else {
+				log.Info("The following profiles are active: {}", sliceToDelimitedString(activeProfiles))
+			}
+		}
+	}
+}
+
+func (a *application) logStarted(ctx Context, timeTaken time.Duration) {
+	appName := ctx.ApplicationName()
+
+	if appName == "" {
+		appName = "application"
+	}
+
+	log.Info("Started {} in {} seconds", appName, timeTaken.Seconds())
 }
