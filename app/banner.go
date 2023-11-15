@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/gookit/color"
-	"github.com/procyon-projects/procyon/app/env"
+	"fmt"
+	"github.com/procyon-projects/logy"
 	"io"
 )
 
@@ -22,15 +22,21 @@ func defaultBannerPrinter() *bannerPrinter {
 	return &bannerPrinter{}
 }
 
-func (p *bannerPrinter) PrintBanner(environment env.Environment, w io.Writer) error {
-	blue := color.New(color.FgBlue, color.Bold)
+func (p *bannerPrinter) PrintBanner(w io.Writer) error {
 
 	for _, line := range bannerText {
-		color.Fprintf(w, blue.Sprintf(line))
+		if logy.SupportsColor() {
+			w.Write([]byte(fmt.Sprintf("\u001B[34;1m%s\u001B[0m", line)))
+		} else {
+			w.Write([]byte(line))
+		}
 	}
 
-	yellow := color.New(color.FgLightYellow)
-	color.Fprintf(w, yellow.Sprintf("%24s%s)\n", "(", Version))
+	if logy.SupportsColor() {
+		w.Write([]byte(fmt.Sprintf("\u001B[93m%24s%s)\u001B[0m\n", "(", Version)))
+	} else {
+		w.Write([]byte(fmt.Sprintf("(%s)", Version)))
+	}
 
 	return nil
 }
