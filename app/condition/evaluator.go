@@ -33,7 +33,9 @@ func (e *evaluator) ShouldSkip(conditions []Condition) bool {
 	}
 
 	for _, condition := range conditions {
-		condition.Matches(e.ctx)
+		if !condition.Matches(e.ctx) {
+			return false
+		}
 	}
 
 	return true

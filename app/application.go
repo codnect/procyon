@@ -1,11 +1,10 @@
 package app
 
 import (
-	"fmt"
 	"github.com/procyon-projects/logy"
-	"github.com/procyon-projects/procyon/app/component"
 	"github.com/procyon-projects/procyon/app/env"
 	"github.com/procyon-projects/procyon/app/event"
+	"github.com/procyon-projects/procyon/component"
 	"github.com/procyon-projects/procyon/container"
 	"github.com/procyon-projects/reflector"
 	"os"
@@ -45,26 +44,31 @@ func (a *application) Context() Context {
 }
 
 func (a *application) Run(args ...string) {
+	startTime := time.Now()
 
+	a.bannerPrinter.PrintBanner(os.Stdout)
 	arguments, err := parseArguments(mergeArguments(args...))
 
 	if err != nil {
-		panic(fmt.Errorf("app: argument parsing failed %v", err.Error()))
+		log.Error("Argument parsing failed", err)
+		os.Exit(1)
 	}
-
-	startTime := time.Now()
 
 	err = a.registerComponentDefinitions()
 
 	if err != nil {
-		panic(fmt.Errorf("app: failed to register component definitions, err: %s", err.Error()))
+		log.Error("Failed to register component definitions", err)
+		os.Exit(1)
 	}
+
+	a.logStartup(a.ctx)
 
 	var listeners startupListeners
 	listeners, err = a.startupListeners(arguments)
 
 	if err != nil {
-		panic(fmt.Errorf("app: failed to initialize startup listeners, err: %s", err.Error()))
+		log.Error("Failed to initialize startup listeners", err)
+		os.Exit(1)
 	}
 
 	defer func() {
@@ -81,12 +85,9 @@ func (a *application) Run(args ...string) {
 		panic(err)
 	}
 
-	err = a.bannerPrinter.PrintBanner(environment, os.Stdout)
-	if err != nil {
-		panic(err)
-	}
+	a.logProfileInfo(environment)
 
-	err = a.prepareContext(environment, listeners)
+	err = a.prepareContext(environment, listeners, arguments)
 	if err != nil {
 		panic(err)
 	}
@@ -121,13 +122,14 @@ func (a *application) startupListeners(arguments *Arguments) (startupListeners, 
 			continue
 		}
 
-		listener, err := a.container.GetByNameAndArgs(a.ctx, definitionName, a, arguments)
+		results, err := definition.Constructor().Invoke(a, arguments)
 
 		if err != nil {
 			return nil, err
 		}
 
-		listeners = append(listeners, listener.(StartupListener))
+		listener := results[0].(StartupListener)
+		listeners = append(listeners, listener)
 	}
 
 	return listeners, nil
@@ -146,13 +148,14 @@ func (a *application) eventCustomizers() (eventCustomizers, error) {
 			continue
 		}
 
-		customizer, err := a.container.Get(a.ctx, definitionName)
+		results, err := definition.Constructor().Invoke()
 
 		if err != nil {
 			return nil, err
 		}
 
-		customizers = append(customizers, customizer.(env.Customizer))
+		customizer := results[0].(env.Customizer)
+		customizers = append(customizers, customizer)
 	}
 
 	return customizers, nil
@@ -193,19 +196,20 @@ func (a *application) contextCustomizers() (contextCustomizers, error) {
 			continue
 		}
 
-		customizer, err := a.container.Get(a.ctx, definitionName)
+		results, err := definition.Constructor().Invoke()
 
 		if err != nil {
 			return nil, err
 		}
 
+		customizer := results[0].(ContextCustomizer)
 		customizers = append(customizers, customizer.(ContextCustomizer))
 	}
 
 	return customizers, nil
 }
 
-func (a *application) prepareContext(environment env.Environment, listeners startupListeners) error {
+func (a *application) prepareContext(environment env.Environment, listeners startupListeners, arguments *Arguments) error {
 	a.ctx.setEnvironment(environment)
 
 	customizers, err := a.contextCustomizers()
@@ -220,17 +224,20 @@ func (a *application) prepareContext(environment env.Environment, listeners star
 
 	listeners.contextPrepared(a.ctx)
 
-	a.logStartup(a.ctx)
-	a.logProfileInfo(environment)
-
-	listeners.contextLoaded(a.ctx)
-
-	err = a.ctx.Refresh()
+	sharedInstances := a.container.SharedInstances()
+	err = sharedInstances.Register("procyonApplicationArguments", arguments)
 	if err != nil {
 		return err
 	}
 
-	listeners.contextRefreshed(a.ctx)
+	listeners.contextLoaded(a.ctx)
+
+	err = a.ctx.Start()
+	if err != nil {
+		return err
+	}
+
+	listeners.contextStarted(a.ctx)
 	return nil
 }
 

@@ -23,7 +23,7 @@ func Register(constructor Constructor, options ...Option) *Component {
 	componentName := component.Definition().Name()
 
 	if _, exists := components[componentName]; exists {
-		panic(fmt.Sprintf("compoenent: component with name %s already exists", componentName))
+		panic(fmt.Sprintf("component: component with name %s already exists", componentName))
 	}
 
 	components[componentName] = component

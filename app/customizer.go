@@ -58,7 +58,7 @@ func (c *environmentCustomizer) CustomizeEnvironment(environment env.Environment
 func (c *environmentCustomizer) importConfig(environment env.Environment) error {
 	importer := config.NewFileImporter(environment)
 
-	defaultConfigs, err := importer.Load(environment.DefaultProfiles(), "config")
+	defaultConfigs, err := importer.Load(environment.DefaultProfiles(), "resources")
 	if err != nil {
 		return err
 	}

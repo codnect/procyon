@@ -19,7 +19,7 @@ type Context interface {
 	StartupTime() time.Time
 	Environment() env.Environment
 	Container() container.Container
-	Refresh() error
+	Start() error
 }
 
 type appContext struct {
@@ -119,7 +119,7 @@ func (c *appContext) prepareContainer() error {
 	return nil
 }
 
-func (c *appContext) Refresh() error {
+func (c *appContext) Start() error {
 	err := c.prepareRefresh()
 	if err != nil {
 		return err
@@ -130,6 +130,28 @@ func (c *appContext) Refresh() error {
 		return err
 	}
 
+	err = c.registerComponentDefinitions()
+	if err != nil {
+		return err
+	}
+
+	err = c.initializeSharedComponents()
+	if err != nil {
+		return err
+	}
+
+	return c.finalize()
+}
+
+func (c *appContext) registerComponentDefinitions() error {
+	return nil
+}
+
+func (c *appContext) initializeSharedComponents() error {
+	return nil
+}
+
+func (c *appContext) finalize() error {
 	return nil
 }
 

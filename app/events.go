@@ -155,15 +155,15 @@ func (e *ContextLoadedEvent) Context() Context {
 	return e.ctx
 }
 
-type ContextRefreshedEvent struct {
+type ContextStartedEvent struct {
 	app  Application
 	ctx  Context
 	args *Arguments
 	time time.Time
 }
 
-func newContextRefreshedEvent(app Application, args *Arguments, ctx Context) *ContextRefreshedEvent {
-	return &ContextRefreshedEvent{
+func newContextStartedEvent(app Application, args *Arguments, ctx Context) *ContextStartedEvent {
+	return &ContextStartedEvent{
 		app:  app,
 		ctx:  ctx,
 		args: args,
@@ -171,23 +171,23 @@ func newContextRefreshedEvent(app Application, args *Arguments, ctx Context) *Co
 	}
 }
 
-func (e *ContextRefreshedEvent) EventSource() any {
+func (e *ContextStartedEvent) EventSource() any {
 	return e.app
 }
 
-func (e *ContextRefreshedEvent) Time() time.Time {
+func (e *ContextStartedEvent) Time() time.Time {
 	return e.time
 }
 
-func (e *ContextRefreshedEvent) Args() *Arguments {
+func (e *ContextStartedEvent) Args() *Arguments {
 	return e.args
 }
 
-func (e *ContextRefreshedEvent) Application() Application {
+func (e *ContextStartedEvent) Application() Application {
 	return e.app
 }
 
-func (e *ContextRefreshedEvent) Context() Context {
+func (e *ContextStartedEvent) Context() Context {
 	return e.ctx
 }
 

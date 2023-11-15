@@ -4,10 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/procyon-projects/logy"
 	"github.com/procyon-projects/reflector"
 	"reflect"
 	"strings"
 	"sync"
+)
+
+var (
+	log = logy.Get()
 )
 
 type Container interface {
@@ -231,6 +236,9 @@ func (c *container) getInstance(ctx context.Context, name string, requiredType r
 
 	if def.IsShared() {
 		instance, err := c.sharedInstances.OrElseGet(name, func() (any, error) {
+			if log.IsDebugEnabled() {
+				log.D(ctx, "Creating shared instance of '{}' under package '{}'", def.Type().Name(), def.Type().PackagePath())
+			}
 			return c.createInstance(ctx, def, args)
 		})
 
@@ -402,6 +410,9 @@ func (c *container) resolveInputs(ctx context.Context, inputs []*Input) ([]any, 
 
 		if input.Name() != "" {
 			instance, err = c.Get(ctx, input.Name())
+			if log.IsDebugEnabled() {
+				log.D(ctx, "Autowiring by name")
+			}
 		} else {
 			instance, err = c.GetByType(ctx, input.Type())
 		}

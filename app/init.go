@@ -2,14 +2,16 @@ package app
 
 import (
 	"github.com/procyon-projects/procyon/app/availability"
-	"github.com/procyon-projects/procyon/app/component"
 	"github.com/procyon-projects/procyon/app/condition"
+	"github.com/procyon-projects/procyon/component"
 )
 
 func init() {
 	// app
 	component.Register(newStartupListener, component.Name("procyonStartupListener"))
 	component.Register(newEnvironmentCustomizer, component.Name("procyonEnvironmentCustomizer"))
+	component.Register(NewDefaultLifecycleProcessor, component.Name("lifecycleProcessor")).
+		ConditionalOn(condition.OnMissing("lifecycleProcessor"))
 
 	// availability
 	component.Register(availability.NewStateHolder, component.Name("availabilityStateHolder"))
