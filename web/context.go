@@ -1,126 +1,244 @@
 package web
 
 import (
-	"github.com/procyon-projects/procyon/web/mediatype"
-	"net/http"
+	"context"
+	"github.com/procyon-projects/procyon/web/http"
+	stdhttp "net/http"
 	"time"
 )
 
-type Context struct {
-	err    error
-	values map[any]any
+type ServerContext struct {
+	parent   *ServerContext
+	context  context.Context
+	request  ServerRequest
+	response ServerResponse
 
-	request        *http.Request
-	responseWriter http.ResponseWriter
+	HandlerChain     http.HandlerChain
+	nextHandlerIndex int
 
-	queryParamBinder   *ValueBinder
-	pathVariableBinder *ValueBinder
-
-	response  Response
+	err       error
 	completed bool
+	aborted   bool
+
+	delegate      ServerContextDelegate
+	pathVariables http.PathVariables
 }
 
-func (c *Context) writeResponse() {
-	if !c.completed {
-		for key, values := range c.response.headers {
-
-			if len(values) == 1 {
-				c.responseWriter.Header().Add(key, values[0])
-			} else {
-				for _, val := range values {
-					c.responseWriter.Header().Add(key, val)
-				}
-			}
-		}
-
-		c.responseWriter.WriteHeader(int(c.response.status))
-		c.responseWriter.Write(nil)
+func newServerContext() *ServerContext {
+	return &ServerContext{
+		pathVariables: http.PathVariables{},
 	}
 }
 
-func (c *Context) reset(writer http.ResponseWriter, request *http.Request) {
-	c.responseWriter = writer
-	c.request = request
-	c.completed = false
+func (c *ServerContext) WithValue(key, val any) http.Context {
+	copyContext := new(ServerContext)
+	*copyContext = *c
 
-	for k := range c.values {
-		delete(c.values, k)
+	ctx := c.context
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	c.response.viewName = ""
-	c.response.entity = nil
-	c.response.status = StatusOK
-	c.response.contentType = ""
-
-	for k := range c.response.headers {
-		delete(c.response.headers, k)
-	}
+	copyContext.context = context.WithValue(ctx, key, val)
+	return copyContext
 }
 
-func (c *Context) Deadline() (deadline time.Time, ok bool) {
+func (c *ServerContext) With(request http.Request, response http.Response) http.Context {
+	if request == nil {
+		panic("nil request")
+	}
+
+	if response == nil {
+		panic("nil response")
+	}
+
+	copyContext := new(ServerContext)
+	*copyContext = *c
+	copyContext.request = *(request.(*ServerRequest))
+	copyContext.response = *(response.(*ServerResponse))
+
+	if c.parent == nil {
+		copyContext.parent = c
+	}
+
+	return copyContext
+}
+
+func (c *ServerContext) WithRequest(request http.Request) http.Context {
+	if request == nil {
+		panic("nil request")
+	}
+
+	copyContext := new(ServerContext)
+	*copyContext = *c
+	copyContext.request = *(request.(*ServerRequest))
+
+	if c.parent == nil {
+		copyContext.parent = c
+	}
+
+	return copyContext
+}
+
+func (c *ServerContext) WithResponse(response http.Response) http.Context {
+	if response == nil {
+		panic("nil response")
+	}
+
+	copyContext := new(ServerContext)
+	*copyContext = *c
+	copyContext.response = *(response.(*ServerResponse))
+
+	if c.parent == nil {
+		copyContext.parent = c
+	}
+
+	return copyContext
+}
+
+func (c *ServerContext) Deadline() (deadline time.Time, ok bool) {
 	return
 }
 
-func (c *Context) Done() <-chan struct{} {
+func (c *ServerContext) Done() <-chan struct{} {
 	return nil
 }
 
-func (c *Context) Err() error {
+func (c *ServerContext) setErr(err error) {
+	if c.parent != nil {
+		c.parent.setErr(err)
+	} else {
+		c.err = err
+	}
+}
+
+func (c *ServerContext) Err() error {
+	if c.parent != nil {
+		return c.parent.Err()
+	}
+
 	return c.err
 }
 
-func (c *Context) Value(key any) any {
-	return c.values[key]
+func (c *ServerContext) Value(key any) any {
+	if key == http.PathVariablesAttribute {
+		return &c.pathVariables
+	}
+
+	if c.context == nil {
+		return nil
+	}
+
+	return c.context.Value(key)
 }
 
-func (c *Context) Put(key, value any) {
-	c.values[key] = value
+func (c *ServerContext) Parent() *ServerContext {
+	return c.parent
 }
 
-func (c *Context) Request() *http.Request {
-	return c.request
+func (c *ServerContext) complete() {
+	if c.parent != nil {
+		c.parent.complete()
+	} else {
+		c.completed = true
+	}
 }
 
-func (c *Context) ResponseWriter() http.ResponseWriter {
-	return c.responseWriter
+func (c *ServerContext) IsCompleted() bool {
+	if c.parent != nil {
+		return c.parent.IsCompleted()
+	}
+
+	return c.completed
 }
 
-func (c *Context) Path() string {
-	return c.request.URL.Path
+func (c *ServerContext) Abort() {
+	if c.parent != nil {
+		c.parent.Abort()
+	} else {
+		c.aborted = true
+	}
 }
 
-func (c *Context) Method() HttpMethod {
-	return HttpMethod(c.request.Method)
+func (c *ServerContext) IsAborted() bool {
+	if c.parent != nil {
+		return c.parent.IsAborted()
+	}
+
+	return c.aborted
 }
 
-func (c *Context) Bind(dest any) error {
-	return nil
+func (c *ServerContext) Request() http.Request {
+	return &c.request
 }
 
-func (c *Context) QueryParameterBinder() *ValueBinder {
-	return c.queryParamBinder
-}
-
-func (c *Context) PathVariableBinder() *ValueBinder {
-	return c.pathVariableBinder
-}
-
-func (c *Context) Response() *Response {
+func (c *ServerContext) Response() http.Response {
 	return &c.response
 }
 
-func (c *Context) SetViewName(name string) {
-	c.response.viewName = name
+func (c *ServerContext) Reset(req *stdhttp.Request, writer stdhttp.ResponseWriter) {
+	/*if !c.IsCompleted() {
+		return
+	}*/
+
+	c.request.req = req
+	c.response.writer = writer
+	c.delegate.ctx = c
+
+	c.parent = nil
+	c.err = nil
+	c.context = nil
+	c.completed = false
+	c.aborted = false
+
+	c.nextHandlerIndex = 0
+	//c.pathVariables.currentIndex = 0
 }
 
-func (c *Context) SetEntity(entity any) {
-	c.response.entity = entity
+func (c *ServerContext) nextHandler() int {
+	if c.parent != nil {
+		return c.parent.nextHandler()
+	}
+
+	return c.nextHandlerIndex
 }
 
-func (c *Context) SetStatus(status HttpStatus) {
-	c.response.status = status
+func (c *ServerContext) setNextHandler(nextHandler int) {
+	if c.parent != nil {
+		c.parent.setNextHandler(nextHandler)
+	} else {
+		c.nextHandlerIndex = nextHandler
+	}
 }
 
-func (c *Context) SetContentType(contentType mediatype.MediaType) {
-	c.response.contentType = contentType
+func (c *ServerContext) Invoke(ctx http.Context) {
+	if len(c.HandlerChain) == 0 {
+		return
+	}
+
+	nextHandler := c.nextHandler()
+
+	if c.IsCompleted() || c.IsAborted() || len(c.HandlerChain) <= nextHandler {
+		return
+	}
+
+	next := c.HandlerChain[nextHandler]
+	nextHandler++
+	c.setNextHandler(nextHandler)
+
+	err := next(ctx, c.delegate)
+
+	if err != nil {
+		c.setErr(err)
+	}
+
+	if c.IsCompleted() || c.IsAborted() {
+		return
+	}
+
+	if nextHandler != len(c.HandlerChain) {
+		c.Abort()
+	} else {
+		c.complete()
+	}
 }

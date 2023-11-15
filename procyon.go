@@ -2,7 +2,7 @@ package procyon
 
 import (
 	"github.com/procyon-projects/procyon/app"
-	"github.com/procyon-projects/procyon/app/component"
+	"github.com/procyon-projects/procyon/component"
 	"github.com/procyon-projects/procyon/web"
 )
 

@@ -1,20 +1,20 @@
-package web
+package rest
 
-import "github.com/procyon-projects/procyon/web/mediatype"
+import "net/http"
 
 type HeadersBuilder struct {
-	response *Response
+	responseEntity *ResponseEntity
 }
 
 func (b HeadersBuilder) Header(headerName string, headerValues ...string) HeadersBuilder {
 	for _, val := range headerValues {
-		b.response.headers[headerName] = append(b.response.headers[headerName], val)
+		b.responseEntity.headers[headerName] = append(b.responseEntity.headers[headerName], val)
 	}
 
 	return b
 }
 
-func (b HeadersBuilder) Headers(headers HttpHeaders) HeadersBuilder {
+func (b HeadersBuilder) Headers(headers http.Header) HeadersBuilder {
 	for name, value := range headers {
 		b.Header(name, value...)
 	}
@@ -24,18 +24,18 @@ func (b HeadersBuilder) Headers(headers HttpHeaders) HeadersBuilder {
 }
 
 type BodyBuilder[R any] struct {
-	response *Response
+	responseEntity *ResponseEntity
 }
 
 func (b BodyBuilder[R]) Header(headerName string, headerValues ...string) BodyBuilder[R] {
 	for _, val := range headerValues {
-		b.response.headers[headerName] = append(b.response.headers[headerName], val)
+		b.responseEntity.headers[headerName] = append(b.responseEntity.headers[headerName], val)
 	}
 
 	return b
 }
 
-func (b BodyBuilder[R]) Headers(headers HttpHeaders) BodyBuilder[R] {
+func (b BodyBuilder[R]) Headers(headers http.Header) BodyBuilder[R] {
 	for name, value := range headers {
 		b.Header(name, value...)
 	}
@@ -44,13 +44,13 @@ func (b BodyBuilder[R]) Headers(headers HttpHeaders) BodyBuilder[R] {
 }
 
 func (b BodyBuilder[R]) Body(body R) BodyBuilder[R] {
-	b.response.entity = body
+	b.responseEntity.body = body
 
 	return b
 }
 
-func (b BodyBuilder[R]) ContentType(contentType mediatype.MediaType) BodyBuilder[R] {
-	b.response.contentType = contentType
+func (b BodyBuilder[R]) ContentType(contentType string) BodyBuilder[R] {
+	//b.responseEntity.contentType = contentType
 
 	return b
 }

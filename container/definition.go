@@ -22,8 +22,8 @@ func (d *Definition) Type() reflector.Type {
 	return d.typ
 }
 
-func (d *Definition) Constructor() Constructor {
-	return d.constructor
+func (d *Definition) Constructor() reflector.Function {
+	return d.constructorFunc
 }
 
 func (d *Definition) Scope() string {
