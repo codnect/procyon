@@ -1,9 +1,9 @@
 package config
 
 import (
+	"codnect.io/procyon/app/env"
+	"codnect.io/procyon/app/env/property"
 	"fmt"
-	"github.com/procyon-projects/procyon/app/env"
-	"github.com/procyon-projects/procyon/app/env/property"
 	"io/fs"
 	"os"
 	"path/filepath"

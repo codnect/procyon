@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/procyon-projects/procyon/app/env"
-	"github.com/procyon-projects/procyon/app/env/property"
+	"codnect.io/procyon/app/env"
+	"codnect.io/procyon/app/env/property"
 )
 
 type Importer interface {

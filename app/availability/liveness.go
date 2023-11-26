@@ -1,7 +1,7 @@
 package availability
 
 import (
-	"github.com/procyon-projects/procyon/app/health"
+	"codnect.io/procyon/app/health"
 )
 
 type LivenessState int

@@ -1,6 +1,6 @@
 package web
 
-import "github.com/procyon-projects/procyon/app"
+import "codnect.io/procyon/app"
 
 type ContextCustomizer struct {
 }

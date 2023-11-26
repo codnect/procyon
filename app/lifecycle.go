@@ -1,8 +1,8 @@
 package app
 
 import (
+	"codnect.io/procyon/app/env/property"
 	"context"
-	"github.com/procyon-projects/procyon/app/env/property"
 	"time"
 )
 

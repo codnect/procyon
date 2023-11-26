@@ -1,9 +1,9 @@
 package app
 
 import (
-	"github.com/procyon-projects/procyon/app/availability"
-	"github.com/procyon-projects/procyon/app/condition"
-	"github.com/procyon-projects/procyon/component"
+	"codnect.io/procyon/app/availability"
+	"codnect.io/procyon/app/condition"
+	"codnect.io/procyon/component"
 )
 
 func init() {

@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/procyon-projects/procyon/web/http"
+	"codnect.io/procyon/web/http"
 	"io"
 	stdhttp "net/http"
 )

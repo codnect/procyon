@@ -1,7 +1,7 @@
 package component
 
 import (
-	"github.com/procyon-projects/procyon/container"
+	"codnect.io/procyon/container"
 )
 
 type Option interface {

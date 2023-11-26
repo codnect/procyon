@@ -1,8 +1,8 @@
 package env
 
 import (
+	"codnect.io/procyon/app/env/property"
 	"fmt"
-	"github.com/procyon-projects/procyon/app/env/property"
 	"strings"
 	"sync"
 )

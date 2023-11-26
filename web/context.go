@@ -1,8 +1,8 @@
 package web
 
 import (
+	"codnect.io/procyon/web/http"
 	"context"
-	"github.com/procyon-projects/procyon/web/http"
 	stdhttp "net/http"
 	"time"
 )

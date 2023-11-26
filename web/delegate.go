@@ -1,6 +1,6 @@
 package web
 
-import "github.com/procyon-projects/procyon/web/http"
+import "codnect.io/procyon/web/http"
 
 type ServerContextDelegate struct {
 	ctx *ServerContext

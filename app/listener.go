@@ -1,9 +1,9 @@
 package app
 
 import (
-	"github.com/procyon-projects/procyon/app/availability"
-	"github.com/procyon-projects/procyon/app/env"
-	"github.com/procyon-projects/procyon/app/event"
+	"codnect.io/procyon/app/availability"
+	"codnect.io/procyon/app/env"
+	"codnect.io/procyon/app/event"
 	"time"
 )
 

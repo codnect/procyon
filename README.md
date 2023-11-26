@@ -12,7 +12,7 @@
 ## Installation
 
 ```shell
-go get -u github.com/procyon-projects/procyon/...
+go get -u codnect.io/procyon/...
 ```
 
 # What is Procyon? 

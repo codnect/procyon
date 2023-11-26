@@ -1,7 +1,7 @@
 package sort
 
 import (
-	"github.com/procyon-projects/procyon/data/sort/order"
+	"codnect.io/procyon/data/sort/order"
 )
 
 var (

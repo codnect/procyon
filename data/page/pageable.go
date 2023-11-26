@@ -1,7 +1,7 @@
 package page
 
 import (
-	"github.com/procyon-projects/procyon/data/sort"
+	"codnect.io/procyon/data/sort"
 )
 
 type Pageable interface {

@@ -1,9 +1,9 @@
 package procyon
 
 import (
-	"github.com/procyon-projects/procyon/app"
-	"github.com/procyon-projects/procyon/component"
-	"github.com/procyon-projects/procyon/web"
+	"codnect.io/procyon/app"
+	"codnect.io/procyon/component"
+	"codnect.io/procyon/web"
 )
 
 type ApplicationType int

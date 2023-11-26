@@ -1,8 +1,8 @@
 package condition
 
 import (
-	"github.com/procyon-projects/procyon/app/env"
-	"github.com/procyon-projects/procyon/container"
+	"codnect.io/procyon/app/env"
+	"codnect.io/procyon/container"
 )
 
 type Evaluator interface {

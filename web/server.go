@@ -1,11 +1,11 @@
 package web
 
 import (
+	"codnect.io/procyon/web/http"
+	"codnect.io/procyon/web/http/router"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/procyon-projects/procyon/web/http"
-	"github.com/procyon-projects/procyon/web/http/router"
 	stdhttp "net/http"
 	"sync"
 )

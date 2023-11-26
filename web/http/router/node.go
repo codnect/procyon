@@ -1,6 +1,6 @@
 package router
 
-import "github.com/procyon-projects/procyon/web/http"
+import "codnect.io/procyon/web/http"
 
 type mappingNodeType byte
 
