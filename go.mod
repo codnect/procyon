@@ -1,4 +1,4 @@
-module github.com/procyon-projects/procyon
+module codnect.io/procyon
 
 go 1.19
 
