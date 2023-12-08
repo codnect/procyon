@@ -3,8 +3,8 @@ module codnect.io/procyon
 go 1.19
 
 require (
-	github.com/procyon-projects/logy v1.0.0
-	github.com/procyon-projects/reflector v0.0.12-dev
+	github.com/procyon-projects/logy v1.0.2
+	github.com/procyon-projects/reflector v0.0.13-dev
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/net v0.18.0
