@@ -1,9 +1,9 @@
 package container
 
 import (
+	"codnect.io/reflector"
 	"errors"
 	"fmt"
-	"github.com/procyon-projects/reflector"
 	"sync"
 )
 

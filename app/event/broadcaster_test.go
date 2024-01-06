@@ -1,8 +1,8 @@
 package event
 
 import (
+	"codnect.io/reflector"
 	"context"
-	"github.com/procyon-projects/reflector"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"

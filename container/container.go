@@ -1,11 +1,11 @@
 package container
 
 import (
+	"codnect.io/logy"
+	"codnect.io/reflector"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/procyon-projects/logy"
-	"github.com/procyon-projects/reflector"
 	"reflect"
 	"strings"
 	"sync"

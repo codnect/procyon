@@ -1,8 +1,8 @@
 package app
 
 import (
+	"codnect.io/logy"
 	"fmt"
-	"github.com/procyon-projects/logy"
 	"io"
 )
 

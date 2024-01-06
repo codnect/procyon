@@ -1,8 +1,8 @@
 package container
 
 import (
+	"codnect.io/reflector"
 	"fmt"
-	"github.com/procyon-projects/reflector"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

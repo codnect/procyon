@@ -4,8 +4,8 @@ import (
 	"codnect.io/procyon/app/env"
 	"codnect.io/procyon/app/event"
 	"codnect.io/procyon/container"
+	"codnect.io/reflector"
 	"context"
-	"github.com/procyon-projects/reflector"
 	"time"
 )
 

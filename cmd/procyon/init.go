@@ -1,11 +1,11 @@
 /*
-Copyright © 2021 Procyon Framework Authors
+Copyright © 2024 Procyon Framework Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,6 @@ package main
 
 import (
 	"errors"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
@@ -61,7 +60,7 @@ const (
 	mainFileContent = `package main
 
 import (
-	"github.com/procyon-projects/procyon"
+	"codnect.io/procyon"
 )
 
 func main() {
@@ -81,9 +80,11 @@ logging:
 )
 
 var (
-	defaultColor = color.New(color.FgWhite)
-	successColor = color.New(color.FgGreen)
-	failColor    = color.New(color.FgRed)
+/*
+defaultColor = color.New(color.FgWhite)
+successColor = color.New(color.FgGreen)
+failColor    = color.New(color.FgRed)
+*/
 )
 
 var module string
@@ -109,16 +110,16 @@ var initCmd = &cobra.Command{
 		}
 
 		if checkIfProjectIsAlreadyInitialized() {
-			color.Blue("Project already initialized.")
+			//color.Blue("Project already initialized.")
 			return nil
 		}
 
 		err = initializeProject(args[0])
 
 		if err != nil {
-			color.Red("Failed to initialize the project!")
+			//color.Red("Failed to initialize the project!")
 		} else {
-			color.Green("Completed successfully.")
+			//color.Green("Completed successfully.")
 		}
 
 		return nil
@@ -138,7 +139,7 @@ func init() {
 }
 
 func initializeProject(applicationName string) error {
-	color.Yellow("Initializing project...")
+	//color.Yellow("Initializing project...")
 
 	err := createGitIgnoreFile()
 
@@ -168,7 +169,7 @@ func initializeProject(applicationName string) error {
 }
 
 func createGitIgnoreFile() error {
-	defaultColor.Print(gitignoreFileName)
+	//defaultColor.Print(gitignoreFileName)
 
 	err := createFile(gitignoreFileName, gitignoreFileContent)
 
@@ -182,7 +183,7 @@ func createGitIgnoreFile() error {
 }
 
 func createApplicationPropertyFile(applicationName string) error {
-	defaultColor.Print(resourcesPath + appYamlFileName)
+	//defaultColor.Print(resourcesPath + appYamlFileName)
 
 	if !checkIfExist(resourcesPath) {
 		err := os.Mkdir(resourcesPath, os.ModePerm)
@@ -206,7 +207,7 @@ func createApplicationPropertyFile(applicationName string) error {
 }
 
 func createMainFile() error {
-	defaultColor.Print(mainFileName)
+	//defaultColor.Print(mainFileName)
 
 	err := createFile(mainFileName, mainFileContent)
 
@@ -220,7 +221,7 @@ func createMainFile() error {
 }
 
 func initGoModAndGetDependencies() error {
-	defaultColor.Print(goModuleFileName)
+	//defaultColor.Print(goModuleFileName)
 
 	err := exec.Command("go", "mod", "init", module).Run()
 
@@ -253,13 +254,13 @@ func checkIfProjectIsAlreadyInitialized() bool {
 }
 
 func printSuccessStep() {
-	defaultColor.Print(" [")
-	successColor.Print("ok")
-	defaultColor.Print("]\n")
+	//defaultColor.Print(" [")
+	//successColor.Print("ok")
+	//defaultColor.Print("]\n")
 }
 
 func printFailStep() {
-	defaultColor.Print(" [")
-	failColor.Print("failed")
-	defaultColor.Print("]\n")
+	//defaultColor.Print(" [")
+	//failColor.Print("failed")
+	//defaultColor.Print("]\n")
 }

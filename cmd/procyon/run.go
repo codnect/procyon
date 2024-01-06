@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
@@ -15,7 +14,7 @@ var runCmd = &cobra.Command{
 	Long:  `The run command lets you run a Procyon Application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !checkIfProjectIsAlreadyInitialized() {
-			color.Blue("Please init command to initialize a project first.")
+			//color.Blue("Please init command to initialize a project first.")
 			return nil
 		}
 

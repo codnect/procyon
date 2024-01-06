@@ -1,9 +1,9 @@
 package event
 
 import (
+	"codnect.io/reflector"
 	"context"
 	"fmt"
-	"github.com/procyon-projects/reflector"
 	"reflect"
 )
 

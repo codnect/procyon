@@ -2,8 +2,8 @@ package availability
 
 import (
 	"codnect.io/procyon/app/event"
+	"codnect.io/reflector"
 	"context"
-	"github.com/procyon-projects/reflector"
 	"reflect"
 	"sync"
 )

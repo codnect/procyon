@@ -1,12 +1,12 @@
 package app
 
 import (
+	"codnect.io/logy"
 	"codnect.io/procyon/app/env"
 	"codnect.io/procyon/app/event"
 	"codnect.io/procyon/component"
 	"codnect.io/procyon/container"
-	"github.com/procyon-projects/logy"
-	"github.com/procyon-projects/reflector"
+	"codnect.io/reflector"
 	"os"
 	"runtime"
 	"time"

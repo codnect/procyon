@@ -1,6 +1,6 @@
 package container
 
-import "github.com/procyon-projects/reflector"
+import "codnect.io/reflector"
 
 type Constructor any
 
