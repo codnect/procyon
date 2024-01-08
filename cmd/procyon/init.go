@@ -79,14 +79,6 @@ logging:
 `
 )
 
-var (
-/*
-defaultColor = color.New(color.FgWhite)
-successColor = color.New(color.FgGreen)
-failColor    = color.New(color.FgRed)
-*/
-)
-
 var module string
 
 var initCmd = &cobra.Command{
@@ -110,16 +102,16 @@ var initCmd = &cobra.Command{
 		}
 
 		if checkIfProjectIsAlreadyInitialized() {
-			//color.Blue("Project already initialized.")
+			blueConsoleColor.println("Project already initialized.")
 			return nil
 		}
 
 		err = initializeProject(args[0])
 
 		if err != nil {
-			//color.Red("Failed to initialize the project!")
+			redConsoleColor.println("Failed to initialize the project!")
 		} else {
-			//color.Green("Completed successfully.")
+			greenConsoleColor.println("Completed successfully.")
 		}
 
 		return nil
@@ -139,7 +131,7 @@ func init() {
 }
 
 func initializeProject(applicationName string) error {
-	//color.Yellow("Initializing project...")
+	yellowConsoleColor.println("Initializing project...")
 
 	err := createGitIgnoreFile()
 
@@ -169,7 +161,7 @@ func initializeProject(applicationName string) error {
 }
 
 func createGitIgnoreFile() error {
-	//defaultColor.Print(gitignoreFileName)
+	defaultConsoleColor.println(gitignoreFileName)
 
 	err := createFile(gitignoreFileName, gitignoreFileContent)
 
@@ -183,7 +175,7 @@ func createGitIgnoreFile() error {
 }
 
 func createApplicationPropertyFile(applicationName string) error {
-	//defaultColor.Print(resourcesPath + appYamlFileName)
+	defaultConsoleColor.println(resourcesPath + appYamlFileName)
 
 	if !checkIfExist(resourcesPath) {
 		err := os.Mkdir(resourcesPath, os.ModePerm)
@@ -207,7 +199,7 @@ func createApplicationPropertyFile(applicationName string) error {
 }
 
 func createMainFile() error {
-	//defaultColor.Print(mainFileName)
+	defaultConsoleColor.println(mainFileName)
 
 	err := createFile(mainFileName, mainFileContent)
 
@@ -221,7 +213,7 @@ func createMainFile() error {
 }
 
 func initGoModAndGetDependencies() error {
-	//defaultColor.Print(goModuleFileName)
+	defaultConsoleColor.println(goModuleFileName)
 
 	err := exec.Command("go", "mod", "init", module).Run()
 
@@ -254,13 +246,13 @@ func checkIfProjectIsAlreadyInitialized() bool {
 }
 
 func printSuccessStep() {
-	//defaultColor.Print(" [")
-	//successColor.Print("ok")
-	//defaultColor.Print("]\n")
+	defaultConsoleColor.print(" [")
+	greenConsoleColor.print("ok")
+	defaultConsoleColor.print("]")
 }
 
 func printFailStep() {
-	//defaultColor.Print(" [")
-	//failColor.Print("failed")
-	//defaultColor.Print("]\n")
+	defaultConsoleColor.print(" [")
+	redConsoleColor.print("failed")
+	defaultConsoleColor.print("]")
 }
