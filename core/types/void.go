@@ -1,4 +1,4 @@
-package void
+package types
 
 type Void interface {
 	noMethodYet()
