@@ -1,7 +1,7 @@
 package page
 
 import (
-	"codnect.io/procyon/data/sort"
+	"codnect.io/procyon/data/domain/sort"
 	"math"
 )
 
