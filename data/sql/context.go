@@ -20,7 +20,7 @@ func FromContext[T *TransactionContext](ctx context.Context) T {
 	rType := reflect.TypeOf((*T)(nil)).Elem()
 
 	if rType.ConvertibleTo(rTransactionContextType) {
-		value = ctx.Value(ctxTransactionContextKey)
+		value = ctx.Value(ctxTransactionContextKey).(T)
 	}
 
 	return value

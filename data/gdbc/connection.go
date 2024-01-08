@@ -1,7 +1,7 @@
 package gdbc
 
 import (
-	"codnect.io/procyon/database/sql"
+	"codnect.io/procyon/data/sql"
 	"context"
 	dsql "database/sql"
 	"database/sql/driver"

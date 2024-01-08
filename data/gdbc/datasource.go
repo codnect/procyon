@@ -1,7 +1,7 @@
 package gdbc
 
 import (
-	"codnect.io/procyon/database/sql"
+	"codnect.io/procyon/data/sql"
 	dsql "database/sql"
 	"errors"
 	"strings"
@@ -46,6 +46,10 @@ func (ds *DataSource) GetConnection() (sql.Connection, error) {
 }
 
 func (ds *DataSource) parseDataSourceUrl() (string, string, error) {
+	if len(ds.props.Url) == 0 {
+		return "", "", errors.New("url must not be empty")
+	}
+
 	src := strings.Split(ds.props.Url, ":")
 	if len(src) < 3 {
 		return "", "", errors.New("url format is wrong : " + ds.props.Url)
