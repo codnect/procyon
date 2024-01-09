@@ -1,5 +1,5 @@
 
-<img src="https://avatars.githubusercontent.com/u/66616268?s=200&v=4" width="128">
+<img src="https://procyon.codnect.io/img/logo.svg" width="128">
 
 # Procyon Framework
 ![alt text](https://goreportcard.com/badge/codnect.io/procyon)
@@ -17,14 +17,29 @@ go get -u codnect.io/procyon/...
 
 # What is Procyon? 
 
-Procyon is an HTTP web framework written in Go. If you need a comprehensive web framework, then I recommend you to use Procyon. Because it provides a lot of modules including several features.
+Procyon is a HTTP web framework written in Go. Our goal is to make it easy for developers to build high-performance and extensible web applications quickly.
 
-* It makes it easy to create production-grade applications. 
-* It aims to ease to build, develop and deploy your web applications quickly in Go.
+## Key Features
+Here is the list of the key features provided by Procyon framework.
 
-## How to contribute to Procyon?
-* Contribute to our projects and become a member of our team
-* Report bugs you find
+**Rapid Development:** Speed up your development process and build robust applications.
+
+**Production Ready:** Develop production-ready applications ensuring stability and reliability.
+
+**Externalized Configuration:** Configure your application's behavior easily using externalized configuration.
+
+**Dependency Injection:** Manage your application components with built-in dependency injection support.
+
+**Focus on What Matters:** Save time and concentrate on your business rather than the technical details.
+
+**Extensibility**: Expand your application's capabilities and adapt it to your needs.
+
+## Getting Started
+Get started with Procyon and simplify your Go web development experience. Check out [the documentation](https://procyon.codnect.io/docs/why-procyon) for straightforward installation, usage guidelines, and a clear understanding of Procyon's features.
+
+Enjoy effortless building, developing, and deploying with Procyon – because your focus should be on your business logic, not the complexities of web development.
+
+Happy coding with Procyon!
 
 ## License
 Procyon Framework is released under version 2.0 of the Apache License
