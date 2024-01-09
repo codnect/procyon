@@ -2,8 +2,8 @@ package app
 
 import (
 	"codnect.io/procyon/app/availability"
-	"codnect.io/procyon/app/condition"
-	"codnect.io/procyon/component"
+	"codnect.io/procyon/core/component"
+	"codnect.io/procyon/core/condition"
 )
 
 func init() {

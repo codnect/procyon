@@ -1,7 +1,7 @@
 package app
 
 import (
-	"codnect.io/procyon/app/env"
+	"codnect.io/procyon/core/env"
 	"time"
 )
 

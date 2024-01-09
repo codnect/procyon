@@ -2,8 +2,8 @@ package app
 
 import (
 	"codnect.io/procyon/app/availability"
-	"codnect.io/procyon/app/env"
 	"codnect.io/procyon/app/event"
+	"codnect.io/procyon/core/env"
 	"time"
 )
 

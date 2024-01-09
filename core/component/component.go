@@ -1,8 +1,8 @@
 package component
 
 import (
-	"codnect.io/procyon/app/condition"
-	"codnect.io/procyon/container"
+	"codnect.io/procyon/core/condition"
+	"codnect.io/procyon/core/container"
 )
 
 type Component struct {

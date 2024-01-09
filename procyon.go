@@ -2,7 +2,7 @@ package procyon
 
 import (
 	"codnect.io/procyon/app"
-	"codnect.io/procyon/component"
+	"codnect.io/procyon/core/component"
 	"codnect.io/procyon/web"
 )
 

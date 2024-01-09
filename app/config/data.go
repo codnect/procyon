@@ -1,6 +1,8 @@
 package config
 
-import "codnect.io/procyon/app/env/property"
+import (
+	"codnect.io/procyon/core/env/property"
+)
 
 type Data struct {
 	source property.Source
