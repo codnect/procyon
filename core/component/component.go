@@ -1,7 +1,7 @@
 package component
 
 import (
-	"codnect.io/procyon/core/condition"
+	"codnect.io/procyon/core/component/condition"
 	"codnect.io/procyon/core/container"
 )
 

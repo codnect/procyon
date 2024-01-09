@@ -1,7 +1,7 @@
 package condition
 
 import (
-	container "codnect.io/procyon/core/container"
+	"codnect.io/procyon/core/container"
 	"codnect.io/procyon/core/env"
 )
 
