@@ -1,7 +1,7 @@
 package config
 
 import (
-	"codnect.io/procyon/core/env/property"
+	"codnect.io/procyon-core/env/property"
 )
 
 type Data struct {

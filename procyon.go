@@ -1,8 +1,8 @@
 package procyon
 
 import (
+	"codnect.io/procyon-core/component"
 	"codnect.io/procyon/app"
-	"codnect.io/procyon/core/component"
 	"codnect.io/procyon/web"
 )
 
@@ -43,4 +43,12 @@ func (a *application) Run(args ...string) {
 
 func New() Application {
 	return newApplication()
+}
+
+func WebApplication() {
+
+}
+
+func Run() {
+
 }

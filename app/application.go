@@ -2,10 +2,10 @@ package app
 
 import (
 	"codnect.io/logy"
+	"codnect.io/procyon-core/component"
+	"codnect.io/procyon-core/container"
+	"codnect.io/procyon-core/env"
 	"codnect.io/procyon/app/event"
-	"codnect.io/procyon/core/component"
-	"codnect.io/procyon/core/container"
-	"codnect.io/procyon/core/env"
 	"codnect.io/reflector"
 	"os"
 	"runtime"
