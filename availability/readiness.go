@@ -1,7 +1,7 @@
 package availability
 
 import (
-	"codnect.io/procyon/app/health"
+	"codnect.io/procyon/health"
 )
 
 type ReadinessState int

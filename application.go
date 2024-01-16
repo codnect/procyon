@@ -1,11 +1,11 @@
-package app
+package procyon
 
 import (
 	"codnect.io/logy"
 	"codnect.io/procyon-core/component"
 	"codnect.io/procyon-core/container"
 	"codnect.io/procyon-core/env"
-	"codnect.io/procyon/app/event"
+	"codnect.io/procyon/event"
 	"codnect.io/reflector"
 	"os"
 	"runtime"
@@ -16,34 +16,29 @@ var (
 	log = logy.Get()
 )
 
-type Application interface {
-	Context() Context
-	Run(args ...string)
-}
+const (
+	Version = "v0.0.1-dev"
+)
 
-func New() Application {
-	appContainer := container.New()
-	broadcaster := event.NewBroadcaster()
-
-	return &application{
-		ctx:           newContext(appContainer, broadcaster),
-		container:     appContainer,
-		bannerPrinter: defaultBannerPrinter(),
-	}
-}
-
-type application struct {
+type Application struct {
 	ctx           *appContext
 	container     container.Container
 	env           env.Environment
 	bannerPrinter *bannerPrinter
 }
 
-func (a *application) Context() Context {
-	return a.ctx
+func New() *Application {
+	appContainer := container.New()
+	broadcaster := event.NewBroadcaster()
+
+	return &Application{
+		ctx:           newContext(appContainer, broadcaster),
+		container:     appContainer,
+		bannerPrinter: defaultBannerPrinter(),
+	}
 }
 
-func (a *application) Run(args ...string) {
+func (a *Application) Run(args ...string) {
 	startTime := time.Now()
 
 	a.bannerPrinter.PrintBanner(os.Stdout)
@@ -98,7 +93,7 @@ func (a *application) Run(args ...string) {
 	listeners.started(a.ctx, timeTaken)
 }
 
-func (a *application) startupListeners(arguments *Arguments) (startupListeners, error) {
+func (a *Application) startupListeners(arguments *Arguments) (startupListeners, error) {
 	listeners := make(startupListeners, 0)
 
 	reflApplicationType := reflector.TypeOf[Application]().ReflectType()
@@ -135,7 +130,7 @@ func (a *application) startupListeners(arguments *Arguments) (startupListeners, 
 	return listeners, nil
 }
 
-func (a *application) eventCustomizers() (eventCustomizers, error) {
+func (a *Application) eventCustomizers() (eventCustomizers, error) {
 	customizers := make(eventCustomizers, 0)
 
 	registry := a.container.DefinitionRegistry()
@@ -161,7 +156,7 @@ func (a *application) eventCustomizers() (eventCustomizers, error) {
 	return customizers, nil
 }
 
-func (a *application) prepareEnvironment(arguments *Arguments, listeners startupListeners) (env.Environment, error) {
+func (a *Application) prepareEnvironment(arguments *Arguments, listeners startupListeners) (env.Environment, error) {
 	environment := env.New()
 
 	propertySources := environment.PropertySources()
@@ -183,7 +178,7 @@ func (a *application) prepareEnvironment(arguments *Arguments, listeners startup
 	return environment, nil
 }
 
-func (a *application) contextCustomizers() (contextCustomizers, error) {
+func (a *Application) contextCustomizers() (contextCustomizers, error) {
 	customizers := make(contextCustomizers, 0)
 
 	registry := a.container.DefinitionRegistry()
@@ -209,7 +204,7 @@ func (a *application) contextCustomizers() (contextCustomizers, error) {
 	return customizers, nil
 }
 
-func (a *application) prepareContext(environment env.Environment, listeners startupListeners, arguments *Arguments) error {
+func (a *Application) prepareContext(environment env.Environment, listeners startupListeners, arguments *Arguments) error {
 	a.ctx.setEnvironment(environment)
 
 	customizers, err := a.contextCustomizers()
@@ -241,7 +236,7 @@ func (a *application) prepareContext(environment env.Environment, listeners star
 	return nil
 }
 
-func (a *application) registerComponentDefinitions() error {
+func (a *Application) registerComponentDefinitions() error {
 	for _, registeredComponent := range component.RegisteredComponents() {
 		err := a.container.DefinitionRegistry().Register(registeredComponent.Definition())
 		if err != nil {
@@ -252,18 +247,18 @@ func (a *application) registerComponentDefinitions() error {
 	return nil
 }
 
-func (a *application) logStartup(ctx Context) {
+func (a *Application) logStartup(ctx Context) {
 	appName := ctx.ApplicationName()
 
 	if appName == "" {
-		appName = "application"
+		appName = "Application"
 	}
 
 	log.Info("Starting {} using Go {}", appName, runtime.Version()[2:])
 	log.Debug("Running with Procyon {}", Version)
 }
 
-func (a *application) logProfileInfo(environment env.Environment) {
+func (a *Application) logProfileInfo(environment env.Environment) {
 	if log.IsInfoEnabled() {
 		activeProfiles := environment.ActiveProfiles()
 		if len(activeProfiles) == 0 {
@@ -279,11 +274,11 @@ func (a *application) logProfileInfo(environment env.Environment) {
 	}
 }
 
-func (a *application) logStarted(ctx Context, timeTaken time.Duration) {
+func (a *Application) logStarted(ctx Context, timeTaken time.Duration) {
 	appName := ctx.ApplicationName()
 
 	if appName == "" {
-		appName = "application"
+		appName = "Application"
 	}
 
 	log.Info("Started {} in {} seconds", appName, timeTaken.Seconds())

@@ -1,4 +1,4 @@
-package app
+package procyon
 
 import (
 	"codnect.io/procyon-core/env/property"
@@ -29,7 +29,7 @@ type DefaultLifecycleProcessor struct {
 	running         bool
 }
 
-func NewDefaultLifecycleProcessor() *DefaultLifecycleProcessor {
+func newDefaultLifecycleProcessor() *DefaultLifecycleProcessor {
 	return &DefaultLifecycleProcessor{}
 }
 

@@ -1,9 +1,9 @@
-package app
+package procyon
 
 import (
 	"codnect.io/procyon-core/container"
 	"codnect.io/procyon-core/env"
-	"codnect.io/procyon/app/event"
+	"codnect.io/procyon/event"
 	"codnect.io/reflector"
 	"context"
 	"time"

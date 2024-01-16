@@ -1,6 +1,8 @@
-package app
+package procyon
 
+/*
 import (
+	"codnect.io/procyon"
 	"codnect.io/procyon-core/component"
 	"codnect.io/procyon-core/component/condition"
 	"codnect.io/procyon/app/availability"
@@ -8,8 +10,8 @@ import (
 
 func init() {
 	// app
-	component.Register(newStartupListener, component.Name("procyonStartupListener"))
-	component.Register(newEnvironmentCustomizer, component.Name("procyonEnvironmentCustomizer"))
+	component.Register(procyon.newStartupListener, component.Name("procyonStartupListener"))
+	component.Register(procyon.newEnvironmentCustomizer, component.Name("procyonEnvironmentCustomizer"))
 	component.Register(NewDefaultLifecycleProcessor, component.Name("lifecycleProcessor")).
 		ConditionalOn(condition.OnMissing("lifecycleProcessor"))
 
@@ -28,3 +30,4 @@ func init() {
 			HavingValue("true"),
 		)
 }
+*/

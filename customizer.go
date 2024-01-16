@@ -1,9 +1,9 @@
-package app
+package procyon
 
 import (
 	env "codnect.io/procyon-core/env"
 	property "codnect.io/procyon-core/env/property"
-	"codnect.io/procyon/app/config"
+	"codnect.io/procyon/config"
 	"strings"
 )
 
