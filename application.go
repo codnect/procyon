@@ -7,8 +7,12 @@ import (
 	"codnect.io/procyon-core/env"
 	"codnect.io/procyon/event"
 	"codnect.io/reflector"
+	"context"
 	"os"
+	"os/signal"
 	"runtime"
+	"strings"
+	"syscall"
 	"time"
 )
 
@@ -87,10 +91,18 @@ func (a *Application) Run(args ...string) {
 		panic(err)
 	}
 
-	timeTaken := time.Now().Sub(startTime)
-	listeners.ready(a.ctx, timeTaken)
-	a.logStarted(a.ctx, timeTaken)
-	listeners.started(a.ctx, timeTaken)
+	timeTakenToStartup := time.Now().Sub(startTime)
+
+	listeners.started(a.ctx, timeTakenToStartup)
+	a.logStarted(a.ctx, timeTakenToStartup)
+
+	timeTakenToReady := time.Now().Sub(startTime)
+	listeners.ready(a.ctx, timeTakenToReady)
+
+	notifyCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	<-notifyCtx.Done()
+	_ = a.ctx.Stop()
 }
 
 func (a *Application) startupListeners(arguments *Arguments) (startupListeners, error) {
@@ -251,7 +263,7 @@ func (a *Application) logStartup(ctx Context) {
 	appName := ctx.ApplicationName()
 
 	if appName == "" {
-		appName = "Application"
+		appName = "application"
 	}
 
 	log.Info("Starting {} using Go {}", appName, runtime.Version()[2:])
@@ -278,8 +290,21 @@ func (a *Application) logStarted(ctx Context, timeTaken time.Duration) {
 	appName := ctx.ApplicationName()
 
 	if appName == "" {
-		appName = "Application"
+		appName = "application"
 	}
 
 	log.Info("Started {} in {} seconds", appName, timeTaken.Seconds())
+}
+
+func sliceToDelimitedString(values []string) string {
+	var builder strings.Builder
+	for index, value := range values {
+		builder.WriteByte('"')
+		builder.WriteString(value)
+		builder.WriteByte('"')
+		if index != len(values)-1 {
+			builder.WriteByte(',')
+		}
+	}
+	return builder.String()
 }
