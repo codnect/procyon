@@ -20,6 +20,7 @@ type Context interface {
 	Environment() env.Environment
 	Container() container.Container
 	Start() error
+	Stop() error
 }
 
 type appContext struct {
@@ -27,7 +28,9 @@ type appContext struct {
 	container   container.Container
 	broadcaster event.Broadcaster
 	listeners   []*event.Listener
-	values      map[any]any
+
+	lifecycleProcessor *lifecycleProcessor
+	values             map[any]any
 }
 
 func newContext(container container.Container, broadcaster event.Broadcaster) *appContext {
@@ -143,6 +146,20 @@ func (c *appContext) Start() error {
 	return c.finalize()
 }
 
+func (c *appContext) Stop() error {
+	if c.lifecycleProcessor == nil {
+		return nil
+	}
+
+	err := c.lifecycleProcessor.stop(c)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *appContext) registerComponentDefinitions() error {
 	return nil
 }
@@ -151,7 +168,15 @@ func (c *appContext) initializeSharedComponents() error {
 	return nil
 }
 
-func (c *appContext) finalize() error {
+func (c *appContext) finalize() (err error) {
+	c.lifecycleProcessor = defaultLifecycleProcessor(LifecycleProperties{}, c.container)
+
+	err = c.lifecycleProcessor.start(c)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

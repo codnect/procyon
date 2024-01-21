@@ -1,20 +1,16 @@
 package procyon
 
 import (
+	"codnect.io/procyon-core/container"
 	"codnect.io/procyon-core/env/property"
+	"codnect.io/reflector"
 	"context"
 	"time"
 )
 
 type Lifecycle interface {
-	Start() error
+	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
-	IsRunning() bool
-}
-
-type LifecycleProcessor interface {
-	Start() error
-	Stop() error
 	IsRunning() bool
 }
 
@@ -24,32 +20,68 @@ type LifecycleProperties struct {
 	ShutdownTimeout time.Duration `prop:"shutdown.timeout" default:"30000"`
 }
 
-type DefaultLifecycleProcessor struct {
-	shutdownTimeout time.Duration
-	running         bool
+type lifecycleProcessor struct {
+	properties LifecycleProperties
+	container  container.Container
 }
 
-func newDefaultLifecycleProcessor() *DefaultLifecycleProcessor {
-	return &DefaultLifecycleProcessor{}
+func defaultLifecycleProcessor(properties LifecycleProperties, container container.Container) *lifecycleProcessor {
+	return &lifecycleProcessor{
+		properties: properties,
+		container:  container,
+	}
 }
 
-func (p *DefaultLifecycleProcessor) Start() error {
-	p.running = true
-	return nil
-}
+func (p *lifecycleProcessor) start(ctx context.Context) error {
+	err := p.startLifecycleComponents(ctx)
 
-func (p *DefaultLifecycleProcessor) Stop() error {
-	p.running = false
-
-	lifecycleInstances := make([]Lifecycle, 0)
-
-	for _, instance := range lifecycleInstances {
-		instance.Stop(nil)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (p *DefaultLifecycleProcessor) IsRunning() bool {
-	return p.running
+func (p *lifecycleProcessor) stop(ctx context.Context) error {
+	err := p.stopLifecycleComponents(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *lifecycleProcessor) startLifecycleComponents(ctx context.Context) (err error) {
+	sharedInstances := p.container.SharedInstances()
+	lifecycleInstances := sharedInstances.FindAllByType(reflector.TypeOf[Lifecycle]())
+
+	for _, instance := range lifecycleInstances {
+		lifecycle := instance.(Lifecycle)
+
+		err = lifecycle.Start(ctx)
+
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (p *lifecycleProcessor) stopLifecycleComponents(ctx context.Context) (err error) {
+	sharedInstances := p.container.SharedInstances()
+	lifecycleInstances := sharedInstances.FindAllByType(reflector.TypeOf[Lifecycle]())
+
+	for _, instance := range lifecycleInstances {
+		lifecycle := instance.(Lifecycle)
+
+		err = lifecycle.Stop(ctx)
+
+		if err != nil {
+			return
+		}
+	}
+
+	return
 }
