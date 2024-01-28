@@ -1,19 +1,16 @@
 package procyon
 
 import (
-	env "codnect.io/procyon-core/env"
-	property "codnect.io/procyon-core/env/property"
-	"codnect.io/procyon/config"
+	"codnect.io/procyon-core/runtime"
+	"codnect.io/procyon-core/runtime/config"
+	"codnect.io/procyon-core/runtime/env"
+	"codnect.io/procyon-core/runtime/env/property"
 	"strings"
 )
 
-type ContextCustomizer interface {
-	CustomizeContext(ctx Context) error
-}
+type contextCustomizers []runtime.ContextCustomizer
 
-type contextCustomizers []ContextCustomizer
-
-func (c contextCustomizers) invoke(ctx Context) error {
+func (c contextCustomizers) invoke(ctx runtime.Context) error {
 	for _, customizer := range c {
 		err := customizer.CustomizeContext(ctx)
 

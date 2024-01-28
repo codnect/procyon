@@ -4,13 +4,14 @@ import (
 	"codnect.io/logy"
 	"codnect.io/procyon-core/component"
 	"codnect.io/procyon-core/container"
-	"codnect.io/procyon-core/env"
-	"codnect.io/procyon/event"
+	"codnect.io/procyon-core/event"
+	"codnect.io/procyon-core/runtime"
+	"codnect.io/procyon-core/runtime/env"
 	"codnect.io/reflector"
 	"context"
 	"os"
 	"os/signal"
-	"runtime"
+	sruntime "runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -25,7 +26,7 @@ const (
 )
 
 type Application struct {
-	ctx           *appContext
+	ctx           *Context
 	container     container.Container
 	env           env.Environment
 	bannerPrinter *bannerPrinter
@@ -112,7 +113,7 @@ func (a *Application) startupListeners(arguments *Arguments) (startupListeners, 
 	reflArgumentsType := reflector.TypeOf[*Arguments]().ReflectType()
 
 	registry := a.container.DefinitionRegistry()
-	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[StartupListener]())
+	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[runtime.StartupListener]())
 
 	for _, definitionName := range definitionNames {
 		definition, _ := registry.Find(definitionName)
@@ -135,7 +136,7 @@ func (a *Application) startupListeners(arguments *Arguments) (startupListeners, 
 			return nil, err
 		}
 
-		listener := results[0].(StartupListener)
+		listener := results[0].(runtime.StartupListener)
 		listeners = append(listeners, listener)
 	}
 
@@ -194,7 +195,7 @@ func (a *Application) contextCustomizers() (contextCustomizers, error) {
 	customizers := make(contextCustomizers, 0)
 
 	registry := a.container.DefinitionRegistry()
-	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[ContextCustomizer]())
+	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[runtime.ContextCustomizer]())
 
 	for _, definitionName := range definitionNames {
 		definition, _ := registry.Find(definitionName)
@@ -209,8 +210,8 @@ func (a *Application) contextCustomizers() (contextCustomizers, error) {
 			return nil, err
 		}
 
-		customizer := results[0].(ContextCustomizer)
-		customizers = append(customizers, customizer.(ContextCustomizer))
+		customizer := results[0].(runtime.ContextCustomizer)
+		customizers = append(customizers, customizer.(runtime.ContextCustomizer))
 	}
 
 	return customizers, nil
@@ -259,14 +260,14 @@ func (a *Application) registerComponentDefinitions() error {
 	return nil
 }
 
-func (a *Application) logStartup(ctx Context) {
+func (a *Application) logStartup(ctx *Context) {
 	appName := ctx.ApplicationName()
 
 	if appName == "" {
 		appName = "application"
 	}
 
-	log.Info("Starting {} using Go {}", appName, runtime.Version()[2:])
+	log.Info("Starting {} using Go {}", appName, sruntime.Version()[2:])
 	log.Debug("Running with Procyon {}", Version)
 }
 
@@ -286,7 +287,7 @@ func (a *Application) logProfileInfo(environment env.Environment) {
 	}
 }
 
-func (a *Application) logStarted(ctx Context, timeTaken time.Duration) {
+func (a *Application) logStarted(ctx *Context, timeTaken time.Duration) {
 	appName := ctx.ApplicationName()
 
 	if appName == "" {

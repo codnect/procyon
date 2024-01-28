@@ -2,39 +2,26 @@ package procyon
 
 import (
 	"codnect.io/procyon-core/container"
-	"codnect.io/procyon-core/env"
-	"codnect.io/procyon/event"
+	"codnect.io/procyon-core/event"
+	"codnect.io/procyon-core/runtime"
+	"codnect.io/procyon-core/runtime/env"
 	"codnect.io/reflector"
 	"context"
 	"time"
 )
 
-type Context interface {
-	context.Context
-	event.Publisher
-	event.ListenerRegistry
-
-	ApplicationName() string
-	DisplayName() string
-	StartupTime() time.Time
-	Environment() env.Environment
-	Container() container.Container
-	Start() error
-	Stop() error
-}
-
-type appContext struct {
+type Context struct {
 	environment env.Environment
 	container   container.Container
 	broadcaster event.Broadcaster
 	listeners   []*event.Listener
 
-	lifecycleProcessor *lifecycleProcessor
-	values             map[any]any
+	//lifecycleProcessor *lifecycleProcessor
+	values map[any]any
 }
 
-func newContext(container container.Container, broadcaster event.Broadcaster) *appContext {
-	return &appContext{
+func newContext(container container.Container, broadcaster event.Broadcaster) *Context {
+	return &Context{
 		container:   container,
 		broadcaster: broadcaster,
 		listeners:   make([]*event.Listener, 0),
@@ -42,61 +29,61 @@ func newContext(container container.Container, broadcaster event.Broadcaster) *a
 	}
 }
 
-func (c *appContext) Deadline() (deadline time.Time, ok bool) {
+func (c *Context) Deadline() (deadline time.Time, ok bool) {
 	return
 }
 
-func (c *appContext) Done() <-chan struct{} {
+func (c *Context) Done() <-chan struct{} {
 	return nil
 }
 
-func (c *appContext) Err() error {
+func (c *Context) Err() error {
 	return nil
 }
 
-func (c *appContext) Value(key any) any {
+func (c *Context) Value(key any) any {
 	return c.values[key]
 }
 
-func (c *appContext) RegisterListener(listener *event.Listener) {
+func (c *Context) RegisterListener(listener *event.Listener) {
 	c.broadcaster.RegisterListener(listener)
 }
 
-func (c *appContext) Listeners() []*event.Listener {
+func (c *Context) Listeners() []*event.Listener {
 	listeners := make([]*event.Listener, len(c.listeners))
 	copy(listeners, c.listeners)
 	return listeners
 }
 
-func (c *appContext) PublishEvent(ctx context.Context, event event.Event) {
+func (c *Context) PublishEvent(ctx context.Context, event event.Event) {
 	c.broadcaster.BroadcastEvent(ctx, event)
 }
 
-func (c *appContext) ApplicationName() string {
+func (c *Context) ApplicationName() string {
 	return ""
 }
 
-func (c *appContext) DisplayName() string {
+func (c *Context) DisplayName() string {
 	return ""
 }
 
-func (c *appContext) StartupTime() time.Time {
+func (c *Context) StartupTime() time.Time {
 	return time.Time{}
 }
 
-func (c *appContext) Environment() env.Environment {
+func (c *Context) Environment() env.Environment {
 	return nil
 }
 
-func (c *appContext) Container() container.Container {
+func (c *Context) Container() container.Container {
 	return c.container
 }
 
-func (c *appContext) prepareRefresh() error {
+func (c *Context) prepareRefresh() error {
 	return nil
 }
 
-func (c *appContext) prepareContainer() error {
+func (c *Context) prepareContainer() error {
 	sharedInstances := c.container.SharedInstances()
 
 	err := c.container.RegisterResolvable(reflector.TypeOf[container.Container](), c.container)
@@ -104,7 +91,7 @@ func (c *appContext) prepareContainer() error {
 		return err
 	}
 
-	err = c.container.RegisterResolvable(reflector.TypeOf[Context](), c)
+	err = c.container.RegisterResolvable(reflector.TypeOf[runtime.Context](), c)
 	if err != nil {
 		return err
 	}
@@ -122,7 +109,7 @@ func (c *appContext) prepareContainer() error {
 	return nil
 }
 
-func (c *appContext) Start() error {
+func (c *Context) Start() error {
 	err := c.prepareRefresh()
 	if err != nil {
 		return err
@@ -146,8 +133,8 @@ func (c *appContext) Start() error {
 	return c.finalize()
 }
 
-func (c *appContext) Stop() error {
-	if c.lifecycleProcessor == nil {
+func (c *Context) Stop() error {
+	/*if c.lifecycleProcessor == nil {
 		return nil
 	}
 
@@ -156,30 +143,30 @@ func (c *appContext) Stop() error {
 	if err != nil {
 		return err
 	}
-
+	*/
 	return nil
 }
 
-func (c *appContext) registerComponentDefinitions() error {
+func (c *Context) registerComponentDefinitions() error {
 	return nil
 }
 
-func (c *appContext) initializeSharedComponents() error {
+func (c *Context) initializeSharedComponents() error {
 	return nil
 }
 
-func (c *appContext) finalize() (err error) {
-	c.lifecycleProcessor = defaultLifecycleProcessor(LifecycleProperties{}, c.container)
+func (c *Context) finalize() (err error) {
+	/*c.lifecycleProcessor = defaultLifecycleProcessor(LifecycleProperties{}, c.container)
 
 	err = c.lifecycleProcessor.start(c)
 
 	if err != nil {
 		return err
 	}
-
+	*/
 	return nil
 }
 
-func (c *appContext) setEnvironment(environment env.Environment) {
+func (c *Context) setEnvironment(environment env.Environment) {
 	c.environment = environment
 }
