@@ -47,7 +47,7 @@ func (a *Application) Run(args ...string) {
 	startTime := time.Now()
 
 	a.bannerPrinter.PrintBanner(os.Stdout)
-	arguments, err := parseArguments(mergeArguments(args...))
+	arguments, err := runtime.ParseArguments(args)
 
 	if err != nil {
 		log.Error("Argument parsing failed", err)
@@ -106,11 +106,11 @@ func (a *Application) Run(args ...string) {
 	_ = a.ctx.Stop()
 }
 
-func (a *Application) startupListeners(arguments *Arguments) (startupListeners, error) {
+func (a *Application) startupListeners(arguments *runtime.Arguments) (startupListeners, error) {
 	listeners := make(startupListeners, 0)
 
 	reflApplicationType := reflector.TypeOf[Application]().ReflectType()
-	reflArgumentsType := reflector.TypeOf[*Arguments]().ReflectType()
+	reflArgumentsType := reflector.TypeOf[*runtime.Arguments]().ReflectType()
 
 	registry := a.container.DefinitionRegistry()
 	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[runtime.StartupListener]())
@@ -169,7 +169,7 @@ func (a *Application) eventCustomizers() (eventCustomizers, error) {
 	return customizers, nil
 }
 
-func (a *Application) prepareEnvironment(arguments *Arguments, listeners startupListeners) (env.Environment, error) {
+func (a *Application) prepareEnvironment(arguments *runtime.Arguments, listeners startupListeners) (env.Environment, error) {
 	environment := env.New()
 
 	propertySources := environment.PropertySources()
@@ -217,7 +217,7 @@ func (a *Application) contextCustomizers() (contextCustomizers, error) {
 	return customizers, nil
 }
 
-func (a *Application) prepareContext(environment env.Environment, listeners startupListeners, arguments *Arguments) error {
+func (a *Application) prepareContext(environment env.Environment, listeners startupListeners, arguments *runtime.Arguments) error {
 	a.ctx.setEnvironment(environment)
 
 	customizers, err := a.contextCustomizers()

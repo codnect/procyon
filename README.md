@@ -22,17 +22,17 @@ Procyon is a HTTP web framework written in Go. Our goal is to make it easy for d
 ## Key Features
 Here is the list of the key features provided by Procyon framework.
 
-**Rapid Development:** Speed up your development process and build robust applications.
+* **Rapid Development:** Speed up your development process and build robust applications.
 
-**Production Ready:** Develop production-ready applications ensuring stability and reliability.
+* **Production Ready:** Develop production-ready applications ensuring stability and reliability.
 
-**Externalized Configuration:** Configure your application's behavior easily using externalized configuration.
+* **Externalized Configuration:** Configure your application's behavior easily using externalized configuration.
 
-**Dependency Injection:** Manage your application components with built-in dependency injection support.
+* **Dependency Injection:** Manage your application components with built-in dependency injection support.
 
-**Focus on What Matters:** Save time and concentrate on your business rather than the technical details.
+* **Focus on What Matters:** Save time and concentrate on your business rather than the technical details.
 
-**Extensibility**: Expand your application's capabilities and adapt it to your needs.
+* **Extensibility**: Expand your application's capabilities and adapt it to your needs.
 
 ## Getting Started
 Get started with Procyon and simplify your Go web development experience. Check out [the documentation](https://procyon.codnect.io/docs/why-procyon) for straightforward installation, usage guidelines, and a clear understanding of Procyon's features.

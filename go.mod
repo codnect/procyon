@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	codnect.io/logy v1.0.2
-	codnect.io/procyon-core v0.0.6-dev
+	codnect.io/procyon-core v0.0.7-dev
 	codnect.io/procyon-web v0.0.12-dev
 	codnect.io/reflector v0.0.13-dev
 	github.com/spf13/cobra v1.8.0
