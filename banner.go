@@ -22,8 +22,7 @@ func defaultBannerPrinter() *bannerPrinter {
 	return &bannerPrinter{}
 }
 
-func (p *bannerPrinter) PrintBanner(w io.Writer) error {
-
+func (p *bannerPrinter) PrintBanner(w io.Writer) {
 	for _, line := range bannerText {
 		if logy.SupportsColor() {
 			w.Write([]byte(fmt.Sprintf("\u001B[34;1m%s\u001B[0m", line)))
@@ -35,8 +34,6 @@ func (p *bannerPrinter) PrintBanner(w io.Writer) error {
 	if logy.SupportsColor() {
 		w.Write([]byte(fmt.Sprintf("\u001B[93m%24s%s)\u001B[0m\n", "(", Version)))
 	} else {
-		w.Write([]byte(fmt.Sprintf("(%s)", Version)))
+		w.Write([]byte(fmt.Sprintf("%24s%s)\n", "(", Version)))
 	}
-
-	return nil
 }
