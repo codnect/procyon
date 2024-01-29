@@ -1,9 +1,9 @@
 codnect.io/logy v1.0.2 h1:KT1RG+4YENvYeok3beCY7vHrosXwlDOkHXQ477XgnI4=
 codnect.io/logy v1.0.2/go.mod h1:WPB9LK1/S2sblgj/qqlJ+OKSxU4aDhl1zE3+/8GMWe4=
-codnect.io/procyon-core v0.0.3-dev h1:aEhhWmnZEHlwWxvS/br8V1I2uQpuAzKDArTZoCjg4xg=
-codnect.io/procyon-core v0.0.3-dev/go.mod h1:BpYfbuzZuLEQgDAbV/N4NtnZjsfM1Sfwqfh/ivMhwoE=
-codnect.io/procyon-web v0.0.8-dev h1:dUbvA69u7vE0cSQtfS97woMrmjqDrjwjF8nZxCok6Yc=
-codnect.io/procyon-web v0.0.8-dev/go.mod h1:ujbKiLnc/iAAHVTqsOOyatv+PRcH7OZdsOvx8MQJVhc=
+codnect.io/procyon-core v0.0.6-dev h1:XM/925cqhXP7o+HIjx4aHPc9Fw4lwF4YyIzdQCyV3XA=
+codnect.io/procyon-core v0.0.6-dev/go.mod h1:BpYfbuzZuLEQgDAbV/N4NtnZjsfM1Sfwqfh/ivMhwoE=
+codnect.io/procyon-web v0.0.12-dev h1:Qg3P1s0xUm/T28Ay3tw1J8Q32ebLiZ9mOaTTiByb+Ak=
+codnect.io/procyon-web v0.0.12-dev/go.mod h1:qDni60U2O9coEPyJ1slIuLLV/TRY1Uyz6juZ+lkVIj4=
 codnect.io/reflector v0.0.13-dev h1:hYCDBGVZcJev1PZ11kGOnJcQaCBw1gH9fycXpjS8Hak=
 codnect.io/reflector v0.0.13-dev/go.mod h1:Ttdo+IMvo0WFY/BATxL86LdBDqCBOh2mO3Tb7I0bykY=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=

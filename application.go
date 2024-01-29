@@ -174,8 +174,8 @@ func (a *Application) prepareEnvironment(arguments *Arguments, listeners startup
 
 	propertySources := environment.PropertySources()
 
-	propertySources.AddLast(newArgumentPropertySources(arguments))
-	propertySources.AddLast(newSystemEnvironmentPropertySource())
+	propertySources.AddLast(runtime.NewPropertySource(arguments))
+	propertySources.AddLast(env.NewPropertySource())
 
 	customizers, err := a.eventCustomizers()
 	if err != nil {
