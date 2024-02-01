@@ -1,13 +1,11 @@
 package procyon
 
 import (
-	"codnect.io/logy"
 	"codnect.io/procyon-core/component"
 	"codnect.io/procyon-core/container"
 	"codnect.io/procyon-core/event"
 	"codnect.io/procyon-core/runtime"
 	"codnect.io/procyon-core/runtime/env"
-	"codnect.io/reflector"
 	"context"
 	"os"
 	"os/signal"
@@ -15,14 +13,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-)
-
-var (
-	log = logy.Get()
-)
-
-const (
-	Version = "v0.0.1-dev"
 )
 
 type Application struct {
@@ -64,7 +54,7 @@ func (a *Application) Run(args ...string) {
 	a.logStartup(a.ctx)
 
 	var listeners startupListeners
-	listeners, err = a.startupListeners(arguments)
+	listeners, err = getComponentsByType[runtime.StartupListener](a.container, a, arguments)
 
 	if err != nil {
 		log.Error("Failed to initialize startup listeners", err)
@@ -106,69 +96,6 @@ func (a *Application) Run(args ...string) {
 	_ = a.ctx.Stop()
 }
 
-func (a *Application) startupListeners(arguments *runtime.Arguments) (startupListeners, error) {
-	listeners := make(startupListeners, 0)
-
-	reflApplicationType := reflector.TypeOf[Application]().ReflectType()
-	reflArgumentsType := reflector.TypeOf[*runtime.Arguments]().ReflectType()
-
-	registry := a.container.DefinitionRegistry()
-	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[runtime.StartupListener]())
-
-	for _, definitionName := range definitionNames {
-		definition, _ := registry.Find(definitionName)
-
-		if len(definition.Inputs()) != 2 {
-			continue
-		}
-
-		if !reflApplicationType.ConvertibleTo(definition.Inputs()[0].Type().ReflectType()) {
-			continue
-		}
-
-		if !reflArgumentsType.ConvertibleTo(definition.Inputs()[1].Type().ReflectType()) {
-			continue
-		}
-
-		results, err := definition.Constructor().Invoke(a, arguments)
-
-		if err != nil {
-			return nil, err
-		}
-
-		listener := results[0].(runtime.StartupListener)
-		listeners = append(listeners, listener)
-	}
-
-	return listeners, nil
-}
-
-func (a *Application) eventCustomizers() (eventCustomizers, error) {
-	customizers := make(eventCustomizers, 0)
-
-	registry := a.container.DefinitionRegistry()
-	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[env.Customizer]())
-
-	for _, definitionName := range definitionNames {
-		definition, _ := registry.Find(definitionName)
-
-		if len(definition.Inputs()) != 0 {
-			continue
-		}
-
-		results, err := definition.Constructor().Invoke()
-
-		if err != nil {
-			return nil, err
-		}
-
-		customizer := results[0].(env.Customizer)
-		customizers = append(customizers, customizer)
-	}
-
-	return customizers, nil
-}
-
 func (a *Application) prepareEnvironment(arguments *runtime.Arguments, listeners startupListeners) (env.Environment, error) {
 	environment := env.New()
 
@@ -177,57 +104,37 @@ func (a *Application) prepareEnvironment(arguments *runtime.Arguments, listeners
 	propertySources.AddLast(runtime.NewPropertySource(arguments))
 	propertySources.AddLast(env.NewPropertySource())
 
-	customizers, err := a.eventCustomizers()
+	customizers, err := getComponentsByType[env.Customizer](a.container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = customizers.invoke(environment)
-	if err != nil {
-		return nil, err
+	for _, customizer := range customizers {
+		err = customizer.CustomizeEnvironment(environment)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	listeners.environmentPrepared(a.ctx, environment)
 	return environment, nil
 }
 
-func (a *Application) contextCustomizers() (contextCustomizers, error) {
-	customizers := make(contextCustomizers, 0)
-
-	registry := a.container.DefinitionRegistry()
-	definitionNames := registry.DefinitionNamesByType(reflector.TypeOf[runtime.ContextCustomizer]())
-
-	for _, definitionName := range definitionNames {
-		definition, _ := registry.Find(definitionName)
-
-		if len(definition.Inputs()) != 0 {
-			continue
-		}
-
-		results, err := definition.Constructor().Invoke()
-
-		if err != nil {
-			return nil, err
-		}
-
-		customizer := results[0].(runtime.ContextCustomizer)
-		customizers = append(customizers, customizer.(runtime.ContextCustomizer))
-	}
-
-	return customizers, nil
-}
-
 func (a *Application) prepareContext(environment env.Environment, listeners startupListeners, arguments *runtime.Arguments) error {
 	a.ctx.setEnvironment(environment)
 
-	customizers, err := a.contextCustomizers()
+	customizers, err := getComponentsByType[runtime.ContextCustomizer](a.container)
 	if err != nil {
 		return err
 	}
 
-	err = customizers.invoke(a.ctx)
-	if err != nil {
-		return err
+	for _, customizer := range customizers {
+		err = customizer.CustomizeContext(a.ctx)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	listeners.contextPrepared(a.ctx)
@@ -276,13 +183,9 @@ func (a *Application) logProfileInfo(environment env.Environment) {
 		activeProfiles := environment.ActiveProfiles()
 		if len(activeProfiles) == 0 {
 			defaultProfiles := environment.DefaultProfiles()
-			log.Info("No active profile, using default profile(s): {}", sliceToDelimitedString(defaultProfiles))
+			log.Info("No active profile, using default profile(s): {}", strings.Join(defaultProfiles, ","))
 		} else {
-			if len(activeProfiles) == 1 {
-				log.Info("The following profile is active: {}", sliceToDelimitedString(activeProfiles))
-			} else {
-				log.Info("The following profiles are active: {}", sliceToDelimitedString(activeProfiles))
-			}
+			log.Info("The application is using the following profile(s): {}", strings.Join(activeProfiles, ","))
 		}
 	}
 }
@@ -295,17 +198,4 @@ func (a *Application) logStarted(ctx *Context, timeTaken time.Duration) {
 	}
 
 	log.Info("Started {} in {} seconds", appName, timeTaken.Seconds())
-}
-
-func sliceToDelimitedString(values []string) string {
-	var builder strings.Builder
-	for index, value := range values {
-		builder.WriteByte('"')
-		builder.WriteString(value)
-		builder.WriteByte('"')
-		if index != len(values)-1 {
-			builder.WriteByte(',')
-		}
-	}
-	return builder.String()
 }
