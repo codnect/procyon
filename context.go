@@ -2,30 +2,43 @@ package procyon
 
 import (
 	"codnect.io/procyon-core/container"
-	"codnect.io/procyon-core/event"
 	"codnect.io/procyon-core/runtime"
 	"codnect.io/procyon-core/runtime/env"
+	"codnect.io/procyon-core/runtime/event"
 	"codnect.io/reflector"
 	"context"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
 type Context struct {
+	signalCtx  context.Context
+	cancelFunc context.CancelFunc
+
 	environment env.Environment
 	container   container.Container
-	broadcaster event.Broadcaster
 	listeners   []*event.Listener
 
 	//lifecycleProcessor *lifecycleProcessor
+	err    error
 	values map[any]any
 }
 
-func newContext(container container.Container, broadcaster event.Broadcaster) *Context {
+func newContext(container container.Container) *Context {
+
+	signalCtx, cancelFunc := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	/*defer stopFunc()
+	<-notifyCtx.Done()
+	_ = a.ctx.Stop()
+	*/
+
 	return &Context{
-		container:   container,
-		broadcaster: broadcaster,
-		listeners:   make([]*event.Listener, 0),
-		values:      map[any]any{},
+		signalCtx:  signalCtx,
+		cancelFunc: cancelFunc,
+		container:  container,
+		listeners:  make([]*event.Listener, 0),
+		values:     map[any]any{},
 	}
 }
 
@@ -34,11 +47,11 @@ func (c *Context) Deadline() (deadline time.Time, ok bool) {
 }
 
 func (c *Context) Done() <-chan struct{} {
-	return nil
+	return c.signalCtx.Done()
 }
 
 func (c *Context) Err() error {
-	return nil
+	return c.err
 }
 
 func (c *Context) Value(key any) any {
@@ -46,7 +59,7 @@ func (c *Context) Value(key any) any {
 }
 
 func (c *Context) RegisterListener(listener *event.Listener) {
-	c.broadcaster.RegisterListener(listener)
+	//c.broadcaster.RegisterListener(listener)
 }
 
 func (c *Context) Listeners() []*event.Listener {
@@ -55,20 +68,9 @@ func (c *Context) Listeners() []*event.Listener {
 	return listeners
 }
 
-func (c *Context) PublishEvent(ctx context.Context, event event.Event) {
-	c.broadcaster.BroadcastEvent(ctx, event)
-}
-
-func (c *Context) ApplicationName() string {
-	return ""
-}
-
-func (c *Context) DisplayName() string {
-	return ""
-}
-
-func (c *Context) StartupTime() time.Time {
-	return time.Time{}
+func (c *Context) PublishEvent(ctx context.Context, event event.Event) error {
+	//c.broadcaster.BroadcastEvent(ctx, event)
+	return nil
 }
 
 func (c *Context) Environment() env.Environment {
@@ -101,7 +103,7 @@ func (c *Context) prepareContainer() error {
 		return err
 	}
 
-	err = sharedInstances.Register("environment", c.environment)
+	err = sharedInstances.Register("Environment", c.environment)
 	if err != nil {
 		return err
 	}
@@ -109,7 +111,7 @@ func (c *Context) prepareContainer() error {
 	return nil
 }
 
-func (c *Context) Start() error {
+func (c *Context) start() error {
 	err := c.prepareRefresh()
 	if err != nil {
 		return err
@@ -133,7 +135,8 @@ func (c *Context) Start() error {
 	return c.finalize()
 }
 
-func (c *Context) Stop() error {
+func (c *Context) Close() {
+	defer c.cancelFunc()
 	/*if c.lifecycleProcessor == nil {
 		return nil
 	}
@@ -144,7 +147,6 @@ func (c *Context) Stop() error {
 		return err
 	}
 	*/
-	return nil
 }
 
 func (c *Context) registerComponentDefinitions() error {
@@ -169,4 +171,21 @@ func (c *Context) finalize() (err error) {
 
 func (c *Context) setEnvironment(environment env.Environment) {
 	c.environment = environment
+}
+
+func (c *Context) customize() error {
+	customizers, err := getComponentsByType[runtime.ContextCustomizer](c.container)
+	if err != nil {
+		return err
+	}
+
+	for _, customizer := range customizers {
+		err = customizer.CustomizeContext(c)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

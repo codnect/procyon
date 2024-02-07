@@ -1,75 +1,80 @@
 package procyon
 
 import (
-	"codnect.io/procyon-core/component"
 	"codnect.io/procyon-core/container"
-	"codnect.io/procyon-core/event"
 	"codnect.io/procyon-core/runtime"
 	"codnect.io/procyon-core/runtime/env"
-	"context"
+	"fmt"
 	"os"
-	"os/signal"
 	sruntime "runtime"
 	"strings"
-	"syscall"
 	"time"
 )
 
 type Application struct {
-	ctx           *Context
-	container     container.Container
-	env           env.Environment
-	bannerPrinter *bannerPrinter
+	ctx       *Context
+	container container.Container
+	env       env.Environment
+	banner    Banner
 }
 
 func New() *Application {
-	appContainer := container.New()
-	broadcaster := event.NewBroadcaster()
+	instanceContainer := container.New()
 
 	return &Application{
-		ctx:           newContext(appContainer, broadcaster),
-		container:     appContainer,
-		bannerPrinter: defaultBannerPrinter(),
+		ctx:       newContext(instanceContainer),
+		container: instanceContainer,
+		banner:    newDefaultBannerPrinter(),
 	}
 }
 
-func (a *Application) Run(args ...string) {
-	startTime := time.Now()
-
-	a.bannerPrinter.PrintBanner(os.Stdout)
-	arguments, err := runtime.ParseArguments(args)
-
-	if err != nil {
-		log.Error("Argument parsing failed", err)
-		os.Exit(1)
+func (a *Application) SetBanner(banner Banner) *Application {
+	if banner != nil {
+		a.banner = banner
 	}
 
-	err = a.registerComponentDefinitions()
+	return nil
+}
 
+func (a *Application) Run(args ...string) (err error) {
+	var (
+		startTime   = time.Now()
+		arguments   *runtime.Arguments
+		listeners   runtime.StartupListeners
+		environment env.Environment
+	)
+
+	err = a.banner.PrintBanner(os.Stdout)
 	if err != nil {
-		log.Error("Failed to register component definitions", err)
-		os.Exit(1)
+		return err
 	}
 
-	a.logStartup(a.ctx)
+	arguments, err = runtime.ParseArguments(args)
+	if err != nil {
+		return fmt.Errorf("failed to parse arguments: %v", err)
+	}
 
-	var listeners startupListeners
+	err = registerComponentDefinitions(a.container)
+	if err != nil {
+		return fmt.Errorf("failed to register components: %v", err)
+	}
+
+	log.Info("Starting application using Go {}", sruntime.Version()[2:])
+	log.Debug("Running with Procyon {}", Version)
+
 	listeners, err = getComponentsByType[runtime.StartupListener](a.container, a, arguments)
-
 	if err != nil {
-		log.Error("Failed to initialize startup listeners", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to initialize startup listeners: %v", err)
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			listeners.failed(a.ctx, err)
+			listeners.Failed(a.ctx, err)
 		}
 	}()
 
-	listeners.starting(a.ctx)
+	listeners.Starting(a.ctx)
 
-	var environment env.Environment
 	environment, err = a.prepareEnvironment(arguments, listeners)
 	if err != nil {
 		panic(err)
@@ -83,104 +88,70 @@ func (a *Application) Run(args ...string) {
 	}
 
 	timeTakenToStartup := time.Now().Sub(startTime)
-
-	listeners.started(a.ctx, timeTakenToStartup)
-	a.logStarted(a.ctx, timeTakenToStartup)
+	listeners.Started(a.ctx, timeTakenToStartup)
+	log.Info("Started application in {} seconds", timeTakenToStartup.Seconds())
 
 	timeTakenToReady := time.Now().Sub(startTime)
-	listeners.ready(a.ctx, timeTakenToReady)
+	listeners.Ready(a.ctx, timeTakenToReady)
 
-	notifyCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-	<-notifyCtx.Done()
-	_ = a.ctx.Stop()
+	// wait for context to be closed
+	<-a.ctx.Done()
+
+	return nil
 }
 
-func (a *Application) prepareEnvironment(arguments *runtime.Arguments, listeners startupListeners) (env.Environment, error) {
-	environment := env.New()
+func (a *Application) Exit() {
+	a.ctx.Close()
+}
+
+func (a *Application) prepareEnvironment(arguments *runtime.Arguments, listeners runtime.StartupListeners) (env.Environment, error) {
+	environment := newEnvironment()
 
 	propertySources := environment.PropertySources()
 
 	propertySources.AddLast(runtime.NewPropertySource(arguments))
 	propertySources.AddLast(env.NewPropertySource())
 
-	customizers, err := getComponentsByType[env.Customizer](a.container)
+	err := environment.customize(a.container)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, customizer := range customizers {
-		err = customizer.CustomizeEnvironment(environment)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	listeners.environmentPrepared(a.ctx, environment)
+	listeners.EnvironmentPrepared(a.ctx, environment)
 	return environment, nil
 }
 
-func (a *Application) prepareContext(environment env.Environment, listeners startupListeners, arguments *runtime.Arguments) error {
+func (a *Application) prepareContext(environment env.Environment, listeners runtime.StartupListeners, arguments *runtime.Arguments) error {
 	a.ctx.setEnvironment(environment)
 
-	customizers, err := getComponentsByType[runtime.ContextCustomizer](a.container)
+	err := a.ctx.customize()
 	if err != nil {
 		return err
 	}
 
-	for _, customizer := range customizers {
-		err = customizer.CustomizeContext(a.ctx)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	listeners.contextPrepared(a.ctx)
+	listeners.ContextPrepared(a.ctx)
 
 	sharedInstances := a.container.SharedInstances()
-	err = sharedInstances.Register("procyonApplicationArguments", arguments)
+	err = sharedInstances.Register("procyonAppArguments", arguments)
 	if err != nil {
 		return err
 	}
 
-	listeners.contextLoaded(a.ctx)
+	listeners.ContextLoaded(a.ctx)
 
-	err = a.ctx.Start()
+	err = a.ctx.start()
 	if err != nil {
 		return err
 	}
 
-	listeners.contextStarted(a.ctx)
+	listeners.ContextStarted(a.ctx)
 	return nil
-}
-
-func (a *Application) registerComponentDefinitions() error {
-	for _, registeredComponent := range component.RegisteredComponents() {
-		err := a.container.DefinitionRegistry().Register(registeredComponent.Definition())
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (a *Application) logStartup(ctx *Context) {
-	appName := ctx.ApplicationName()
-
-	if appName == "" {
-		appName = "application"
-	}
-
-	log.Info("Starting {} using Go {}", appName, sruntime.Version()[2:])
-	log.Debug("Running with Procyon {}", Version)
 }
 
 func (a *Application) logProfileInfo(environment env.Environment) {
 	if log.IsInfoEnabled() {
 		activeProfiles := environment.ActiveProfiles()
+
 		if len(activeProfiles) == 0 {
 			defaultProfiles := environment.DefaultProfiles()
 			log.Info("No active profile, using default profile(s): {}", strings.Join(defaultProfiles, ","))
@@ -188,14 +159,4 @@ func (a *Application) logProfileInfo(environment env.Environment) {
 			log.Info("The application is using the following profile(s): {}", strings.Join(activeProfiles, ","))
 		}
 	}
-}
-
-func (a *Application) logStarted(ctx *Context, timeTaken time.Duration) {
-	appName := ctx.ApplicationName()
-
-	if appName == "" {
-		appName = "application"
-	}
-
-	log.Info("Started {} in {} seconds", appName, timeTaken.Seconds())
 }

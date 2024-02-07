@@ -1,9 +1,7 @@
 codnect.io/logy v1.0.2 h1:KT1RG+4YENvYeok3beCY7vHrosXwlDOkHXQ477XgnI4=
 codnect.io/logy v1.0.2/go.mod h1:WPB9LK1/S2sblgj/qqlJ+OKSxU4aDhl1zE3+/8GMWe4=
-codnect.io/procyon-core v0.0.6-dev h1:XM/925cqhXP7o+HIjx4aHPc9Fw4lwF4YyIzdQCyV3XA=
-codnect.io/procyon-core v0.0.6-dev/go.mod h1:BpYfbuzZuLEQgDAbV/N4NtnZjsfM1Sfwqfh/ivMhwoE=
-codnect.io/procyon-core v0.0.7-dev h1:Hw9iivS9ChOcl3TLgvBi+eHk/Dv7TbBB7HNLe9L+caw=
-codnect.io/procyon-core v0.0.7-dev/go.mod h1:BpYfbuzZuLEQgDAbV/N4NtnZjsfM1Sfwqfh/ivMhwoE=
+codnect.io/procyon-core v0.0.10-dev h1:K5UIdVPmmdMauAZ8kFViVtBtFOzqP0PwuWDmBlwxN4c=
+codnect.io/procyon-core v0.0.10-dev/go.mod h1:BpYfbuzZuLEQgDAbV/N4NtnZjsfM1Sfwqfh/ivMhwoE=
 codnect.io/procyon-web v0.0.12-dev h1:Qg3P1s0xUm/T28Ay3tw1J8Q32ebLiZ9mOaTTiByb+Ak=
 codnect.io/procyon-web v0.0.12-dev/go.mod h1:qDni60U2O9coEPyJ1slIuLLV/TRY1Uyz6juZ+lkVIj4=
 codnect.io/reflector v0.0.13-dev h1:hYCDBGVZcJev1PZ11kGOnJcQaCBw1gH9fycXpjS8Hak=
@@ -23,8 +21,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=
 golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561 h1:MDc5xs78ZrZr3HMQugiXOAkSZtfTpbJLDr/lwfgO53E=
-golang.org/x/sys v0.16.0 h1:xWw16ngr6ZMtmxDyKyIgsE93KNKz5HKmMa3b8ALHidU=
-golang.org/x/sys v0.16.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
+golang.org/x/sys v0.17.0 h1:25cE3gD+tdBA7lp7QfhuV+rJiE9YXTcS3VG1SqssI/Y=
+golang.org/x/sys v0.17.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

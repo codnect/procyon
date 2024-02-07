@@ -6,52 +6,48 @@ import (
 	"time"
 )
 
-type startupListeners []runtime.StartupListener
+type StartupListener struct {
+	app  Application
+	args *runtime.Arguments
+}
 
-func (l startupListeners) starting(ctx runtime.Context) {
-	for _, listener := range l {
-		listener.OnStarting(ctx)
+func newStartupListener(app Application, args *runtime.Arguments) *StartupListener {
+	return &StartupListener{
+		app:  app,
+		args: args,
 	}
 }
 
-func (l startupListeners) environmentPrepared(ctx runtime.Context, environment env.Environment) {
-	for _, listener := range l {
-		listener.OnEnvironmentPrepared(ctx, environment)
-	}
+func (l *StartupListener) OnStarting(ctx runtime.Context) {
+	//l.broadcaster.BroadcastEvent(ctx, newStartingEvent(l.app, l.args, ctx))
 }
 
-func (l startupListeners) contextPrepared(ctx runtime.Context) {
-	for _, listener := range l {
-		listener.OnContextPrepared(ctx)
-	}
+func (l *StartupListener) OnEnvironmentPrepared(ctx runtime.Context, environment env.Environment) {
+	//l.broadcaster.BroadcastEvent(ctx, newEnvironmentPreparedEvent(l.app, l.args, ctx, environment))
 }
 
-func (l startupListeners) contextLoaded(ctx runtime.Context) {
-	for _, listener := range l {
-		listener.OnContextLoaded(ctx)
-	}
+func (l *StartupListener) OnContextPrepared(ctx runtime.Context) {
+	//l.broadcaster.BroadcastEvent(ctx, newContextPreparedEvent(l.app, l.args, ctx))
 }
 
-func (l startupListeners) contextStarted(ctx runtime.Context) {
-	for _, listener := range l {
-		listener.OnContextStarted(ctx)
-	}
+func (l *StartupListener) OnContextLoaded(ctx runtime.Context) {
+	//l.broadcaster.BroadcastEvent(ctx, newContextLoadedEvent(l.app, l.args, ctx))
+	//ctx.PublishEvent(ctx, availability.NewChangeEvent(ctx, availability.StateCorrect))
 }
 
-func (l startupListeners) started(ctx runtime.Context, timeTaken time.Duration) {
-	for _, listener := range l {
-		listener.OnStarted(ctx, timeTaken)
-	}
+func (l *StartupListener) OnContextStarted(ctx runtime.Context) {
+	//l.broadcaster.BroadcastEvent(ctx, newContextStartedEvent(l.app, l.args, ctx))
 }
 
-func (l startupListeners) ready(ctx runtime.Context, timeTaken time.Duration) {
-	for _, listener := range l {
-		listener.OnReady(ctx, timeTaken)
-	}
+func (l *StartupListener) OnStarted(ctx runtime.Context, timeTaken time.Duration) {
+	//l.broadcaster.BroadcastEvent(ctx, newStartedEvent(l.app, l.args, ctx, timeTaken))
+	//ctx.PublishEvent(ctx, availability.NewChangeEvent(ctx, availability.StateAcceptingTraffic))
 }
 
-func (l startupListeners) failed(ctx runtime.Context, err error) {
-	for _, listener := range l {
-		listener.OnFailed(ctx, err)
-	}
+func (l *StartupListener) OnReady(ctx runtime.Context, timeTaken time.Duration) {
+	//l.broadcaster.BroadcastEvent(ctx, newReadyEvent(l.app, l.args, ctx, timeTaken))
+}
+
+func (l *StartupListener) OnFailed(ctx runtime.Context, err error) {
+	//l.broadcaster.BroadcastEvent(ctx, newFailedEvent(l.app, l.args, ctx, err))
 }

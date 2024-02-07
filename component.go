@@ -1,6 +1,7 @@
 package procyon
 
 import (
+	"codnect.io/procyon-core/component"
 	"codnect.io/procyon-core/container"
 	"codnect.io/reflector"
 )
@@ -46,4 +47,15 @@ func matchInputTypes(inputs []*container.Input, args ...any) bool {
 	}
 
 	return true
+}
+
+func registerComponentDefinitions(container container.Container) error {
+	for _, registeredComponent := range component.RegisteredComponents() {
+		err := container.DefinitionRegistry().Register(registeredComponent.Definition())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

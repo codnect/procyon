@@ -15,14 +15,18 @@ var (
 	}
 )
 
-type bannerPrinter struct {
+type Banner interface {
+	PrintBanner(w io.Writer) error
 }
 
-func defaultBannerPrinter() *bannerPrinter {
-	return &bannerPrinter{}
+type defaultBanner struct {
 }
 
-func (p *bannerPrinter) PrintBanner(w io.Writer) {
+func newDefaultBannerPrinter() *defaultBanner {
+	return &defaultBanner{}
+}
+
+func (p *defaultBanner) PrintBanner(w io.Writer) error {
 	for _, line := range bannerText {
 		if logy.SupportsColor() {
 			w.Write([]byte(fmt.Sprintf("\u001B[34;1m%s\u001B[0m", line)))
@@ -36,4 +40,6 @@ func (p *bannerPrinter) PrintBanner(w io.Writer) {
 	} else {
 		w.Write([]byte(fmt.Sprintf("%24s%s)\n", "(", Version)))
 	}
+
+	return nil
 }
