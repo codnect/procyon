@@ -1,154 +1,158 @@
 package procyon
 
 import (
-	"codnect.io/procyon-core/container"
+	"codnect.io/procyon-core/component"
+	"codnect.io/procyon-core/component/filter"
 	"codnect.io/procyon-core/runtime"
-	"codnect.io/procyon-core/runtime/env"
+	"context"
+	"errors"
 	"fmt"
 	"os"
-	sruntime "runtime"
+	goruntime "runtime"
 	"strings"
 	"time"
 )
 
 type Application struct {
-	ctx       *Context
-	container container.Container
-	env       env.Environment
-	banner    Banner
+	container component.Container
 }
 
 func New() *Application {
-	instanceContainer := container.New()
-
 	return &Application{
-		ctx:       newContext(instanceContainer),
-		container: instanceContainer,
-		banner:    newDefaultBannerPrinter(),
+		container: component.NewObjectContainer(),
 	}
 }
 
-func (a *Application) SetBanner(banner Banner) *Application {
-	if banner != nil {
-		a.banner = banner
-	}
+func (a *Application) Run(args ...string) error {
+	startTime := time.Now()
 
-	return nil
-}
-
-func (a *Application) Run(args ...string) (err error) {
-	var (
-		startTime   = time.Now()
-		arguments   *runtime.Arguments
-		listeners   runtime.StartupListeners
-		environment env.Environment
-	)
-
-	err = a.banner.PrintBanner(os.Stdout)
+	banner, err := a.resolveBanner()
 	if err != nil {
 		return err
 	}
 
+	err = banner.PrintBanner(os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	var arguments *runtime.Arguments
 	arguments, err = runtime.ParseArguments(args)
 	if err != nil {
-		return fmt.Errorf("failed to parse arguments: %v", err)
+		return err
 	}
 
-	err = registerComponentDefinitions(a.container)
-	if err != nil {
-		return fmt.Errorf("failed to register components: %v", err)
-	}
-
-	log.Info("Starting application using Go {}", sruntime.Version()[2:])
+	log.Info("Starting application using Go {}", goruntime.Version()[2:])
 	log.Debug("Running with Procyon {}", Version)
 
-	listeners, err = getComponentsByType[runtime.StartupListener](a.container, a, arguments)
-	if err != nil {
-		return fmt.Errorf("failed to initialize startup listeners: %v", err)
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			listeners.Failed(a.ctx, err)
-		}
-	}()
-
-	listeners.Starting(a.ctx)
-
-	environment, err = a.prepareEnvironment(arguments, listeners)
+	var environment runtime.Environment
+	environment, err = a.prepareEnvironment(arguments)
 	if err != nil {
 		panic(err)
 	}
 
 	a.logProfileInfo(environment)
 
-	err = a.prepareContext(environment, listeners, arguments)
+	err = a.prepareContext(environment, arguments)
 	if err != nil {
 		panic(err)
 	}
 
 	timeTakenToStartup := time.Now().Sub(startTime)
-	listeners.Started(a.ctx, timeTakenToStartup)
 	log.Info("Started application in {} seconds", timeTakenToStartup.Seconds())
-
-	timeTakenToReady := time.Now().Sub(startTime)
-	listeners.Ready(a.ctx, timeTakenToReady)
-
-	// wait for context to be closed
-	<-a.ctx.Done()
 
 	return nil
 }
 
-func (a *Application) Exit() {
-	a.ctx.Close()
+func (a *Application) Exit() int {
+	return 0
 }
 
-func (a *Application) prepareEnvironment(arguments *runtime.Arguments, listeners runtime.StartupListeners) (env.Environment, error) {
-	environment := newEnvironment()
+func (a *Application) resolveBanner() (runtime.Banner, error) {
+	bannerPrinters := component.List(filter.ByTypeOf[runtime.Banner]())
+
+	if len(bannerPrinters) > 1 {
+		return nil, errors.New("banners cannot be distinguished because too many matching found")
+	} else if len(bannerPrinters) == 1 {
+		constructor := bannerPrinters[0].Definition().Constructor()
+		banner, err := constructor.Invoke()
+
+		if err != nil {
+			return nil, fmt.Errorf("banner is not initialized, error: %e", err)
+		}
+
+		return banner[0].(runtime.Banner), nil
+	}
+
+	return newBannerPrinter(), nil
+}
+
+func (a *Application) prepareEnvironment(args *runtime.Arguments) (runtime.Environment, error) {
+	environment := runtime.NewDefaultEnvironment()
 
 	propertySources := environment.PropertySources()
 
-	propertySources.AddLast(runtime.NewPropertySource(arguments))
-	propertySources.AddLast(env.NewPropertySource())
+	propertySources.AddLast(runtime.NewArgumentsSource(args))
+	propertySources.AddLast(runtime.NewEnvironmentSource())
 
-	err := environment.customize(a.container)
+	err := a.configureEnvironment(nil, environment)
 	if err != nil {
 		return nil, err
 	}
 
-	listeners.EnvironmentPrepared(a.ctx, environment)
 	return environment, nil
 }
 
-func (a *Application) prepareContext(environment env.Environment, listeners runtime.StartupListeners, arguments *runtime.Arguments) error {
-	a.ctx.setEnvironment(environment)
-
-	err := a.ctx.customize()
+func (a *Application) prepareContext(environment runtime.Environment, arguments *runtime.Arguments) error {
+	err := a.configureContext(nil)
 	if err != nil {
 		return err
 	}
 
-	listeners.ContextPrepared(a.ctx)
-
-	sharedInstances := a.container.SharedInstances()
-	err = sharedInstances.Register("procyonAppArguments", arguments)
+	singletons := a.container.Singletons()
+	err = singletons.Register("procyonApplicationArguments", arguments)
 	if err != nil {
 		return err
 	}
 
-	listeners.ContextLoaded(a.ctx)
-
-	err = a.ctx.start()
-	if err != nil {
-		return err
-	}
-
-	listeners.ContextStarted(a.ctx)
 	return nil
 }
 
-func (a *Application) logProfileInfo(environment env.Environment) {
+func (a *Application) configureEnvironment(ctx context.Context, environment runtime.Environment) error {
+	configurerList := a.container.ListObjects(ctx, filter.ByTypeOf[runtime.EnvironmentConfigurer]())
+
+	for _, configurer := range configurerList {
+		envConfigurer := configurer.(runtime.EnvironmentConfigurer)
+		err := envConfigurer.ConfigureEnvironment(ctx, environment)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *Application) configureContext(ctx runtime.Context) error {
+	configurerList := a.container.ListObjects(ctx, filter.ByTypeOf[runtime.ContextConfigurer]())
+
+	for _, configurer := range configurerList {
+		contextConfigurer := configurer.(runtime.ContextConfigurer)
+		err := contextConfigurer.ConfigureContext(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	loader := newComponentLoader(a.container)
+	err := loader.loadDefinitions(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *Application) logProfileInfo(environment runtime.Environment) {
 	if log.IsInfoEnabled() {
 		activeProfiles := environment.ActiveProfiles()
 
