@@ -8,23 +8,23 @@ import (
 	"strings"
 )
 
-type environmentConfigurer struct {
+type configContextConfigurer struct {
 	loaders  []property.SourceLoader
 	importer *config.Importer
 }
 
-func newEnvironmentConfigurer(loaders []property.SourceLoader, importer *config.Importer) *environmentConfigurer {
-	return &environmentConfigurer{
+func newConfigContextConfigurer(loaders []property.SourceLoader, importer *config.Importer) *configContextConfigurer {
+	return &configContextConfigurer{
 		loaders:  loaders,
 		importer: importer,
 	}
 }
 
-func (c *environmentConfigurer) ConfigureEnvironment(ctx context.Context, environment runtime.Environment) error {
-	return c.importConfig(environment)
+func (c *configContextConfigurer) ConfigureContext(ctx runtime.Context) error {
+	return c.importConfig(ctx.Environment())
 }
 
-func (c *environmentConfigurer) importConfig(environment runtime.Environment) error {
+func (c *configContextConfigurer) importConfig(environment runtime.Environment) error {
 	defaultConfigs, err := c.importer.Import(context.Background(), "resources", environment.DefaultProfiles())
 
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *environmentConfigurer) importConfig(environment runtime.Environment) er
 	return nil
 }
 
-func (c *environmentConfigurer) loadActiveProfiles(environment runtime.Environment, sourceList *property.Sources, activeProfiles []string) error {
+func (c *configContextConfigurer) loadActiveProfiles(environment runtime.Environment, sourceList *property.Sources, activeProfiles []string) error {
 	configs, err := c.importer.Import(context.Background(), "config", activeProfiles)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (c *environmentConfigurer) loadActiveProfiles(environment runtime.Environme
 	return nil
 }
 
-func (c *environmentConfigurer) activateIncludeProfiles(environment runtime.Environment, sourceList *property.Sources, source property.Source) error {
+func (c *configContextConfigurer) activateIncludeProfiles(environment runtime.Environment, sourceList *property.Sources, source property.Source) error {
 	value, ok := source.Property("procyon.profiles.include")
 
 	if ok {
@@ -105,7 +105,7 @@ func (c *environmentConfigurer) activateIncludeProfiles(environment runtime.Envi
 	return nil
 }
 
-func (c *environmentConfigurer) mergeSources(environment runtime.Environment, sourceList *property.Sources) {
+func (c *configContextConfigurer) mergeSources(environment runtime.Environment, sourceList *property.Sources) {
 	for _, source := range sourceList.ToSlice() {
 		environment.PropertySources().AddLast(source)
 	}

@@ -2,6 +2,10 @@ package procyon
 
 import (
 	"codnect.io/logy"
+	"codnect.io/procyon-core/component"
+	"codnect.io/procyon-core/component/filter"
+	"codnect.io/procyon-core/runtime"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -38,4 +42,23 @@ func (p *bannerPrinter) PrintBanner(w io.Writer) error {
 	}
 
 	return nil
+}
+
+func resolveBanner() (runtime.Banner, error) {
+	bannerPrinters := component.List(filter.ByTypeOf[runtime.Banner]())
+
+	if len(bannerPrinters) > 1 {
+		return nil, errors.New("banners cannot be distinguished because too many matching found")
+	} else if len(bannerPrinters) == 1 {
+		constructor := bannerPrinters[0].Definition().Constructor()
+		banner, err := constructor.Invoke()
+
+		if err != nil {
+			return nil, fmt.Errorf("banner is not initialized, error: %e", err)
+		}
+
+		return banner[0].(runtime.Banner), nil
+	}
+
+	return newBannerPrinter(), nil
 }
