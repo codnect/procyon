@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	codnect.io/logy v1.0.2
-	codnect.io/procyon-core v0.0.14
+	codnect.io/procyon-core v0.0.16
 	github.com/spf13/cobra v1.8.1
 )
 

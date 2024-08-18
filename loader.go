@@ -2,25 +2,24 @@ package procyon
 
 import (
 	"codnect.io/procyon-core/component"
-	"codnect.io/procyon-core/component/filter"
 	"context"
 )
 
-type definitionLoader struct {
+type componentDefinitionLoader struct {
 	container  component.Container
 	evaluator  component.ConditionEvaluator
 	components []*component.Component
 }
 
-func newDefinitionLoader(container component.Container) *definitionLoader {
-	return &definitionLoader{
+func newComponentDefinitionLoader(container component.Container) *componentDefinitionLoader {
+	return &componentDefinitionLoader{
 		container:  container,
 		evaluator:  component.NewConditionEvaluator(container),
 		components: component.List(),
 	}
 }
 
-func (l *definitionLoader) load(ctx context.Context) error {
+func (l *componentDefinitionLoader) load(ctx context.Context) error {
 	skippedComponents := make([]*component.Component, 0)
 
 	for _, component := range l.components {
@@ -41,17 +40,4 @@ func (l *definitionLoader) load(ctx context.Context) error {
 
 	l.components = skippedComponents
 	return l.load(ctx)
-}
-
-func initializeSingletons(ctx context.Context, container component.Container) error {
-
-	for _, definition := range container.Definitions().List() {
-		_, err := container.GetObject(ctx, filter.ByName(definition.Name()))
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

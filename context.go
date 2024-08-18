@@ -2,6 +2,7 @@ package procyon
 
 import (
 	"codnect.io/procyon-core/component"
+	"codnect.io/procyon-core/component/filter"
 	"codnect.io/procyon-core/runtime"
 	"context"
 	"sync"
@@ -52,13 +53,17 @@ func (c *Context) Start() error {
 	defer c.mu.Unlock()
 	c.mu.Lock()
 
-	loader := newDefinitionLoader(c.container)
-	err := loader.load(c)
+	err := c.loadComponentDefinitions()
 	if err != nil {
 		return err
 	}
 
-	err = initializeSingletons(c, c.container)
+	err = c.initializeSingletons()
+	if err != nil {
+		return err
+	}
+
+	err = c.startLifecycleObjects()
 	if err != nil {
 		return err
 	}
@@ -103,4 +108,50 @@ func (c *Context) Environment() runtime.Environment {
 
 func (c *Context) Container() component.Container {
 	return c.container
+}
+
+func (c *Context) loadComponentDefinitions() error {
+	loader := newComponentDefinitionLoader(c.container)
+	return loader.load(c)
+}
+
+func (c *Context) initializeSingletons() error {
+
+	for _, definition := range c.container.Definitions().List() {
+		_, err := c.container.GetObject(c, filter.ByName(definition.Name()))
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Context) startLifecycleObjects() error {
+	lifecycleObjects := c.container.ListObjects(c, filter.ByTypeOf[runtime.Lifecycle]())
+	for _, object := range lifecycleObjects {
+		lifecycle := object.(runtime.Lifecycle)
+
+		err := lifecycle.Start(c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Context) stopLifecycleObjects() error {
+	lifecycleObjects := c.container.ListObjects(c, filter.ByTypeOf[runtime.Lifecycle]())
+	for _, object := range lifecycleObjects {
+		lifecycle := object.(runtime.Lifecycle)
+
+		err := lifecycle.Stop(c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
