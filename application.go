@@ -1,10 +1,8 @@
 package procyon
 
 import (
-	"codnect.io/procyon-core/component"
 	"codnect.io/procyon-core/component/filter"
 	"codnect.io/procyon-core/runtime"
-	"context"
 	"os"
 	"os/signal"
 	goruntime "runtime"
@@ -51,14 +49,22 @@ func (a *Application) Run(args ...string) error {
 	timeTakenToStartup := time.Now().Sub(startTime)
 	log.Info("Started application in {} seconds", timeTakenToStartup.Seconds())
 
+	if err != nil {
+		return err
+	}
+
 	err = callCommandLineRunners(ctx, arguments)
 
 	if err != nil {
 		return err
 	}
 
-	if isServerApp(ctx, ctx.Container()) {
+	if isServerApplication(ctx) {
 		waitForShutdown(ctx)
+	}
+
+	if ctx.IsRunning() {
+		return ctx.Stop()
 	}
 
 	return nil
@@ -79,7 +85,8 @@ func callCommandLineRunners(ctx runtime.Context, args *runtime.Arguments) error 
 	return nil
 }
 
-func isServerApp(ctx context.Context, container component.Container) bool {
+func isServerApplication(ctx runtime.Context) bool {
+	container := ctx.Container()
 	servers := container.ListObjects(ctx, filter.ByTypeOf[runtime.Server]())
 	return len(servers) != 0
 }

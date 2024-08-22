@@ -1,9 +1,10 @@
 package procyon
 
 import (
-	"codnect.io/procyon-core/component"
+	"codnect.io/procyon-core"
+	"codnect.io/procyon-core/module"
 )
 
 func init() {
-	component.Register(newConfigContextConfigurer, component.Named("procyonConfigContextConfigurer"))
+	module.Use[core.Module]()
 }
