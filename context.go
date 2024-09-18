@@ -1,10 +1,11 @@
 package procyon
 
 import (
-	"codnect.io/procyon-core/component"
-	"codnect.io/procyon-core/component/filter"
-	"codnect.io/procyon-core/runtime"
-	"codnect.io/procyon-core/runtime/event"
+	"codnect.io/procyon/component"
+	"codnect.io/procyon/component/container"
+	"codnect.io/procyon/component/filter"
+	"codnect.io/procyon/runtime"
+	"codnect.io/procyon/runtime/event"
 	"context"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ type Context struct {
 
 	args             *runtime.Arguments
 	environment      runtime.Environment
-	container        component.Container
+	container        container.Container
 	eventMulticaster event.Multicaster
 
 	running bool
@@ -35,8 +36,8 @@ func createContext(args *runtime.Arguments) *Context {
 	}
 }
 
-func prepareContainer(args *runtime.Arguments) component.Container {
-	container := component.NewObjectContainer()
+func prepareContainer(args *runtime.Arguments) container.Container {
+	container := container.New()
 	_ = container.Singletons().Register("procyonApplicationArgs", args)
 	return container
 }
@@ -153,13 +154,13 @@ func (c *Context) Environment() runtime.Environment {
 	return c.environment
 }
 
-func (c *Context) Container() component.Container {
+func (c *Context) Container() container.Container {
 	return c.container
 }
 
 func (c *Context) loadComponentDefinitions() error {
-	loader := component.NewDefinitionLoader(c.container)
-	return loader.LoadDefinitions(c, component.List())
+	loader := component.NewLoader(c.container)
+	return loader.LoadComponents(c, component.List())
 }
 
 func (c *Context) initializeEventMulticaster() error {

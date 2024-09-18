@@ -1,6 +1,8 @@
 package main
 
-import "codnect.io/procyon"
+import (
+	"codnect.io/procyon"
+)
 
 func main() {
 	err := procyon.New().Run()

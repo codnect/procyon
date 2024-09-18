@@ -1,8 +1,8 @@
 package procyon
 
 import (
-	"codnect.io/procyon-core/component/filter"
-	"codnect.io/procyon-core/runtime"
+	"codnect.io/procyon/component/filter"
+	"codnect.io/procyon/runtime"
 	"os"
 	"os/signal"
 	goruntime "runtime"
