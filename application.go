@@ -3,6 +3,7 @@ package procyon
 import (
 	"codnect.io/procyon/component/filter"
 	"codnect.io/procyon/runtime"
+	"codnect.io/procyon/web"
 	"os"
 	"os/signal"
 	goruntime "runtime"
@@ -87,7 +88,7 @@ func callCommandLineRunners(ctx runtime.Context, args *runtime.Arguments) error 
 
 func isServerApplication(ctx runtime.Context) bool {
 	container := ctx.Container()
-	servers := container.ListObjects(ctx, filter.ByTypeOf[runtime.Server]())
+	servers := container.ListObjects(ctx, filter.ByTypeOf[web.Server]())
 	return len(servers) != 0
 }
 

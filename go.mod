@@ -6,6 +6,7 @@ require (
 	codnect.io/logy v1.0.2
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.8.2
+	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 	gopkg.in/yaml.v3 v3.0.1
 )
 

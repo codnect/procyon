@@ -7,6 +7,7 @@ import (
 	"codnect.io/procyon/runtime/config"
 	"codnect.io/procyon/runtime/event"
 	"codnect.io/procyon/runtime/property"
+	"codnect.io/procyon/web"
 )
 
 func init() {
@@ -23,6 +24,6 @@ func init() {
 	// runtime/property
 	component.Register(property.NewYamlSourceLoader, component.WithName("procyonYamlPropertySourceLoader"))
 	// runtime
-	component.Register(runtime.NewServerProperties, component.WithPrototypeScope())
+	component.Register(web.NewServerProperties, component.WithPrototypeScope())
 	component.Register(runtime.NewLifecycleProperties, component.WithSingletonScope())
 }

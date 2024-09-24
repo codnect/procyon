@@ -1,4 +1,4 @@
-package runtime
+package web
 
 import (
 	"codnect.io/procyon/runtime/property"
@@ -19,7 +19,8 @@ type Server interface {
 type ServerProperties struct {
 	property.Properties `prefix:"procyon.server"` // The prefix for server properties.
 
-	Port int `prop:"port"` // The port the server is running on.
+	ContextPath string `prop:"context-path"`        // The context path of the server.
+	Port        int    `prop:"port" default:"8080"` // The port the server is running on.
 }
 
 // NewServerProperties function creates a new ServerProperties.
