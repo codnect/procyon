@@ -1,7 +1,6 @@
 package http
 
 import (
-	"golang.org/x/exp/maps"
 	"io"
 	"net/http"
 	"net/url"
@@ -432,7 +431,13 @@ func (r *defaultServerResponse) Header(name string) (string, bool) {
 }
 
 func (r *defaultServerResponse) HeaderNames() []string {
-	return maps.Keys(r.headers)
+	headers := make([]string, 0, len(r.headers))
+
+	for header := range r.headers {
+		headers = append(headers, header)
+	}
+
+	return headers
 }
 
 func (r *defaultServerResponse) Headers(name string) []string {

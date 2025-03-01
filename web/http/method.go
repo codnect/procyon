@@ -16,16 +16,14 @@ const (
 	MethodPatch Method = "PATCH" // RFC 5789
 	// MethodDelete represents the DELETE HTTP method.
 	MethodDelete Method = "DELETE"
-	// MethodConnect represents the CONNECT HTTP method.
-	MethodConnect Method = "CONNECT"
 	// MethodOptions represents the OPTIONS HTTP method.
 	MethodOptions Method = "OPTIONS"
 	// MethodTrace represents the TRACE HTTP method.
 	MethodTrace Method = "TRACE"
 )
 
-func (m Method) IntValue() int {
-	switch m {
+func httpMethodToInt(method Method) int {
+	switch method {
 	case MethodGet:
 		return 0
 	case MethodHead:
@@ -34,16 +32,14 @@ func (m Method) IntValue() int {
 		return 2
 	case MethodPut:
 		return 3
-	case MethodDelete:
+	case MethodPatch:
 		return 4
-	case MethodConnect:
+	case MethodDelete:
 		return 5
 	case MethodOptions:
 		return 6
 	case MethodTrace:
 		return 7
-	case MethodPatch:
-		return 8
 	default:
 		return -1
 	}

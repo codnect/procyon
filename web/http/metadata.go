@@ -1,38 +1,32 @@
 package http
 
+import "codnect.io/procyon/metadata"
+
 const (
-	// MetadataKeyAccepts is the key for the Accepts metadata.
-	MetadataKeyAccepts = "Accepts"
+	// MetadataKeyConsumes is the key for the Consumes metadata.
+	MetadataKeyConsumes metadata.Key = "codnect.io.http.Consumes"
 	// MetadataKeyProduces is the key for the Produces metadata.
-	MetadataKeyProduces = "Produces"
+	MetadataKeyProduces metadata.Key = "codnect.io.http.Produces"
 )
 
-// Metadata represents a metadata that is used to provide additional information to the route.
-type Metadata interface {
-	MetadataKey() string
-}
-
-// AcceptsMetadata is used to specify the content types that the route accepts.
-type AcceptsMetadata struct {
+// ConsumesMetadata is used to specify the content types that the route accepts.
+type ConsumesMetadata struct {
 	contentTypes []string
 }
 
-// Accepts creates a new AcceptsMetadata with the provided content types.
-func Accepts(contentTypes ...string) AcceptsMetadata {
-	metadata := AcceptsMetadata{
-		contentTypes: make([]string, len(contentTypes)),
+// Consumes creates a new AcceptsMetadata with the provided content types.
+func Consumes(contentTypes ...string) ConsumesMetadata {
+	return ConsumesMetadata{
+		contentTypes: contentTypes,
 	}
-	copy(metadata.contentTypes, contentTypes)
-	return metadata
 }
 
-// MetadataKey returns the key of the metadata.
-func (m AcceptsMetadata) MetadataKey() string {
-	return MetadataKeyAccepts
+func (m ConsumesMetadata) MetadataKey() metadata.Key {
+	return MetadataKeyConsumes
 }
 
 // ContentTypes returns the content types that the route accepts.
-func (m AcceptsMetadata) ContentTypes() []string {
+func (m ConsumesMetadata) ContentTypes() []string {
 	return m.contentTypes
 }
 
@@ -43,15 +37,12 @@ type ProducesMetadata struct {
 
 // Produces creates a new ProducesMetadata with the provided content types.
 func Produces(contentTypes ...string) ProducesMetadata {
-	metadata := ProducesMetadata{
-		contentTypes: make([]string, len(contentTypes)),
+	return ProducesMetadata{
+		contentTypes: contentTypes,
 	}
-	copy(metadata.contentTypes, contentTypes)
-	return metadata
 }
 
-// MetadataKey returns the key of the metadata.
-func (m ProducesMetadata) MetadataKey() string {
+func (m ProducesMetadata) MetadataKey() metadata.Key {
 	return MetadataKeyProduces
 }
 

@@ -1,12 +1,14 @@
 package http
 
+import "codnect.io/procyon/metadata"
+
 // RouteGroupBuilder represents a builder that is used to build a route group.
 type RouteGroupBuilder struct {
 	prefix string
 
 	routes      []*Route
 	middlewares []*Middleware
-	metadata    []Metadata
+	metadata    metadata.Collection
 	tags        []string
 }
 
@@ -14,7 +16,7 @@ type RouteGroupBuilder struct {
 func NewRouteGroupBuilder() *RouteGroupBuilder {
 	return &RouteGroupBuilder{
 		middlewares: []*Middleware{},
-		metadata:    []Metadata{},
+		metadata:    metadata.Collection{},
 		tags:        []string{},
 	}
 }
@@ -24,7 +26,7 @@ func (r *RouteGroupBuilder) MapGroup(pattern string) *RouteGroupBuilder {
 	return &RouteGroupBuilder{
 		prefix:      pattern,
 		middlewares: []*Middleware{},
-		metadata:    []Metadata{},
+		metadata:    metadata.Collection{},
 		tags:        []string{},
 	}
 }
@@ -78,6 +80,13 @@ func (r *RouteGroupBuilder) MapOptions(pattern string, handler RequestHandler) *
 	return newRouteBuilder(routeHandler)
 }
 
+// MapTrace creates a new TRACE route builder with the provided pattern and handler.
+func (r *RouteGroupBuilder) MapTrace(pattern string, handler RequestHandler) *RouteBuilder {
+	routeHandler := NewRoute(pattern, handler, WithMethods(MethodTrace))
+	r.routes = append(r.routes, routeHandler)
+	return newRouteBuilder(routeHandler)
+}
+
 // MapMethods creates a new route builder with the provided pattern, methods and handler.
 func (r *RouteGroupBuilder) MapMethods(pattern string, methods []Method, handler RequestHandler) *RouteBuilder {
 	route := NewRoute(pattern, handler, WithMethods(methods...))
@@ -94,9 +103,9 @@ func (r *RouteGroupBuilder) Use(middleware MiddlewareFunc, options ...Middleware
 }
 
 // WithMetadata adds metadata to the route group.
-func (r *RouteGroupBuilder) WithMetadata(metadata Metadata) *RouteGroupBuilder {
+func (r *RouteGroupBuilder) WithMetadata(metadata metadata.Metadata) *RouteGroupBuilder {
 	if metadata != nil {
-		r.metadata = append(r.metadata, metadata)
+		r.metadata[metadata.MetadataKey()] = metadata
 	}
 	return r
 }

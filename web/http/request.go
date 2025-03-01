@@ -1,7 +1,6 @@
 package http
 
 import (
-	"golang.org/x/exp/maps"
 	"io"
 	"net/http"
 	"net/url"
@@ -346,7 +345,14 @@ func (r *defaultServerRequest) QueryParamNames() []string {
 
 func (r *defaultServerRequest) QueryParams(name string) []string {
 	r.initQueryCache()
-	return maps.Keys(r.queryCache)
+
+	queryParams := make([]string, 0, len(r.queryCache))
+
+	for queryParam := range r.queryCache {
+		queryParams = append(queryParams, queryParam)
+	}
+
+	return queryParams
 }
 
 func (r *defaultServerRequest) QueryString() string {
@@ -365,7 +371,13 @@ func (r *defaultServerRequest) Header(name string) (string, bool) {
 }
 
 func (r *defaultServerRequest) HeaderNames() []string {
-	return maps.Keys(r.req.Header)
+	headers := make([]string, 0, len(r.req.Header))
+
+	for header := range r.req.Header {
+		headers = append(headers, header)
+	}
+
+	return headers
 }
 
 func (r *defaultServerRequest) Headers(name string) []string {
