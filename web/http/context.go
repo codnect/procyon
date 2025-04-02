@@ -57,8 +57,8 @@ func NewContext(request Request, response Response) Context {
 	return wrapper
 }
 
-// NewContextWithValue creates a new instance of Context with a value.
-func NewContextWithValue(parent Context, key, val any) Context {
+// ContextWithValue creates a new instance of Context with a value.
+func ContextWithValue(parent Context, key, val any) Context {
 	if parent == nil {
 		panic("cannot create context from nil parent")
 	}
@@ -84,8 +84,8 @@ func NewContextWithValue(parent Context, key, val any) Context {
 	return wrapper
 }
 
-// NewContextWithRequest creates a new instance of Context with a request.
-func NewContextWithRequest(parent Context, request Request) Context {
+// ContextWithRequest creates a new instance of Context with a request.
+func ContextWithRequest(parent Context, request Request) Context {
 	if parent == nil {
 		panic("cannot create context from nil parent")
 	}
@@ -109,8 +109,8 @@ func NewContextWithRequest(parent Context, request Request) Context {
 	return context
 }
 
-// NewContextWithResponse creates a new instance of Context with a response.
-func NewContextWithResponse(parent Context, response Response) Context {
+// ContextWithResponse creates a new instance of Context with a response.
+func ContextWithResponse(parent Context, response Response) Context {
 	if parent == nil {
 		panic("cannot create context from nil parent")
 	}
