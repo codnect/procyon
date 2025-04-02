@@ -1,17 +1,13 @@
 package http
 
-import (
-	"errors"
-	"fmt"
-)
-
 type RouteRegistry struct {
-	tree []*routeTree
+	//tree []*routeTree
 }
 
 func NewRouteRegistry() *RouteRegistry {
-	registry := &RouteRegistry{
-		make([]*routeTree, 9),
+
+	/*registry := &RouteRegistry{
+		make([]*routeTree, 8),
 	}
 
 	methods := []Method{
@@ -21,29 +17,30 @@ func NewRouteRegistry() *RouteRegistry {
 		MethodPut,
 		MethodPatch,
 		MethodDelete,
-		MethodConnect,
 		MethodOptions,
 		MethodTrace,
 	}
 
 	for _, method := range methods {
-		registry.tree[method.IntValue()] = &routeTree{
+		registry.tree[httpMethodToInt(method)] = &routeTree{
 			staticRoutes: make(map[string]*Route, 0),
 		}
 	}
 
-	return registry
+	return registry*/
+	return nil
 }
 
 func (r *RouteRegistry) Register(route *Route) error {
-	methods := route.Methods()
+
+	/*methods := route.Methods()
 
 	if len(methods) == 0 {
 		return errors.New("route must have at least one method")
 	}
 
 	for _, method := range methods {
-		intValue := method.IntValue()
+		intValue := httpMethodToInt(method)
 		if intValue == -1 {
 			return fmt.Errorf("invalid method: %s", method)
 		}
@@ -54,18 +51,17 @@ func (r *RouteRegistry) Register(route *Route) error {
 			methodTree.children = &routeNode{}
 		}
 
-		methodTree.add(route)
+		methodTree.addRoute(route)
 	}
-
+	*/
 	return nil
 }
 
 func (r *RouteRegistry) Find(ctx Context) (*Route, bool) {
-	request := ctx.Request()
+	/*request := ctx.Request()
 	path := request.Path()
-	method := request.Method()
 
-	intValue := method.IntValue()
+	intValue := httpMethodToInt(request.Method())
 	if intValue < 0 || intValue >= len(r.tree) {
 		return nil, false
 	}
@@ -76,10 +72,12 @@ func (r *RouteRegistry) Find(ctx Context) (*Route, bool) {
 		return route, true
 	}
 
-	route := methodTree.match(ctx)
-	return route, true
+	route := methodTree.findMatchingRoute(ctx)
+	return route, true*/
+	return nil, false
 }
 
+// List returns a list of all registered routes.
 func (r *RouteRegistry) List() []*Route {
 	return nil
 }

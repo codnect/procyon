@@ -1,14 +1,12 @@
 package http
 
-import "codnect.io/procyon/metadata"
-
 // RouteGroupBuilder represents a builder that is used to build a route group.
 type RouteGroupBuilder struct {
 	prefix string
 
 	routes      []*Route
 	middlewares []*Middleware
-	metadata    metadata.Collection
+	metadata    Metadata
 	tags        []string
 }
 
@@ -16,7 +14,7 @@ type RouteGroupBuilder struct {
 func NewRouteGroupBuilder() *RouteGroupBuilder {
 	return &RouteGroupBuilder{
 		middlewares: []*Middleware{},
-		metadata:    metadata.Collection{},
+		metadata:    Metadata{},
 		tags:        []string{},
 	}
 }
@@ -26,7 +24,7 @@ func (r *RouteGroupBuilder) MapGroup(pattern string) *RouteGroupBuilder {
 	return &RouteGroupBuilder{
 		prefix:      pattern,
 		middlewares: []*Middleware{},
-		metadata:    metadata.Collection{},
+		metadata:    Metadata{},
 		tags:        []string{},
 	}
 }
@@ -103,9 +101,9 @@ func (r *RouteGroupBuilder) Use(middleware MiddlewareFunc, options ...Middleware
 }
 
 // WithMetadata adds metadata to the route group.
-func (r *RouteGroupBuilder) WithMetadata(metadata metadata.Metadata) *RouteGroupBuilder {
+func (r *RouteGroupBuilder) WithMetadata(metadata MetadataFunc) *RouteGroupBuilder {
 	if metadata != nil {
-		r.metadata[metadata.MetadataKey()] = metadata
+		metadata(r.metadata)
 	}
 	return r
 }

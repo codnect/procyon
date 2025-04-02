@@ -1,12 +1,14 @@
 package http
 
-import "codnect.io/procyon/metadata"
+type Metadata map[any]any
+type MetadataFunc func(metadata Metadata)
 
-const (
-	// MetadataKeyConsumes is the key for the Consumes metadata.
-	MetadataKeyConsumes metadata.Key = "codnect.io.http.Consumes"
-	// MetadataKeyProduces is the key for the Produces metadata.
-	MetadataKeyProduces metadata.Key = "codnect.io.http.Produces"
+type metadataConsumes struct{}
+type metadataProduces struct{}
+
+var (
+	metadataConsumesKey = &metadataConsumes{}
+	metadataProducesKey = &metadataProduces{}
 )
 
 // ConsumesMetadata is used to specify the content types that the route accepts.
@@ -15,14 +17,20 @@ type ConsumesMetadata struct {
 }
 
 // Consumes creates a new AcceptsMetadata with the provided content types.
-func Consumes(contentTypes ...string) ConsumesMetadata {
-	return ConsumesMetadata{
-		contentTypes: contentTypes,
+func Consumes(contentTypes ...string) MetadataFunc {
+	return func(metadata Metadata) {
+		metadata[metadataConsumesKey] = ConsumesMetadata{
+			contentTypes: contentTypes,
+		}
 	}
 }
 
-func (m ConsumesMetadata) MetadataKey() metadata.Key {
-	return MetadataKeyConsumes
+func ConsumesFromMetadata(metadata Metadata) ConsumesMetadata {
+	if consumes, ok := metadata[metadataConsumesKey]; ok {
+		return consumes.(ConsumesMetadata)
+	}
+
+	return ConsumesMetadata{}
 }
 
 // ContentTypes returns the content types that the route accepts.
@@ -36,14 +44,20 @@ type ProducesMetadata struct {
 }
 
 // Produces creates a new ProducesMetadata with the provided content types.
-func Produces(contentTypes ...string) ProducesMetadata {
-	return ProducesMetadata{
-		contentTypes: contentTypes,
+func Produces(contentTypes ...string) MetadataFunc {
+	return func(metadata Metadata) {
+		metadata[metadataProducesKey] = ConsumesMetadata{
+			contentTypes: contentTypes,
+		}
 	}
 }
 
-func (m ProducesMetadata) MetadataKey() metadata.Key {
-	return MetadataKeyProduces
+func ProducesFromMetadata(metadata Metadata) ProducesMetadata {
+	if produces, ok := metadata[metadataProducesKey]; ok {
+		return produces.(ProducesMetadata)
+	}
+
+	return ProducesMetadata{}
 }
 
 // ContentTypes returns the content types that the route produces.

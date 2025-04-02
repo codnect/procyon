@@ -1,7 +1,5 @@
 package http
 
-import "codnect.io/procyon/metadata"
-
 // Controller represents a controller that is used to map routes.
 type Controller interface {
 	MapRoutes(routes *RouteGroupBuilder)
@@ -16,7 +14,7 @@ type Route struct {
 	methods     []Method
 	handler     RequestHandler
 	middlewares []*Middleware
-	metadata    metadata.Collection
+	metadata    Metadata
 	tags        []string
 }
 
@@ -25,7 +23,7 @@ func NewRoute(pattern string, handler RequestHandler, options ...RouteOption) *R
 	route := &Route{
 		pattern:  pattern,
 		handler:  handler,
-		metadata: metadata.Collection{},
+		metadata: Metadata{},
 		tags:     []string{},
 	}
 
@@ -60,7 +58,7 @@ func (r *Route) HandlerChain() HandlerChain {
 }
 
 // Metadata returns the metadata of the route.
-func (r *Route) Metadata() metadata.Collection {
+func (r *Route) Metadata() Metadata {
 	return nil
 }
 
@@ -79,7 +77,7 @@ func WithMethods(methods ...Method) RouteOption {
 }
 
 // WithMetadata creates a new route option with the provided metadata.
-func WithMetadata(metadata metadata.Metadata) RouteOption {
+func WithMetadata(metadata MetadataFunc) RouteOption {
 	return func(handler *Route) {
 		if metadata != nil {
 			//handler.metadata[metadata.MetadataKey()] = metadata
@@ -126,9 +124,9 @@ func (r *RouteBuilder) Use(middleware MiddlewareFunc, options ...MiddlewareOptio
 }
 
 // WithMetadata adds the provided metadata to the route.
-func (r *RouteBuilder) WithMetadata(metadata metadata.Metadata) *RouteBuilder {
+func (r *RouteBuilder) WithMetadata(metadata MetadataFunc) *RouteBuilder {
 	if metadata != nil {
-		r.route.metadata[metadata.MetadataKey()] = metadata
+		//r.route.metadata[metadata.MetadataKey()] = metadata
 	}
 	return r
 }
