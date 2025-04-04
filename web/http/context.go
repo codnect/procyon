@@ -27,8 +27,8 @@ type Context interface {
 // It wraps a parent Context, a Request, and a Response.
 type contextWrapper struct {
 	parent          Context
-	requestWrapper  requestWrapper
-	responseWrapper responseWrapper
+	requestWrapper  RequestWrapper
+	responseWrapper ResponseWrapper
 	key             any
 	value           any
 }
@@ -44,10 +44,10 @@ func NewContext(request Request, response Response) Context {
 	}
 
 	wrapper := &contextWrapper{
-		requestWrapper: requestWrapper{
+		requestWrapper: RequestWrapper{
 			request: request,
 		},
-		responseWrapper: responseWrapper{
+		responseWrapper: ResponseWrapper{
 			response: response,
 		},
 	}
@@ -69,10 +69,10 @@ func ContextWithValue(parent Context, key, val any) Context {
 
 	wrapper := &contextWrapper{
 		parent: parent,
-		requestWrapper: requestWrapper{
+		requestWrapper: RequestWrapper{
 			request: parent.Request(),
 		},
-		responseWrapper: responseWrapper{
+		responseWrapper: ResponseWrapper{
 			response: parent.Response(),
 		},
 		key:   key,
@@ -94,19 +94,19 @@ func ContextWithRequest(parent Context, request Request) Context {
 		panic("nil request")
 	}
 
-	context := &contextWrapper{
+	wrapper := &contextWrapper{
 		parent: parent,
-		requestWrapper: requestWrapper{
+		requestWrapper: RequestWrapper{
 			request: request,
 		},
-		responseWrapper: responseWrapper{
+		responseWrapper: ResponseWrapper{
 			response: parent.Response(),
 		},
 	}
 
-	context.requestWrapper.context = context
-	context.responseWrapper.context = context
-	return context
+	wrapper.requestWrapper.context = wrapper
+	wrapper.responseWrapper.context = wrapper
+	return wrapper
 }
 
 // ContextWithResponse creates a new instance of Context with a response.
@@ -119,19 +119,19 @@ func ContextWithResponse(parent Context, response Response) Context {
 		panic("nil response")
 	}
 
-	context := &contextWrapper{
+	wrapper := &contextWrapper{
 		parent: parent,
-		requestWrapper: requestWrapper{
+		requestWrapper: RequestWrapper{
 			request: parent.Request(),
 		},
-		responseWrapper: responseWrapper{
+		responseWrapper: ResponseWrapper{
 			response: response,
 		},
 	}
 
-	context.requestWrapper.context = context
-	context.responseWrapper.context = context
-	return context
+	wrapper.requestWrapper.context = wrapper
+	wrapper.responseWrapper.context = wrapper
+	return wrapper
 }
 
 // Deadline returns the time when work done on behalf of this context should be canceled.
@@ -186,10 +186,10 @@ func (c *contextWrapper) Response() Response {
 	return c.responseWrapper
 }
 
-// defaultServerContext is the default implementation of the Context interface.
-type defaultServerContext struct {
-	request  defaultServerRequest
-	response defaultServerResponse
+// ServerContext is the default implementation of the Context interface.
+type ServerContext struct {
+	request  ServerRequest
+	response ServerResponse
 
 	handlerChain     HandlerChain
 	nextHandlerIndex int
@@ -198,24 +198,24 @@ type defaultServerContext struct {
 	completed bool
 	aborted   bool
 
-	delegate defaultRequestDelegate
+	delegate ServerRequestDelegate
 }
 
-func (c *defaultServerContext) Deadline() (deadline time.Time, ok bool) {
+func (c *ServerContext) Deadline() (deadline time.Time, ok bool) {
 	return
 }
 
-func (c *defaultServerContext) Done() <-chan struct{} {
+func (c *ServerContext) Done() <-chan struct{} {
 	return nil
 }
 
-func (c *defaultServerContext) Err() error {
+func (c *ServerContext) Err() error {
 	return nil
 }
 
 // Value returns the value associated with this context for key, or nil if no value is associated with key.
 // Successive calls to Value with the same key returns the same result.
-func (c *defaultServerContext) Value(key any) any {
+func (c *ServerContext) Value(key any) any {
 	if key == PathValuesContextKey {
 		return c.request.pathValues
 	}
@@ -224,32 +224,32 @@ func (c *defaultServerContext) Value(key any) any {
 }
 
 // IsCompleted checks if the HTTP request has been completed.
-func (c *defaultServerContext) IsCompleted() bool {
+func (c *ServerContext) IsCompleted() bool {
 	return c.completed
 }
 
 // Abort aborts the HTTP request.
-func (c *defaultServerContext) Abort() {
+func (c *ServerContext) Abort() {
 	c.aborted = true
 }
 
 // IsAborted checks if the HTTP request has been aborted.
-func (c *defaultServerContext) IsAborted() bool {
+func (c *ServerContext) IsAborted() bool {
 	return c.aborted
 }
 
 // Request returns the HTTP request associated with the context.
-func (c *defaultServerContext) Request() Request {
+func (c *ServerContext) Request() Request {
 	return &c.request
 }
 
 // Response returns the HTTP response associated with the context.
-func (c *defaultServerContext) Response() Response {
+func (c *ServerContext) Response() Response {
 	return &c.response
 }
 
 // Invoke invokes the handler chain.
-func (c *defaultServerContext) Invoke(ctx Context) {
+func (c *ServerContext) Invoke(ctx Context) {
 	if len(c.handlerChain) == 0 {
 		return
 	}
@@ -280,7 +280,7 @@ func (c *defaultServerContext) Invoke(ctx Context) {
 }
 
 // reset resets the context with the specified writer and request.
-func (c *defaultServerContext) reset(writer http.ResponseWriter, request *http.Request) {
+func (c *ServerContext) reset(writer http.ResponseWriter, request *http.Request) {
 	c.request.req = request
 	c.delegate.ctx = c
 

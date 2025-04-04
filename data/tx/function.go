@@ -1,7 +1,7 @@
 package tx
 
 import (
-	"codnect.io/procyon/types"
+	"codnect.io/procyon/runtime/types"
 	"context"
 	"errors"
 )

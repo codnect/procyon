@@ -61,7 +61,7 @@ func (s *DefaultServer) Port() int {
 
 // ServeHTTP serves the HTTP request.
 func (s *DefaultServer) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx := s.contextPool.Get().(*defaultServerContext)
+	ctx := s.contextPool.Get().(*ServerContext)
 	ctx.reset(writer, request)
 
 	defer func() {
