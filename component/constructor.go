@@ -3,6 +3,7 @@ package component
 import (
 	"fmt"
 	"reflect"
+	"slices"
 )
 
 // ConstructorFunc represents a function that can be used as a constructor.
@@ -22,9 +23,7 @@ func (f Constructor) Name() string {
 
 // Args returns a copy of the arguments of the constructor function.
 func (f Constructor) Args() []Arg {
-	args := make([]Arg, len(f.args))
-	copy(args, f.args)
-	return args
+	return slices.Clone(f.args)
 }
 
 // Invoke invokes the constructor function with the provided arguments.
