@@ -16,7 +16,6 @@ type Definition struct {
 	scope       string
 	typ         reflect.Type
 	constructor Constructor
-	attrs       map[string]any
 }
 
 // Name returns the name of the definition.

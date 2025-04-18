@@ -2,7 +2,6 @@ package component
 
 import (
 	"fmt"
-	"iter"
 	"maps"
 	"reflect"
 	"slices"
@@ -59,22 +58,18 @@ func List() []*Component {
 func ListOf[T any]() []*Component {
 	muComponents.RLock()
 	defer muComponents.RUnlock()
-	return slices.Collect(assignableSeq[T]())
-}
 
-// assignableSeq returns an iterator over all components whose type is assignable to type T.
-func assignableSeq[T any]() iter.Seq[*Component] {
 	targetType := reflect.TypeFor[T]()
+	matches := make([]*Component, 0)
 
-	return func(yield func(component *Component) bool) {
-		for _, component := range components {
-			sourceType := component.definition.Type()
-
-			if convertibleTo(sourceType, targetType) {
-				yield(component)
-			}
+	for _, component := range components {
+		sourceType := component.definition.Type()
+		if convertibleTo(sourceType, targetType) {
+			matches = append(matches, component)
 		}
 	}
+
+	return matches
 }
 
 // convertibleTo checks if a source type can be converted to a target type.
