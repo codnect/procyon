@@ -10,6 +10,36 @@ import (
 // DefinitionOption is a functional option used to configure a Definition.
 type DefinitionOption func(def *Definition) error
 
+// DefinitionRegistry defines methods for managing component definitions within the system.
+type DefinitionRegistry interface {
+	// RegisterDefinition registers a new component definition.
+	// Returns an error if a definition with the same name already exists.
+	RegisterDefinition(def *Definition) error
+
+	// UnregisterDefinition removes the component definition associated with the given name.
+	// Returns an error if the definition does not exist.
+	UnregisterDefinition(name string) error
+
+	// Definition retrieves the component definition associated with the given name.
+	// Returns the definition and a boolean indicating its existence.
+	Definition(name string) (*Definition, bool)
+
+	// ContainsDefinition checks whether a component definition with the specified name exists.
+	ContainsDefinition(name string) bool
+
+	// IsSingleton determines if the component definition associated with the given name has a singleton scope.
+	IsSingleton(name string) bool
+
+	// IsPrototype determines if the component definition associated with the given name has a prototype scope.
+	IsPrototype(name string) bool
+
+	// Definitions returns a slice of all registered component definitions.
+	Definitions() []*Definition
+
+	// DefinitionsOf returns a slice of component definitions that are assignable to the specified type.
+	DefinitionsOf(typ reflect.Type) []*Definition
+}
+
 // Definition represents the metadata and constructor for a component.
 type Definition struct {
 	name        string
