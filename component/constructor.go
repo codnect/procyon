@@ -11,14 +11,42 @@ type ConstructorFunc any
 
 // Constructor represents a constructor function along with its arguments.
 type Constructor struct {
-	funcType  reflect.Type  // The type of the constructor function.
-	funcValue reflect.Value // The value of the constructor function.
-	args      []Arg         // The arguments of the constructor function.
+	fnType  reflect.Type  // The type of the constructor function.
+	fnValue reflect.Value // The value of the constructor function.
+	args    []Arg         // The arguments of the constructor function.
+}
+
+// createConstructor validates the given ConstructorFunc and builds a Constructor metadata struct.
+// It ensures that the function is non-nil, is of kind Func, and returns exactly one result.
+// If valid, it extracts the argument types and returns a populated Constructor.
+func createConstructor(fn ConstructorFunc) (Constructor, error) {
+	if fn == nil {
+		return Constructor{}, fmt.Errorf("nil constructor")
+	}
+
+	fnType := reflect.TypeOf(fn)
+	if fnType.Kind() != reflect.Func {
+		return Constructor{}, fmt.Errorf("constructor must be a function")
+	}
+
+	if fnType.NumOut() != 1 {
+		return Constructor{}, fmt.Errorf("constructor must only return one result")
+	}
+
+	return Constructor{
+		fnType:  fnType,
+		fnValue: reflect.ValueOf(fn),
+		args:    extractConstructorArgs(fnType),
+	}, nil
 }
 
 // Name returns the name of the constructor function.
 func (f Constructor) Name() string {
-	return f.funcType.Name()
+	return f.fnType.Name()
+}
+
+func (f Constructor) OutType() reflect.Type {
+	return f.fnType.Out(0)
 }
 
 // Args returns a copy of the arguments of the constructor function.
@@ -29,9 +57,9 @@ func (f Constructor) Args() []Arg {
 // Invoke invokes the constructor function with the provided arguments.
 // It returns the results of the function invocation and an error if the invocation fails.
 func (f Constructor) Invoke(args ...any) ([]any, error) {
-	numIn := f.funcType.NumIn()
-	numOut := f.funcType.NumOut()
-	isVariadic := f.funcType.IsVariadic()
+	numIn := f.fnType.NumIn()
+	numOut := f.fnType.NumOut()
+	isVariadic := f.fnType.IsVariadic()
 
 	// Check if the number of arguments matches the number of parameters in the function.
 	if (isVariadic && len(args) < numIn) || (!isVariadic && len(args) != numIn) {
@@ -42,7 +70,7 @@ func (f Constructor) Invoke(args ...any) ([]any, error) {
 	inputs := make([]reflect.Value, 0)
 
 	if isVariadic {
-		variadicType = f.funcType.In(numOut - 1)
+		variadicType = f.fnType.In(numOut - 1)
 	}
 
 	for index, arg := range args {
@@ -60,7 +88,7 @@ func (f Constructor) Invoke(args ...any) ([]any, error) {
 			continue
 		}
 
-		expectedArgType := f.funcType.In(index)
+		expectedArgType := f.fnType.In(index)
 
 		if arg == nil {
 			inputs = append(inputs, reflect.New(expectedArgType).Elem())
@@ -75,7 +103,7 @@ func (f Constructor) Invoke(args ...any) ([]any, error) {
 
 	// Call the function and collect the results.
 	outputs := make([]any, 0)
-	results := f.funcValue.Call(inputs)
+	results := f.fnValue.Call(inputs)
 
 	for _, result := range results {
 		outputs = append(outputs, result.Interface())
@@ -104,4 +132,19 @@ func (a Arg) Name() string {
 // Type returns the type of the argument.
 func (a Arg) Type() reflect.Type {
 	return a.typ
+}
+
+// extractConstructorArgs returns the list of argument metadata for a given function type.
+func extractConstructorArgs(fnType reflect.Type) []Arg {
+	numIn := fnType.NumIn()
+	args := make([]Arg, 0, numIn)
+
+	for index := 0; index < numIn; index++ {
+		args = append(args, Arg{
+			index: index,
+			typ:   fnType.In(index),
+		})
+	}
+
+	return args
 }

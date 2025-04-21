@@ -3,8 +3,6 @@ package component
 import (
 	"fmt"
 	"reflect"
-	"strings"
-	"unicode"
 )
 
 // DefinitionOption is a functional option used to configure a Definition.
@@ -44,7 +42,6 @@ type DefinitionRegistry interface {
 type Definition struct {
 	name        string
 	scope       string
-	typ         reflect.Type
 	constructor Constructor
 }
 
@@ -70,7 +67,7 @@ func (d *Definition) IsPrototype() bool {
 
 // Type returns the reflect.Type of the component the definition produces.
 func (d *Definition) Type() reflect.Type {
-	return d.typ
+	return d.constructor.OutType()
 }
 
 // Constructor returns the constructor metadata used to build the component.
@@ -80,51 +77,30 @@ func (d *Definition) Constructor() Constructor {
 
 // MakeDefinition creates a new definition with the provided constructor function and options.
 func MakeDefinition(fn ConstructorFunc, opts ...DefinitionOption) (*Definition, error) {
-	if fn == nil {
-		return nil, fmt.Errorf("nil constructor")
-	}
-
-	// Check if the constructor function is a function
-	fnType := reflect.TypeOf(fn)
-	if fnType.Kind() != reflect.Func {
-		return nil, fmt.Errorf("constructor must be a function")
-	}
-
-	// Check if the constructor function returns only one result
-	if fnType.NumOut() != 1 {
-		return nil, fmt.Errorf("constructor must only be a function returning one result")
+	constructor, err := createConstructor(fn)
+	if err != nil {
+		return nil, err
 	}
 
 	// Get the return type of the constructor function
-	outType := fnType.Out(0)
+	outType := constructor.OutType()
 
-	// Get the name of the definition
-	definitionName := generateDefinitionName(outType)
+	// Generate component name
+	componentName := generateComponentName(outType)
 
 	// Create a new definition
-	definition := &Definition{
-		name:  definitionName,
-		typ:   outType,
-		scope: SingletonScope,
-		constructor: Constructor{
-			funcType:  outType,
-			funcValue: reflect.ValueOf(fn),
-			args:      make([]Arg, 0),
-		},
+	def := &Definition{
+		name:        componentName,
+		scope:       SingletonScope,
+		constructor: constructor,
 	}
 
-	// Populate constructor arguments
-	err := populateConstructorArgs(definition, fnType)
+	err = applyDefinitionOpts(def, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	err = applyDefinitionOpts(definition, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	return definition, nil
+	return def, nil
 }
 
 // applyDefinitionOptions applies the options to the definition
@@ -135,25 +111,6 @@ func applyDefinitionOpts(def *Definition, opts []DefinitionOption) error {
 			return err
 		}
 	}
-	return nil
-}
-
-// populateConstructorArguments populates constructor arguments for the given definition and constructor type.
-func populateConstructorArgs(def *Definition, typ reflect.Type) error {
-	numIn := typ.NumIn()
-	constructor := def.constructor
-
-	for index := 0; index < numIn; index++ {
-		argType := typ.In(index)
-
-		arg := Arg{
-			index: index,
-			typ:   argType,
-		}
-
-		constructor.args = append(constructor.args, arg)
-	}
-
 	return nil
 }
 
@@ -228,25 +185,4 @@ func WithQualifierAt(index int, name string) DefinitionOption {
 		objectConstructor.args[index].name = name
 		return nil
 	}
-}
-
-// generateDefinitionName returns the name of the definition based on the return type of the constructor function
-func generateDefinitionName(returnType reflect.Type) string {
-	if returnType.Kind() == reflect.Pointer {
-		return lowerCamelCase(returnType.Elem().Name())
-	}
-	return lowerCamelCase(returnType.Name())
-}
-
-func lowerCamelCase(str string) string {
-	isFirst := true
-
-	return strings.Map(func(r rune) rune {
-		if isFirst {
-			isFirst = false
-			return unicode.ToLower(r)
-		}
-
-		return r
-	}, str)
 }

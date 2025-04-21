@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"slices"
 	"sync"
+	"unicode"
 )
 
 var (
@@ -82,4 +83,20 @@ func convertibleTo(sourceType reflect.Type, targetType reflect.Type) bool {
 	}
 
 	return false
+}
+
+// generateComponentName returns the name of the definition based on the return type of the constructor function
+func generateComponentName(typ reflect.Type) string {
+	if typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+
+	name := typ.Name()
+	if name == "" {
+		return ""
+	}
+
+	runes := []rune(name)
+	runes[0] = unicode.ToLower(runes[0])
+	return string(runes)
 }
