@@ -20,6 +20,7 @@ var (
 // Component represents a registered component and holds its definition.
 type Component struct {
 	definition *Definition
+	conditions []Condition
 }
 
 // Definition returns the component's definition metadata.
@@ -27,9 +28,29 @@ func (c *Component) Definition() *Definition {
 	return c.definition
 }
 
+// Conditions returns the component's condition list.
+func (c *Component) Conditions() []Condition {
+	return slices.Clone(c.conditions)
+}
+
+// Registration lets you configure the registered component.
+type Registration struct {
+	component *Component
+}
+
+// Conditional attaches a runtime condition to the component.
+// The condition is evaluated before the component is loaded into the container.
+func (r *Registration) Conditional(cond Condition) *Registration {
+	if cond != nil {
+		r.component.conditions = append(r.component.conditions, cond)
+	}
+
+	return r
+}
+
 // Register registers a new component using the given constructor function and optional definition options.
 // It panics if the component name already exists or if definition creation fails.
-func Register(fn ConstructorFunc, opts ...DefinitionOption) {
+func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
 	def, err := MakeDefinition(fn, opts...)
 	if err != nil {
 		panic(err)
@@ -46,6 +67,9 @@ func Register(fn ConstructorFunc, opts ...DefinitionOption) {
 	}
 
 	components[name] = component
+	return &Registration{
+		component: component,
+	}
 }
 
 // List returns all registered components as a slice.
