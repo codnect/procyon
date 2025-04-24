@@ -25,12 +25,6 @@ type DefinitionRegistry interface {
 	// ContainsDefinition checks whether a component definition with the specified name exists.
 	ContainsDefinition(name string) bool
 
-	// IsSingleton determines if the component definition associated with the given name has a singleton scope.
-	IsSingleton(name string) bool
-
-	// IsPrototype determines if the component definition associated with the given name has a prototype scope.
-	IsPrototype(name string) bool
-
 	// Definitions returns a slice of all registered component definitions.
 	Definitions() []*Definition
 
