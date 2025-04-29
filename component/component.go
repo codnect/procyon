@@ -65,6 +65,9 @@ func (r *Registration) Conditional(cond Condition) *Registration {
 // Register registers a new component using the given constructor function and optional definition options.
 // It panics if the component name already exists or if definition creation fails.
 func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
+	muComponents.Lock()
+	defer muComponents.Unlock()
+
 	def, err := MakeDefinition(fn, opts...)
 	if err != nil {
 		panic(err)
