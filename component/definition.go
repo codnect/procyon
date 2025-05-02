@@ -63,12 +63,12 @@ func (d *Definition) Scope() string {
 	return d.scope
 }
 
-// IsSingleton returns true if the definition is a singleton scoped component.
+// IsSingleton returns true if the definition is a singleton-scoped component.
 func (d *Definition) IsSingleton() bool {
 	return d.scope == SingletonScope
 }
 
-// IsPrototype returns true if the definition is a prototype scoped component.
+// IsPrototype returns true if the definition is a prototype-scoped component.
 func (d *Definition) IsPrototype() bool {
 	return d.scope == PrototypeScope
 }
@@ -173,24 +173,6 @@ func WithQualifierFor[T any](name string) DefinitionOption {
 			return fmt.Errorf("cannot find any input of type %s", typ.Name())
 		}
 
-		return nil
-	}
-}
-
-// WithQualifierAt sets a named qualifier for the constructor argument
-// at the specified index.
-func WithQualifierAt(index int, name string) DefinitionOption {
-	return func(def *Definition) error {
-		if index < 0 {
-			panic(fmt.Sprintf("index should be greater than or equal to zero, but got index %d", index))
-		}
-
-		objectConstructor := def.constructor
-		if len(objectConstructor.Args()) <= index {
-			return fmt.Errorf("cannot find any input at index %d", index)
-		}
-
-		objectConstructor.args[index].name = name
 		return nil
 	}
 }
