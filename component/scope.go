@@ -35,7 +35,7 @@ type Scope interface {
 // ScopeRegistry defines methods for managing scopes.
 type ScopeRegistry interface {
 	// RegisterScope adds a new scope with the specified name to the registry.
-	RegisterScope(name string, scope Scope)
+	RegisterScope(name string, scope Scope) error
 
 	// Scope retrieves the scope associated with the given name.
 	// Returns the scope and a boolean indicating its existence.
