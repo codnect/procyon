@@ -54,11 +54,7 @@ func createConstructor(fn ConstructorFunc) (Constructor, error) {
 	}, nil
 }
 
-// Name returns the name of the constructor function.
-func (f Constructor) Name() string {
-	return f.fnType.Name()
-}
-
+// OutType returns the type of the constructor function's output.
 func (f Constructor) OutType() reflect.Type {
 	return f.fnType.Out(0)
 }
