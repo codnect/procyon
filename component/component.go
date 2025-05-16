@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	// components holds the globally registered component instances.
+	// components hold the globally registered component instances.
 	components = make(map[string]*Component)
 
 	// muComponents is the mutex used to guard access to the components map.

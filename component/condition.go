@@ -25,8 +25,8 @@ type ConditionContext struct {
 	container Container
 }
 
-// NewConditionContext creates a new ConditionContext with the given base context and container.
-func NewConditionContext(ctx context.Context, container Container) ConditionContext {
+// newConditionContext creates a new ConditionContext with the given base context and container.
+func newConditionContext(ctx context.Context, container Container) ConditionContext {
 	if ctx == nil {
 		panic("nil context")
 	}
@@ -76,32 +76,32 @@ type Condition interface {
 	Matches(ctx ConditionContext) bool
 }
 
-// ConditionEvaluator evaluates a set of conditions.
-type ConditionEvaluator struct {
+// conditionEvaluator evaluates a set of conditions.
+type conditionEvaluator struct {
 	container Container
 }
 
-// NewConditionEvaluator function creates a new ConditionEvaluator.
-func NewConditionEvaluator(container Container) *ConditionEvaluator {
+// newConditionEvaluator creates a new conditionEvaluator.
+func newConditionEvaluator(container Container) *conditionEvaluator {
 	if container == nil {
 		panic("nil container")
 	}
 
-	return &ConditionEvaluator{
+	return &conditionEvaluator{
 		container: container,
 	}
 }
 
-// Evaluate returns true if all given conditions match.
-func (e *ConditionEvaluator) Evaluate(ctx context.Context, conditions []Condition) bool {
+// evaluate returns true if all given conditions match.
+func (e *conditionEvaluator) evaluate(ctx context.Context, conditions []Condition) bool {
 	if len(conditions) == 0 {
 		return true
 	}
 
-	conditionContext := NewConditionContext(ctx, e.container)
+	conditionCtx := newConditionContext(ctx, e.container)
 
 	for _, condition := range conditions {
-		if !condition.Matches(conditionContext) {
+		if !condition.Matches(conditionCtx) {
 			return false
 		}
 	}

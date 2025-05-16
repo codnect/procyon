@@ -32,7 +32,7 @@ type Loader interface {
 type ConditionalLoader struct {
 	container  Container
 	components []*Component
-	evaluator  *ConditionEvaluator
+	evaluator  *conditionEvaluator
 }
 
 // NewConditionalLoader creates a ConditionalLoader with the given container and components.
@@ -44,7 +44,7 @@ func NewConditionalLoader(container Container, components []*Component) *Conditi
 	return &ConditionalLoader{
 		container:  container,
 		components: components,
-		evaluator:  NewConditionEvaluator(container),
+		evaluator:  newConditionEvaluator(container),
 	}
 }
 
@@ -55,7 +55,7 @@ func (l *ConditionalLoader) Load(ctx context.Context) error {
 	skipped := make([]*Component, 0)
 
 	for _, comp := range l.components {
-		if !l.evaluator.Evaluate(ctx, comp.Conditions()) {
+		if !l.evaluator.evaluate(ctx, comp.Conditions()) {
 			skipped = append(skipped, comp)
 			continue
 		}
