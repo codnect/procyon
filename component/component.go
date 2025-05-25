@@ -132,12 +132,7 @@ func generateComponentName(typ reflect.Type) string {
 		typ = typ.Elem()
 	}
 
-	name := typ.Name()
-	if name == "" {
-		return ""
-	}
-
-	runes := []rune(name)
+	runes := []rune(typ.Name())
 	runes[0] = unicode.ToLower(runes[0])
 	return string(runes)
 }
