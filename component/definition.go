@@ -92,6 +92,9 @@ func MakeDefinition(fn ConstructorFunc, opts ...DefinitionOption) (*Definition, 
 
 	// Get the return type of the constructor function
 	outType := constructor.OutType()
+	if err = validateOutType(outType); err != nil {
+		return nil, err
+	}
 
 	// Generate component name
 	componentName := generateComponentName(outType)
@@ -109,6 +112,21 @@ func MakeDefinition(fn ConstructorFunc, opts ...DefinitionOption) (*Definition, 
 	}
 
 	return def, nil
+}
+
+// validateOutType checks whether the given type is a struct, a pointer to a struct,
+// or an interface. It returns an error if the type is invalid for component construction.
+func validateOutType(outType reflect.Type) error {
+	kind := outType.Kind()
+	if kind == reflect.Ptr {
+		kind = outType.Elem().Kind()
+	}
+
+	if kind == reflect.Struct || kind == reflect.Interface {
+		return nil
+	}
+
+	return fmt.Errorf("invalid constructor output: expected struct, pointer, or interface; got %s", kind)
 }
 
 // applyDefinitionOptions applies the options to the definition
@@ -170,7 +188,7 @@ func WithQualifierFor[T any](name string) DefinitionOption {
 		}
 
 		if !exists {
-			return fmt.Errorf("cannot find any input of type %s", typ.Name())
+			return fmt.Errorf("no constructor input of type %s", typ.Name())
 		}
 
 		return nil

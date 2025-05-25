@@ -59,6 +59,9 @@ func TestNewConditionContext(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// given
+
+			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
 					newConditionContext(tc.ctx, tc.container)
@@ -67,6 +70,8 @@ func TestNewConditionContext(t *testing.T) {
 			}
 
 			condCtx := newConditionContext(tc.ctx, tc.container)
+
+			// then
 			require.NotNil(t, condCtx)
 		})
 	}

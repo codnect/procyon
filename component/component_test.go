@@ -38,7 +38,7 @@ type AnotherComponent struct{}
 
 func (a AnotherComponent) AnyMethod() {}
 
-func NewAnotherComponent() *AnotherComponent {
+func NewAnotherComponent(anyComponent AnyComponent) *AnotherComponent {
 	return &AnotherComponent{}
 }
 
