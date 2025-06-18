@@ -22,10 +22,10 @@ import (
 // Resolver defines methods for resolving component instances.
 type Resolver interface {
 	// CanResolve checks if a component with the given name is resolvable.
-	CanResolve(ctx context.Context, name string) bool
+	CanResolve(name string) bool
 
 	// CanResolveType checks if a component of the given type is resolvable.
-	CanResolveType(ctx context.Context, typ reflect.Type) bool
+	CanResolveType(typ reflect.Type) bool
 
 	// Resolve retrieves a component instance by its name.
 	Resolve(ctx context.Context, name string) (any, error)
