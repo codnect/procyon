@@ -19,20 +19,23 @@ import (
 	"reflect"
 )
 
-// Resolver defines methods for resolving component instances
+// Resolver defines methods for resolving component instances.
 type Resolver interface {
 	// CanResolve checks if a component with the given name is resolvable.
 	CanResolve(ctx context.Context, name string) bool
 
-	// Resolve retrieves an instance of the specified type
-	Resolve(ctx context.Context, typ reflect.Type) (any, error)
+	// CanResolveType checks if a component of the given type is resolvable.
+	CanResolveType(ctx context.Context, typ reflect.Type) bool
+
+	// Resolve retrieves a component instance by its name.
+	Resolve(ctx context.Context, name string) (any, error)
+
+	// ResolveType retrieves an instance of the specified type.
+	ResolveType(ctx context.Context, typ reflect.Type) (any, error)
+
+	// ResolveAs retrieves a component by both name and expected type.
+	ResolveAs(ctx context.Context, typ reflect.Type, name string) (any, error)
 
 	// ResolveAll retrieves all instances assignable to the specified type.
 	ResolveAll(ctx context.Context, typ reflect.Type) ([]any, error)
-
-	// ResolveNamed retrieves a component instance by its name.
-	ResolveNamed(ctx context.Context, name string) (any, error)
-
-	// ResolveNamedType retrieves a component by both name and expected type.
-	ResolveNamedType(ctx context.Context, typ reflect.Type, name string) (any, error)
 }
