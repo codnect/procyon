@@ -28,5 +28,5 @@ type SingletonRegistry interface {
 	Singleton(name string) (any, bool)
 
 	// RemoveSingleton removes the singleton instance associated with the specified name.
-	RemoveSingleton(name string)
+	RemoveSingleton(name string) error
 }
