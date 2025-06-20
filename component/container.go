@@ -27,8 +27,8 @@ type Container interface {
 	// Resolver resolves component instances by type or name.
 	Resolver
 
-	// Binder allows manual binding of instances to specific types.
-	Binder
+	// ResolvableRegistry registers non-component dependencies for injection.
+	ResolvableRegistry
 
 	// ScopeRegistry manages custom scopes.
 	ScopeRegistry

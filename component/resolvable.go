@@ -16,9 +16,10 @@ package component
 
 import "reflect"
 
-// Binder defines a method for binding an instance to a specific type.
-type Binder interface {
-	// Bind associates the given instance with the specified type.
-	// Returns an error if the binding fails.
-	Bind(typ reflect.Type, instance any) error
+// ResolvableRegistry registers special dependency types with corresponding values.
+// Typically used for framework-level types that should be injected but are not
+// defined as components.
+type ResolvableRegistry interface {
+	// RegisterResolvable registers type with the corresponding value.
+	RegisterResolvable(typ reflect.Type, val any) error
 }
