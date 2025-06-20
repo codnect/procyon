@@ -34,7 +34,7 @@ type Resolver interface {
 	ResolveType(ctx context.Context, typ reflect.Type) (any, error)
 
 	// ResolveAs retrieves a component by both name and expected type.
-	ResolveAs(ctx context.Context, typ reflect.Type, name string) (any, error)
+	ResolveAs(ctx context.Context, name string, typ reflect.Type) (any, error)
 
 	// ResolveAll retrieves all instances assignable to the specified type.
 	ResolveAll(ctx context.Context, typ reflect.Type) ([]any, error)
