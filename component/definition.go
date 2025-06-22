@@ -39,7 +39,7 @@ type DefinitionRegistry interface {
 	// ContainsDefinition checks whether a component definition with the specified name exists.
 	ContainsDefinition(name string) bool
 
-	// Definitions returns a slice of all registered component definitions.
+	// Definitions return a slice of all registered component definitions.
 	Definitions() []*Definition
 
 	// DefinitionsOf returns a slice of component definitions that are assignable to the specified type.

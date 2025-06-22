@@ -37,6 +37,21 @@ type Component struct {
 	conditions []Condition
 }
 
+// createComponent creates a new component instance with the given definition.
+func createComponent(def *Definition, cond ...Condition) *Component {
+	return &Component{
+		definition: def,
+		conditions: cond,
+	}
+}
+
+// attachCondition attaches a condition to the component.
+func (c *Component) attachCondition(cond Condition) {
+	if cond != nil {
+		c.conditions = append(c.conditions, cond)
+	}
+}
+
 // Definition returns the component's definition metadata.
 func (c *Component) Definition() *Definition {
 	return c.definition
@@ -55,10 +70,7 @@ type Registration struct {
 // Conditional attaches a runtime condition to the component.
 // The condition is evaluated before the component is loaded into the container.
 func (r *Registration) Conditional(cond Condition) *Registration {
-	if cond != nil {
-		r.component.conditions = append(r.component.conditions, cond)
-	}
-
+	r.component.attachCondition(cond)
 	return r
 }
 
@@ -79,9 +91,7 @@ func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
 		panic(fmt.Errorf("component with name '%s' already exists", name))
 	}
 
-	component := &Component{
-		definition: def,
-	}
+	component := createComponent(def)
 
 	components[name] = component
 	return &Registration{

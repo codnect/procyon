@@ -38,8 +38,15 @@ type AnotherComponent struct{}
 
 func (a AnotherComponent) AnyMethod() {}
 
-func NewAnotherComponent(anyComponent AnyComponent) *AnotherComponent {
+func NewAnotherComponent(component DependentComponent) *AnotherComponent {
 	return &AnotherComponent{}
+}
+
+type DependentComponent struct {
+}
+
+func (d DependentComponent) AnyMethod() {
+
 }
 
 func TestRegister(t *testing.T) {

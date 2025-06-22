@@ -47,8 +47,8 @@ type Finalizer interface {
 // LifecycleManager manages the registration of lifecycle hooks such as pre/post processors.
 type LifecycleManager interface {
 	// UsePreProcessor registers a PreProcessor to be applied before initialization.
-	UsePreProcessor(initializer PreProcessor) error
+	UsePreProcessor(processor PreProcessor) error
 
 	// UsePostProcessor registers a PostProcessor to be applied after initialization.
-	UsePostProcessor(initializer PostProcessor) error
+	UsePostProcessor(processor PostProcessor) error
 }

@@ -97,7 +97,7 @@ func TestMakeDefinition(t *testing.T) {
 			name:          "with qualifier",
 			constructorFn: NewAnotherComponent,
 			opts: []DefinitionOption{
-				WithQualifierFor[AnyComponent]("anyQualifier"),
+				WithQualifierFor[DependentComponent]("anyQualifier"),
 			},
 			wantName:  "anotherComponent",
 			wantScope: SingletonScope,
