@@ -41,7 +41,7 @@ func TestNewConditionContext(t *testing.T) {
 		{
 			name:      "nil context",
 			ctx:       nil,
-			container: &MockContainer{},
+			container: NewDefaultContainer(),
 			wantPanic: errors.New("nil context"),
 		},
 		{
@@ -53,7 +53,7 @@ func TestNewConditionContext(t *testing.T) {
 		{
 			name:      "valid context and container",
 			ctx:       context.Background(),
-			container: &MockContainer{},
+			container: NewDefaultContainer(),
 		},
 	}
 
@@ -80,7 +80,7 @@ func TestNewConditionContext(t *testing.T) {
 func TestConditionContext_Container(t *testing.T) {
 	// given
 	ctx := context.Background()
-	container := &MockContainer{}
+	container := NewDefaultContainer()
 	conditionCtx := newConditionContext(ctx, container)
 
 	// when
@@ -97,7 +97,7 @@ func TestConditionContext_Err(t *testing.T) {
 	// cancel context
 	cancelFn()
 
-	container := &MockContainer{}
+	container := NewDefaultContainer()
 	conditionCtx := newConditionContext(ctx, container)
 
 	// when
@@ -110,7 +110,7 @@ func TestConditionContext_Err(t *testing.T) {
 func TestConditionContext_Value(t *testing.T) {
 	// given
 	ctx := context.WithValue(context.Background(), "anyKey", "anyValue")
-	container := &MockContainer{}
+	container := NewDefaultContainer()
 	conditionCtx := newConditionContext(ctx, container)
 
 	// when
@@ -127,7 +127,7 @@ func TestConditionContext_Done(t *testing.T) {
 	// cancel context
 	cancelFn()
 
-	container := &MockContainer{}
+	container := NewDefaultContainer()
 	conditionCtx := newConditionContext(ctx, container)
 
 	// when
@@ -142,7 +142,7 @@ func TestConditionContext_Deadline(t *testing.T) {
 	deadline := time.Now()
 	ctx, _ := context.WithDeadline(context.Background(), deadline)
 
-	container := &MockContainer{}
+	container := NewDefaultContainer()
 	conditionCtx := newConditionContext(ctx, container)
 
 	// when
@@ -169,7 +169,7 @@ func TestNewConditionEvaluator(t *testing.T) {
 		{
 			name:      "valid container",
 			ctx:       context.Background(),
-			container: &MockContainer{},
+			container: NewDefaultContainer(),
 		},
 	}
 
@@ -199,21 +199,21 @@ func TestConditionEvaluator_Evaluate(t *testing.T) {
 		{
 			name:       "nil conditions",
 			ctx:        context.Background(),
-			container:  &MockContainer{},
+			container:  NewDefaultContainer(),
 			conditions: nil,
 			wantResult: true,
 		},
 		{
 			name:       "no condition",
 			ctx:        context.Background(),
-			container:  &MockContainer{},
+			container:  NewDefaultContainer(),
 			conditions: []Condition{},
 			wantResult: true,
 		},
 		{
 			name:      "all conditions match",
 			ctx:       context.Background(),
-			container: &MockContainer{},
+			container: NewDefaultContainer(),
 			conditions: []Condition{
 				AnyCondition{
 					matches: true,
@@ -227,7 +227,7 @@ func TestConditionEvaluator_Evaluate(t *testing.T) {
 		{
 			name:      "all conditions do not match",
 			ctx:       context.Background(),
-			container: &MockContainer{},
+			container: NewDefaultContainer(),
 			conditions: []Condition{
 				AnyCondition{
 					matches: false,
@@ -241,7 +241,7 @@ func TestConditionEvaluator_Evaluate(t *testing.T) {
 		{
 			name:      "at least one condition does not match",
 			ctx:       context.Background(),
-			container: &MockContainer{},
+			container: NewDefaultContainer(),
 			conditions: []Condition{
 				AnyCondition{
 					matches: true,
@@ -258,6 +258,7 @@ func TestConditionEvaluator_Evaluate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			evaluator := newConditionEvaluator(tc.container)
+
 			// when
 			result := evaluator.evaluate(tc.ctx, tc.conditions)
 
