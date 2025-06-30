@@ -64,6 +64,7 @@ func TestCreateConstructor(t *testing.T) {
 				return
 			}
 
+			assert.NoError(t, err)
 			assert.Equal(t, tc.wantOutType, constructor.OutType())
 			assert.Len(t, constructor.Args(), len(tc.wantArgs))
 
@@ -167,6 +168,7 @@ func TestConstructor_Invoke(t *testing.T) {
 				return
 			}
 
+			assert.NoError(t, err)
 			assert.Equal(t, tc.wantOutType, reflect.TypeOf(out))
 
 		})
