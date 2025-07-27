@@ -175,6 +175,9 @@ func TestNewConditionEvaluator(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// given
+
+			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
 					newConditionEvaluator(tc.container)
@@ -182,6 +185,7 @@ func TestNewConditionEvaluator(t *testing.T) {
 				return
 			}
 
+			// then
 			evaluator := newConditionEvaluator(tc.container)
 			require.NotNil(t, evaluator)
 		})

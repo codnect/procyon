@@ -55,10 +55,12 @@ type DefaultContainer struct {
 	definitions   map[string]*Definition
 	muDefinitions sync.RWMutex
 
-	singletons        map[string]any
-	singletonState    *creationState
-	typesOfSingletons map[string]reflect.Type
-	muSingletons      sync.RWMutex
+	singletons            map[string]any
+	singletonState        *creationState
+	typesOfSingletons     map[string]reflect.Type
+	muSingletons          sync.RWMutex
+	resolvableInstances   map[reflect.Type]any
+	muResolvableInstances sync.RWMutex
 
 	scopes   map[string]Scope
 	muScopes sync.RWMutex
@@ -177,6 +179,14 @@ func (d *DefaultContainer) DefinitionsOf(typ reflect.Type) []*Definition {
 // RegisterSingleton registers a singleton instance with the given name.
 // Returns an error if a singleton with the same name already exists.
 func (d *DefaultContainer) RegisterSingleton(name string, instance any) error {
+	if name == "" {
+		return errors.New("empty name")
+	}
+
+	if instance == nil {
+		return errors.New("nil instance")
+	}
+
 	d.muSingletons.Lock()
 	defer d.muSingletons.Unlock()
 
@@ -328,6 +338,13 @@ func (d *DefaultContainer) ResolveType(ctx context.Context, typ reflect.Type) (a
 
 	ctx = withCreationState(ctx)
 
+	resolvableCandidates := d.findResolvableCandidates(typ)
+	if len(resolvableCandidates) > 1 {
+		return nil, errors.New("multiple instance found")
+	} else if len(resolvableCandidates) == 1 {
+		return resolvableCandidates[0], nil
+	}
+
 	singletons := d.resolveSingletons(typ)
 	if len(singletons) > 1 {
 		return nil, errors.New("multiple singletons found")
@@ -347,6 +364,10 @@ func (d *DefaultContainer) ResolveType(ctx context.Context, typ reflect.Type) (a
 
 // ResolveAs retrieves a component by both name and expected type.
 func (d *DefaultContainer) ResolveAs(ctx context.Context, name string, typ reflect.Type) (any, error) {
+	if name == "" {
+		return nil, errors.New("empty name")
+	}
+
 	if typ == nil {
 		return nil, errors.New("nil type")
 	}
@@ -374,7 +395,8 @@ func (d *DefaultContainer) ResolveAll(ctx context.Context, typ reflect.Type) ([]
 
 	ctx = withCreationState(ctx)
 
-	instances := d.resolveSingletons(typ)
+	instances := d.findResolvableCandidates(typ)
+	instances = append(instances, d.resolveSingletons(typ)...)
 
 	for _, def := range d.DefinitionsOf(typ) {
 		instance, err := d.Resolve(ctx, def.Name())
@@ -391,6 +413,18 @@ func (d *DefaultContainer) ResolveAll(ctx context.Context, typ reflect.Type) ([]
 
 // RegisterResolvable registers type with the corresponding value.
 func (d *DefaultContainer) RegisterResolvable(typ reflect.Type, instance any) error {
+	if typ == nil {
+		return errors.New("nil type")
+	}
+
+	if instance == nil {
+		return errors.New("nil instance")
+	}
+
+	d.muResolvableInstances.Lock()
+	defer d.muResolvableInstances.Unlock()
+	d.resolvableInstances[typ] = instance
+
 	return nil
 }
 
@@ -536,6 +570,21 @@ func (d *DefaultContainer) resolveArguments(ctx context.Context, args []Arg) ([]
 	}
 
 	return resolvedArgs, nil
+}
+
+func (d *DefaultContainer) findResolvableCandidates(typ reflect.Type) []any {
+	d.muResolvableInstances.RLock()
+	defer d.muResolvableInstances.RUnlock()
+
+	candidates := make([]any, 0)
+
+	for candidateType, candidate := range d.resolvableInstances {
+		if convertibleTo(candidateType, typ) {
+			candidates = append(candidates, candidate)
+		}
+	}
+
+	return candidates
 }
 
 // resolveSingletons returns all singleton instances that are assignable to the specified type.
