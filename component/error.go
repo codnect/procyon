@@ -12,7 +12,7 @@ var (
 	// ErrInstanceAlreadyExists is an error that occurs when a singleton already exists.
 	ErrInstanceAlreadyExists = errors.New("instance already exists")
 	// ErrInstanceNotFound is an error that occurs when a singleton is not found.
-	ErrInstanceNotFound = errors.New("not found")
+	ErrInstanceNotFound = errors.New("instance not found")
 	// ErrInstanceInPreparation is an error that occurs when an instance is in preparation.
 	ErrInstanceInPreparation = errors.New("instance is in preparation, maybe it has got circular dependency cycle")
 	// ErrScopeNotFound is an error that occurs when a scope is not found.

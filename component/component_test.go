@@ -15,8 +15,10 @@
 package component
 
 import (
+	"context"
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -34,19 +36,52 @@ func NewAnyComponent() *AnyComponent {
 	return &AnyComponent{}
 }
 
-type AnotherComponent struct{}
-
-func (a AnotherComponent) AnyMethod() {}
-
-func NewAnotherComponent(component DependentComponent) *AnotherComponent {
-	return &AnotherComponent{}
+type AnotherComponent struct {
+	dependentComponent DependentComponent
 }
+
+func NewAnotherComponent(dependentComponent DependentComponent) *AnotherComponent {
+	return &AnotherComponent{
+		dependentComponent: dependentComponent,
+	}
+}
+
+func (a *AnotherComponent) AnyMethod() {}
 
 type DependentComponent struct {
 }
 
+func NewDependentComponent() DependentComponent {
+	return DependentComponent{}
+}
+
 func (d DependentComponent) AnyMethod() {
 
+}
+
+type AnySliceDependentComponent struct {
+	components []AnyInterface
+}
+
+func NewAnySliceDependentComponent(components []AnyInterface) *AnySliceDependentComponent {
+	return &AnySliceDependentComponent{
+		components: components,
+	}
+}
+
+type AnyComponentWithInitializer struct {
+	mock *mock.Mock
+}
+
+func NewAnyComponentWithInitializer(mock *mock.Mock) *AnyComponentWithInitializer {
+	return &AnyComponentWithInitializer{
+		mock: mock,
+	}
+}
+
+func (a *AnyComponentWithInitializer) Init(ctx context.Context) error {
+	result := a.mock.Called(ctx)
+	return result.Error(0)
 }
 
 func TestRegister(t *testing.T) {
