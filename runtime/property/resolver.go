@@ -18,9 +18,15 @@ import "fmt"
 
 // Resolver interface provides methods for resolving properties.
 type Resolver interface {
+	// ContainsProperty checks if the given property name exists.
 	ContainsProperty(name string) bool
+	// Property returns the value of the given property name.
 	Property(name string) (any, bool)
+	// PropertyOrDefault returns the value of the given property name.
+	// If the property does not exist, it returns the default value.
 	PropertyOrDefault(name string, defaultValue any) any
+	// ResolvePlaceholders resolves placeholders in the given text
+	// If a placeholder cannot be resolved, it returns an error.
 	ResolvePlaceholders(text string) (string, error)
 }
 

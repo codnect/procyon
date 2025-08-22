@@ -18,12 +18,11 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"io"
-	"strings"
 )
 
 // SourceLoader interface provides methods for loading property sources.
 type SourceLoader interface {
-	SupportsFormat(format string) bool
+	FileExtensions() []string
 	Load(name string, reader io.Reader) (Source, error)
 }
 
@@ -36,9 +35,9 @@ func NewYamlSourceLoader() *YamlSourceLoader {
 	return &YamlSourceLoader{}
 }
 
-// SupportsFormat method returns the format supported by the YamlSourceLoader.
-func (l *YamlSourceLoader) SupportsFormat(format string) bool {
-	return strings.ToLower(format) == "yaml"
+// FileExtensions method returns the file extensions supported by the YamlSourceLoader.
+func (l *YamlSourceLoader) FileExtensions() []string {
+	return []string{"yaml", "yml"}
 }
 
 // Load method loads a property source from a reader.
