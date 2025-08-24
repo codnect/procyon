@@ -46,8 +46,8 @@ func (m *MapSource) Name() string {
 	return m.name
 }
 
-// Source method returns the source.
-func (m *MapSource) Source() any {
+// Underlying returns the underlying source object.
+func (m *MapSource) Underlying() any {
 	return m.values
 }
 

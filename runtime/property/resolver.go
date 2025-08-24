@@ -25,20 +25,23 @@ type Resolver interface {
 	// PropertyOrDefault returns the value of the given property name.
 	// If the property does not exist, it returns the default value.
 	PropertyOrDefault(name string, defaultValue any) any
-	// ResolvePlaceholders resolves placeholders in the given text
+	// ResolvePlaceholders resolves placeholders in the given text.
+	// If a placeholder cannot be resolved, it continues to resolve other placeholders.
+	ResolvePlaceholders(text string) string
+	// ResolveRequiredPlaceholders resolves placeholders in the given text.
 	// If a placeholder cannot be resolved, it returns an error.
-	ResolvePlaceholders(text string) (string, error)
+	ResolveRequiredPlaceholders(text string) (string, error)
 }
 
 // MultiSourceResolver is an implementation of the Resolver interface.
 // It resolves properties from the given sources.
 type MultiSourceResolver struct {
-	sources *Sources
+	sources *SourceList
 }
 
 // NewMultiSourceResolver creates a new MultiSourceResolver with the given sources.
 func NewMultiSourceResolver(sources ...Source) *MultiSourceResolver {
-	orderedSources := NewSources()
+	orderedSources := NewSourceList()
 
 	for _, source := range sources {
 		orderedSources.AddLast(source)

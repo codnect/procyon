@@ -20,8 +20,8 @@ import "sync"
 type Source interface {
 	// Name returns the name of the source.
 	Name() string
-	// Source returns the source.
-	Source() any
+	// Underlying returns the underlying source object.
+	Underlying() any
 	// ContainsProperty checks if the given property name exists in the source.
 	ContainsProperty(name string) bool
 	// Property returns the value of the given property name from the source.
@@ -34,22 +34,22 @@ type Source interface {
 	PropertyNames() []string
 }
 
-// Sources struct is a collection of property sources.
-type Sources struct {
+// SourceList struct is a collection of property sources.
+type SourceList struct {
 	sources []Source
 	mu      sync.RWMutex
 }
 
-// NewSources function creates a new SourceList.
-func NewSources() *Sources {
-	return &Sources{
+// NewSourceList function creates a new SourceList.
+func NewSourceList() *SourceList {
+	return &SourceList{
 		sources: make([]Source, 0),
 		mu:      sync.RWMutex{},
 	}
 }
 
 // Contains checks if the given source name exists in the sources.
-func (s *Sources) Contains(name string) bool {
+func (s *SourceList) Contains(name string) bool {
 	defer s.mu.Unlock()
 	s.mu.Lock()
 
@@ -63,7 +63,7 @@ func (s *Sources) Contains(name string) bool {
 }
 
 // Find returns the source with the given name.
-func (s *Sources) Find(name string) (Source, bool) {
+func (s *SourceList) Find(name string) (Source, bool) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
 
@@ -77,7 +77,7 @@ func (s *Sources) Find(name string) (Source, bool) {
 }
 
 // AddFirst adds the source to the beginning of the sources.
-func (s *Sources) AddFirst(source Source) {
+func (s *SourceList) AddFirst(source Source) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
 
@@ -92,7 +92,7 @@ func (s *Sources) AddFirst(source Source) {
 }
 
 // AddLast adds a source to the end of the sources.
-func (s *Sources) AddLast(source Source) {
+func (s *SourceList) AddLast(source Source) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
 
@@ -101,7 +101,7 @@ func (s *Sources) AddLast(source Source) {
 }
 
 // AddAtIndex adds the source to the sources at the given index.
-func (s *Sources) AddAtIndex(index int, source Source) {
+func (s *SourceList) AddAtIndex(index int, source Source) {
 	defer s.mu.Unlock()
 	s.mu.Lock()
 
@@ -118,7 +118,7 @@ func (s *Sources) AddAtIndex(index int, source Source) {
 }
 
 // Remove removes the source with the given name from the sources.
-func (s *Sources) Remove(name string) Source {
+func (s *SourceList) Remove(name string) Source {
 	source, index := s.findPropertySourceByName(name)
 
 	if index != -1 {
@@ -131,7 +131,7 @@ func (s *Sources) Remove(name string) Source {
 }
 
 // Replace replaces a source with the given name in the sources with a new source.
-func (s *Sources) Replace(name string, source Source) {
+func (s *SourceList) Replace(name string, source Source) {
 	_, index := s.findPropertySourceByName(name)
 
 	if index != -1 {
@@ -140,12 +140,12 @@ func (s *Sources) Replace(name string, source Source) {
 }
 
 // Count returns the number of sources.
-func (s *Sources) Count() int {
+func (s *SourceList) Count() int {
 	return len(s.sources)
 }
 
 // PrecedenceOf returns the index of a source in the sources
-func (s *Sources) PrecedenceOf(source Source) int {
+func (s *SourceList) PrecedenceOf(source Source) int {
 	if source == nil {
 		return -1
 	}
@@ -155,14 +155,14 @@ func (s *Sources) PrecedenceOf(source Source) int {
 }
 
 // Slice returns the sources as a slice.
-func (s *Sources) Slice() []Source {
+func (s *SourceList) Slice() []Source {
 	sources := make([]Source, len(s.sources))
 	copy(sources, s.sources)
 	return sources
 }
 
 // removeIfPresent removes a source from the sources if it exists.
-func (s *Sources) removeIfPresent(source Source) {
+func (s *SourceList) removeIfPresent(source Source) {
 	if source == nil {
 		return
 	}
@@ -175,7 +175,7 @@ func (s *Sources) removeIfPresent(source Source) {
 }
 
 // findPropertySourceByName finds a source by name in the sources.
-func (s *Sources) findPropertySourceByName(name string) (Source, int) {
+func (s *SourceList) findPropertySourceByName(name string) (Source, int) {
 	for index, source := range s.sources {
 
 		if source.Name() == name {
