@@ -48,6 +48,13 @@ type Container interface {
 	LifecycleManager
 }
 
+// ContainerCapable is an interface that indicates the ability to provide
+// access to Container.
+type ContainerCapable interface {
+	// Container returns the associated Container.
+	Container() Container
+}
+
 // DefaultContainer is the default implementation of the Container interface.
 // It manages component definitions, singleton instances, custom scopes,
 // and lifecycle processing.
