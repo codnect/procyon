@@ -410,7 +410,6 @@ func (d *DefaultContainer) ResolveAll(ctx context.Context, typ reflect.Type) ([]
 	ctx = withCreationState(ctx)
 
 	instances := d.findResolvableCandidates(typ)
-	instances = append(instances, d.resolveSingletons(typ)...)
 
 	for _, def := range d.DefinitionsOf(typ) {
 		instance, err := d.Resolve(ctx, def.Name())
