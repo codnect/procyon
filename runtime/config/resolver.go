@@ -15,7 +15,6 @@
 package config
 
 import (
-	"codnect.io/procyon/runtime/property"
 	"context"
 	"errors"
 	"fmt"
@@ -25,6 +24,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"codnect.io/procyon/runtime/property"
 )
 
 const (
@@ -110,7 +111,7 @@ func (r *DefaultLocationResolver) getDirectoryResources(profile string, location
 	resources := make([]Resource, 0)
 
 	for _, loader := range r.loaders {
-		extensions := loader.FileExtensions()
+		extensions := loader.Extensions()
 
 		for _, extension := range extensions {
 			filePath := ""
@@ -138,7 +139,7 @@ func (r *DefaultLocationResolver) getFileResources(profile string, file string) 
 	resources := make([]Resource, 0)
 
 	for _, loader := range r.loaders {
-		if slices.Contains(loader.FileExtensions(), extension) {
+		if slices.Contains(loader.Extensions(), extension) {
 			resource, err := r.loadResource(file, profile, loader)
 
 			if err == nil && resource.Exists() {

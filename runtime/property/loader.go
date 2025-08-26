@@ -22,7 +22,7 @@ import (
 
 // SourceLoader interface provides methods for loading property sources.
 type SourceLoader interface {
-	FileExtensions() []string
+	Extensions() []string
 	Load(name string, reader io.Reader) (Source, error)
 }
 
@@ -35,8 +35,8 @@ func NewYamlSourceLoader() *YamlSourceLoader {
 	return &YamlSourceLoader{}
 }
 
-// FileExtensions method returns the file extensions supported by the YamlSourceLoader.
-func (l *YamlSourceLoader) FileExtensions() []string {
+// Extensions method returns the file extensions supported by the YamlSourceLoader.
+func (l *YamlSourceLoader) Extensions() []string {
 	return []string{"yaml", "yml"}
 }
 
