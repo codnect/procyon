@@ -15,6 +15,8 @@
 package property
 
 import (
+	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -35,9 +37,12 @@ func NewMapSource(name string, values map[string]any) *MapSource {
 		panic("nil map")
 	}
 
+	result := make(map[string]any)
+	flatMap(result, "", values)
+
 	return &MapSource{
 		name:   name,
-		values: flatMap(values),
+		values: result,
 	}
 }
 
@@ -92,27 +97,39 @@ func (m *MapSource) PropertyNames() []string {
 	return names
 }
 
-// flatMap function flattens a map that contains nested maps or slices.
-// It returns a new map where each key is a path to a nested property.
-func flatMap(m map[string]interface{}) map[string]interface{} {
-	flattenMap := map[string]interface{}{}
-
-	for key, value := range m {
-		switch child := value.(type) {
-		case map[string]interface{}:
-			nm := flatMap(child)
-
-			for nk, nv := range nm {
-				flattenMap[key+"."+nk] = nv
-			}
-		case []interface{}:
-			for i := 0; i < len(child); i++ {
-				flattenMap[key+"."+strconv.Itoa(i)] = child[i]
-			}
-		default:
-			flattenMap[key] = value
+func flatMap(dst map[string]any, prefix string, propVal any) {
+	switch t := propVal.(type) {
+	case map[string]any:
+		keys := make([]string, 0, len(t))
+		for k := range t {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			child := t[k]
+			key := join(prefix, k)
+			flatMap(dst, key, child)
+		}
+	case []any:
+		for i, child := range t {
+			key := join(prefix, strconv.Itoa(i))
+			flatMap(dst, key, child)
+		}
+	case nil:
+		if prefix != "" {
+			dst[prefix] = ""
+		}
+	default:
+		if prefix != "" {
+			dst[prefix] = fmt.Sprint(t)
 		}
 	}
+}
 
-	return flattenMap
+func join(prefix, key string) string {
+	if prefix == "" {
+		return key
+	}
+
+	return fmt.Sprintf("%s.%s", prefix, key)
 }

@@ -14,7 +14,10 @@
 
 package property
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Resolver interface provides methods for resolving properties.
 type Resolver interface {
@@ -40,21 +43,25 @@ type MultiSourceResolver struct {
 }
 
 // NewMultiSourceResolver creates a new MultiSourceResolver with the given sources.
-func NewMultiSourceResolver(sources ...Source) *MultiSourceResolver {
-	orderedSources := NewSourceList()
-
-	for _, source := range sources {
-		orderedSources.AddLast(source)
+func NewMultiSourceResolver(sources *SourceList) *MultiSourceResolver {
+	if sources == nil {
+		panic("nil sources")
 	}
 
 	return &MultiSourceResolver{
-		sources: orderedSources,
+		sources: sources,
 	}
 }
 
 // ContainsProperty checks if the given property name exists in the sources.
 func (r *MultiSourceResolver) ContainsProperty(name string) bool {
-	return r.sources.Contains(name)
+	for _, source := range r.sources.Slice() {
+		if source.ContainsProperty(name) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Property returns the value of the given property name from the sources.
@@ -109,25 +116,26 @@ func (r *MultiSourceResolver) resolveRequiredPlaceHolders(s string, continueOnEr
 			name, w := r.getPlaceholderName(s[j+1:])
 
 			if name == "" && w > 0 {
+				if !continueOnError {
+					return "", errors.New("wrong placeholder format")
+				}
+
+				buf = append(buf, s[j:j+w+1]...)
 			} else if name == "" {
 				buf = append(buf, s[j])
 			} else {
 				value, ok := r.Property(name)
 
-				if !ok && !continueOnError {
-					return "", fmt.Errorf("cannot resolve placeholder '%s'", s[j:i+w+1])
-				}
-
-				stringValue, canConvert := value.(string)
-				if !canConvert && !continueOnError {
-					return "", fmt.Errorf("string values can only be used as placeholder '%s'", s[j:i+w+1])
-				}
-
-				if continueOnError {
-					buf = append(buf, s[j:i+w+1]...)
+				if !ok {
+					if !continueOnError {
+						return "", fmt.Errorf("cannot resolve placeholder '${%s}'", name)
+					} else {
+						buf = append(buf, s[j:j+w+1]...)
+					}
 				} else {
-					buf = append(buf, stringValue...)
+					buf = append(buf, fmt.Sprint(value)...)
 				}
+
 			}
 
 			j += w
@@ -145,10 +153,6 @@ func (r *MultiSourceResolver) resolveRequiredPlaceHolders(s string, continueOnEr
 func (r *MultiSourceResolver) getPlaceholderName(s string) (string, int) {
 	switch {
 	case s[0] == '{':
-		if len(s) > 2 && isSpecialVar(s[1]) && s[2] == '}' {
-			return s[1:2], 3
-		}
-
 		for i := 1; i < len(s); i++ {
 			if s[i] == '}' {
 				if i == 1 {
@@ -157,26 +161,9 @@ func (r *MultiSourceResolver) getPlaceholderName(s string) (string, int) {
 				return s[1:i], i + 1
 			}
 		}
+
 		return "", 1
-	case isSpecialVar(s[0]):
-		return s[0:1], 1
 	}
 
-	var i int
-	for i = 0; i < len(s) && isAlphaNum(s[i]); i++ {
-	}
-
-	return s[:i], i
-}
-
-func isSpecialVar(c uint8) bool {
-	switch c {
-	case '*', '#', '$', '@', '!', '?', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		return true
-	}
-	return false
-}
-
-func isAlphaNum(c uint8) bool {
-	return c == '_' || '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'
+	return "", 0
 }

@@ -40,18 +40,20 @@ type SourceList struct {
 	mu      sync.RWMutex
 }
 
-// NewSourceList function creates a new SourceList.
-func NewSourceList() *SourceList {
+// SourcesAsList function creates a new SourceList.
+func SourcesAsList(sources ...Source) *SourceList {
+	sourceSlice := make([]Source, 0)
+	sourceSlice = append(sourceSlice, sources...)
 	return &SourceList{
-		sources: make([]Source, 0),
+		sources: sourceSlice,
 		mu:      sync.RWMutex{},
 	}
 }
 
 // Contains checks if the given source name exists in the sources.
 func (s *SourceList) Contains(name string) bool {
-	defer s.mu.Unlock()
 	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	for _, source := range s.sources {
 		if source != nil && source.Name() == name {
@@ -64,8 +66,8 @@ func (s *SourceList) Contains(name string) bool {
 
 // Find returns the source with the given name.
 func (s *SourceList) Find(name string) (Source, bool) {
-	defer s.mu.Unlock()
 	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	for _, source := range s.sources {
 		if source != nil && source.Name() == name {
@@ -78,8 +80,12 @@ func (s *SourceList) Find(name string) (Source, bool) {
 
 // AddFirst adds the source to the beginning of the sources.
 func (s *SourceList) AddFirst(source Source) {
-	defer s.mu.Unlock()
+	if source == nil {
+		panic("nil source")
+	}
+
 	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	s.removeIfPresent(source)
 	if len(s.sources) == 0 {
@@ -93,8 +99,12 @@ func (s *SourceList) AddFirst(source Source) {
 
 // AddLast adds a source to the end of the sources.
 func (s *SourceList) AddLast(source Source) {
-	defer s.mu.Unlock()
+	if source == nil {
+		panic("nil source")
+	}
+
 	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	s.removeIfPresent(source)
 	s.sources = append(s.sources, source)
@@ -102,14 +112,21 @@ func (s *SourceList) AddLast(source Source) {
 
 // AddAtIndex adds the source to the sources at the given index.
 func (s *SourceList) AddAtIndex(index int, source Source) {
-	defer s.mu.Unlock()
+	if index < 0 {
+		panic("negative index")
+	}
+
+	if source == nil {
+		panic("nil source")
+	}
+
 	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	s.removeIfPresent(source)
 
 	if len(s.sources) == index {
-		s.mu.Unlock()
-		s.AddLast(source)
+		s.sources = append(s.sources, source)
 		return
 	}
 
@@ -119,19 +136,28 @@ func (s *SourceList) AddAtIndex(index int, source Source) {
 
 // Remove removes the source with the given name from the sources.
 func (s *SourceList) Remove(name string) Source {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	source, index := s.findPropertySourceByName(name)
 
 	if index != -1 {
 		s.sources = append(s.sources[:index], s.sources[index+1:]...)
-	} else {
-		return nil
+		return source
 	}
 
-	return source
+	return nil
 }
 
 // Replace replaces a source with the given name in the sources with a new source.
 func (s *SourceList) Replace(name string, source Source) {
+	if source == nil {
+		panic("nil source")
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	_, index := s.findPropertySourceByName(name)
 
 	if index != -1 {
@@ -141,6 +167,9 @@ func (s *SourceList) Replace(name string, source Source) {
 
 // Count returns the number of sources.
 func (s *SourceList) Count() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return len(s.sources)
 }
 
@@ -150,12 +179,18 @@ func (s *SourceList) PrecedenceOf(source Source) int {
 		return -1
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	_, index := s.findPropertySourceByName(source.Name())
 	return index
 }
 
 // Slice returns the sources as a slice.
 func (s *SourceList) Slice() []Source {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	sources := make([]Source, len(s.sources))
 	copy(sources, s.sources)
 	return sources
@@ -163,10 +198,6 @@ func (s *SourceList) Slice() []Source {
 
 // removeIfPresent removes a source from the sources if it exists.
 func (s *SourceList) removeIfPresent(source Source) {
-	if source == nil {
-		return
-	}
-
 	_, index := s.findPropertySourceByName(source.Name())
 
 	if index != -1 {
