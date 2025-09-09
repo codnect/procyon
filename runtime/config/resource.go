@@ -15,13 +15,14 @@
 package config
 
 import (
-	"codnect.io/procyon/runtime/property"
-	"fmt"
+	"errors"
 	"io"
 	"io/fs"
 	"net/http"
 	"net/url"
 	"time"
+
+	"codnect.io/procyon/runtime/property"
 )
 
 // Resource is an interface that represents a configuration resource.
@@ -144,7 +145,7 @@ func (u *URLResource) Reader() (io.ReadCloser, error) {
 			_ = resp.Body.Close()
 		}
 
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, errors.New("resource does not exist")
 	}
 
 	return resp.Body, nil

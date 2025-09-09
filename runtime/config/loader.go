@@ -62,13 +62,13 @@ func (l *DefaultLoader) Load(ctx context.Context, resource Resource) (*Data, err
 		return nil, errors.New("nil resource")
 	}
 
-	if !resource.Exists() {
-		return nil, errors.New("no resource found")
-	}
-
 	loader := resource.PropertySourceLoader()
 	if loader == nil {
 		return nil, errors.New("nil resource loader")
+	}
+
+	if !resource.Exists() {
+		return nil, errors.New("no resource found")
 	}
 
 	reader, readerErr := resource.Reader()

@@ -83,31 +83,46 @@ func (r *DefaultLocationResolver) Resolve(ctx context.Context, location string, 
 			profile = ""
 		}
 
-		resources = append(resources, r.getResources(profile, locations)...)
+		loadedResources, err := r.getResources(profile, locations)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, loadedResources...)
 	}
 
 	return resources, nil
 }
 
 // getResources method retrieves resources from the given locations for a specific profile.
-func (r *DefaultLocationResolver) getResources(profile string, locations []string) []Resource {
+func (r *DefaultLocationResolver) getResources(profile string, locations []string) ([]Resource, error) {
 	resources := make([]Resource, 0)
 
 	for _, location := range locations {
 		isDirectory := strings.HasSuffix(location, "/") || strings.HasSuffix(location, string(os.PathSeparator))
 
 		if isDirectory {
-			resources = append(resources, r.getDirectoryResources(profile, location)...)
+			dirResources, err := r.getDirectoryResources(profile, location)
+			if err != nil {
+				return nil, err
+			}
+
+			resources = append(resources, dirResources...)
 		} else {
-			resources = append(resources, r.getFileResources(profile, location)...)
+			fileResources, err := r.getFileResources(profile, location)
+			if err != nil {
+				return nil, err
+			}
+
+			resources = append(resources, fileResources...)
 		}
 	}
 
-	return resources
+	return resources, nil
 }
 
 // getDirectoryResources method retrieves resources from a directory for a specific profile.
-func (r *DefaultLocationResolver) getDirectoryResources(profile string, location string) []Resource {
+func (r *DefaultLocationResolver) getDirectoryResources(profile string, location string) ([]Resource, error) {
 	resources := make([]Resource, 0)
 
 	for _, loader := range r.loaders {
@@ -117,38 +132,48 @@ func (r *DefaultLocationResolver) getDirectoryResources(profile string, location
 			filePath := ""
 
 			if profile == "" {
-				filePath = filepath.Join(location, fmt.Sprintf("%s.%s", DefaultFileName, extension))
+				filePath = fmt.Sprintf("%s%s.%s", location, DefaultFileName, extension)
 			} else {
-				filePath = filepath.Join(location, fmt.Sprintf("%s-%s.%s", DefaultFileName, profile, extension))
+				filePath = fmt.Sprintf("%s%s-%s.%s", location, DefaultFileName, profile, extension)
 			}
 
 			resource, err := r.loadResource(filePath, profile, loader)
-			if err == nil && resource.Exists() {
+			if err != nil {
+				return nil, err
+			}
+
+			if resource.Exists() {
 				resources = append(resources, resource)
 			}
 		}
 	}
 
-	return resources
+	return resources, nil
 }
 
 // getFileResources method retrieves resources from a file for a specific profile.
-func (r *DefaultLocationResolver) getFileResources(profile string, file string) []Resource {
+func (r *DefaultLocationResolver) getFileResources(profile string, file string) ([]Resource, error) {
 	extension := filepath.Ext(file)
+	if extension != "" {
+		extension = extension[1:]
+	}
 
 	resources := make([]Resource, 0)
 
 	for _, loader := range r.loaders {
 		if slices.Contains(loader.Extensions(), extension) {
 			resource, err := r.loadResource(file, profile, loader)
+			if err != nil {
+				return nil, err
+			}
 
-			if err == nil && resource.Exists() {
+			if resource.Exists() {
 				resources = append(resources, resource)
 			}
 		}
 	}
 
-	return resources
+	return resources, nil
 }
 
 // loadResource method loads a resource from the given location and profile using the provided property source loader.
@@ -156,17 +181,17 @@ func (r *DefaultLocationResolver) loadResource(location, profile string, loader 
 	scheme := "file"
 
 	configUrl, err := url.Parse(location)
-	if err == nil {
+	if err != nil {
+		return nil, err
+	}
+
+	if configUrl.Scheme == "file" {
+		location = strings.ReplaceAll(configUrl.String(), "file://", "")
+	} else if configUrl.Scheme != "" {
 		scheme = configUrl.Scheme
 	}
 
 	if scheme == "file" {
-		if err != nil {
-			location = filepath.Clean(location)
-		} else {
-			location = filepath.Clean(configUrl.Path)
-		}
-
 		dir, fileName := filepath.Split(location)
 		fsys := r.fsProvider(dir)
 		return newFileResource(fsys, fileName, location, profile, loader), nil

@@ -23,6 +23,10 @@ type Data struct {
 
 // NewData creates a new Data with the given property source.
 func NewData(source property.Source) *Data {
+	if source == nil {
+		panic("nil property source")
+	}
+
 	return &Data{
 		source: source,
 	}

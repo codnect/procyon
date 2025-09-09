@@ -42,6 +42,10 @@ func NewDefaultImporter(resolvers []LocationResolver, loaders []Loader) *Default
 // Import method imports configurations from a location for specific profiles.
 // It first resolves resources from the location and then loads configurations from these resources.
 func (i *DefaultImporter) Import(ctx context.Context, location string, profiles []string) ([]*Data, error) {
+	if ctx == nil {
+		return nil, errors.New("nil context")
+	}
+
 	resources, err := i.resolve(ctx, location, profiles)
 	if err != nil {
 		return nil, err
@@ -84,6 +88,9 @@ func (i *DefaultImporter) load(ctx context.Context, resources []Resource) ([]*Da
 
 		var data *Data
 		data, err = loader.Load(ctx, resource)
+		if err != nil {
+			return nil, err
+		}
 
 		loaded = append(loaded, data)
 	}
