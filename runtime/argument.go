@@ -15,8 +15,7 @@
 package runtime
 
 import (
-	"errors"
-	"flag"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -82,47 +81,28 @@ func (a *Args) addNonOptionArgs(value string) {
 
 // mergeArguments function merges the command line arguments with the given arguments.
 func mergeArguments(args ...string) []string {
-	mergedArgs := make([]string, 0)
-	copy(mergedArgs, os.Args)
-	mergedArgs = append(mergedArgs, args...)
-	return mergedArgs
+	osArgs := os.Args[1:]
+	merged := make([]string, 0, len(osArgs)+len(args))
+	merged = append(merged, osArgs...)
+	merged = append(merged, args...)
+	return merged
 }
 
 // ParseArgs function parses the given and the command line arguments and returns an Args.
 func ParseArgs(args []string) (*Args, error) {
 	mergedArgs := mergeArguments(args...)
 	cmdLineArgs := newArgs()
-	appArgumentFlagSet := flag.NewFlagSet("ApplicationArguments", flag.ContinueOnError)
 
-	err := appArgumentFlagSet.Parse(mergedArgs)
-
-	if err != nil {
-		return cmdLineArgs, err
-	}
-
-	for _, arg := range appArgumentFlagSet.Args() {
-
+	for _, arg := range mergedArgs {
 		if strings.HasPrefix(arg, "--") {
-			optionText := arg[2:]
-			indexOfEqualSign := strings.Index(optionText, "=")
-			optionName := ""
-			optionValue := ""
+			indexOfEqualSign := strings.Index(arg, "=")
 
-			if indexOfEqualSign > -1 {
-				optionName = optionText[0:indexOfEqualSign]
-				optionValue = optionText[indexOfEqualSign+1:]
+			if indexOfEqualSign == -1 {
+				return nil, fmt.Errorf("wrong argument format '%s'", arg)
 			} else {
-				optionName = optionText
+				cmdLineArgs.addOptionArgs(arg[2:indexOfEqualSign], arg[indexOfEqualSign+1:])
 			}
 
-			optionName = strings.TrimSpace(optionName)
-			optionValue = strings.TrimSpace(optionValue)
-
-			if optionName == "" {
-				return cmdLineArgs, errors.New("invalid argument syntax : " + arg)
-			}
-
-			cmdLineArgs.addOptionArgs(optionName, optionValue)
 		} else {
 			cmdLineArgs.addNonOptionArgs(arg)
 		}
@@ -139,6 +119,10 @@ type ArgsPropertySource struct {
 
 // NewArgsPropertySource function creates a new ArgsPropertySource with the given arguments.
 func NewArgsPropertySource(args *Args) *ArgsPropertySource {
+	if args == nil {
+		panic("nil args")
+	}
+
 	return &ArgsPropertySource{
 		args: args,
 	}
@@ -168,7 +152,7 @@ func (s *ArgsPropertySource) Property(name string) (any, bool) {
 	if NonOptionArgs == name {
 		nonOptValues := s.args.NonOptionArgs()
 
-		if nonOptValues != nil {
+		if len(nonOptValues) != 0 {
 			return strings.Join(nonOptValues, ","), true
 		}
 
