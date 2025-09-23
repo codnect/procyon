@@ -12,30 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package property
+package config
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
-func TestNewMultiSourceResolver(t *testing.T) {
+func TestNewDefaultPropertyResolver(t *testing.T) {
 	testCases := []struct {
-		name       string
-		sourceList *SourceList
-		wantPanic  error
+		name            string
+		propertySources *PropertySources
+		wantPanic       error
 	}{
 		{
-			name:       "nil source list",
-			sourceList: nil,
-			wantPanic:  errors.New("nil sources"),
+			name:            "nil property sources",
+			propertySources: nil,
+			wantPanic:       errors.New("nil property sources"),
 		},
 		{
-			name:       "with source list",
-			sourceList: SourcesAsList(NewMapSource("anyMapName", map[string]any{"anyKey": "anyValue"})),
-			wantPanic:  nil,
+			name:            "with source list",
+			propertySources: NewPropertySources(NewMapPropertySource("anyMapName", map[string]any{"anyKey": "anyValue"})),
+			wantPanic:       nil,
 		},
 	}
 
@@ -46,12 +47,12 @@ func TestNewMultiSourceResolver(t *testing.T) {
 			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					NewMultiSourceResolver(tc.sourceList)
+					NewDefaultPropertyResolver(tc.propertySources)
 				})
 				return
 			}
 
-			resolver := NewMultiSourceResolver(tc.sourceList)
+			resolver := NewDefaultPropertyResolver(tc.propertySources)
 
 			// then
 			require.NotNil(t, resolver)
@@ -59,65 +60,26 @@ func TestNewMultiSourceResolver(t *testing.T) {
 	}
 }
 
-func TestMultiSourceResolver_ContainsProperty(t *testing.T) {
+func TestDefaultPropertyResolver_Lookup(t *testing.T) {
 	testCases := []struct {
-		name        string
-		sources     []Source
-		propertyKey string
-		wantResult  bool
+		name            string
+		propertySources []PropertySource
+		propertyKey     string
+		wantExists      bool
+		wantValue       any
 	}{
 		{
 			name: "property does not exist",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{"anyKey": "anyValue"}),
-			},
-			propertyKey: "anotherKey",
-			wantResult:  false,
-		},
-		{
-			name: "property exists",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{"anyKey": "anyValue"}),
-			},
-			propertyKey: "anyKey",
-			wantResult:  true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			resolver := NewMultiSourceResolver(SourcesAsList(tc.sources...))
-
-			// when
-			result := resolver.ContainsProperty(tc.propertyKey)
-
-			// then
-			assert.Equal(t, tc.wantResult, result)
-		})
-	}
-}
-
-func TestMultiSourceResolver_Property(t *testing.T) {
-	testCases := []struct {
-		name        string
-		sources     []Source
-		propertyKey string
-		wantExists  bool
-		wantValue   any
-	}{
-		{
-			name: "property does not exist",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{"anyKey": "anyValue"}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{"anyKey": "anyValue"}),
 			},
 			propertyKey: "anotherKey",
 			wantExists:  false,
 		},
 		{
 			name: "property exists",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{"anyKey": "anyValue"}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{"anyKey": "anyValue"}),
 			},
 			propertyKey: "anyKey",
 			wantExists:  true,
@@ -128,10 +90,11 @@ func TestMultiSourceResolver_Property(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			resolver := NewMultiSourceResolver(SourcesAsList(tc.sources...))
+			propertySources := NewPropertySources(tc.propertySources...)
+			resolver := NewDefaultPropertyResolver(propertySources)
 
 			// when
-			val, exists := resolver.Property(tc.propertyKey)
+			val, exists := resolver.Lookup(tc.propertyKey)
 
 			// then
 			assert.Equal(t, tc.wantExists, exists)
@@ -140,19 +103,19 @@ func TestMultiSourceResolver_Property(t *testing.T) {
 	}
 }
 
-func TestMultiSourceResolver_PropertyOrDefault(t *testing.T) {
+func TestDefaultPropertyResolver_LookupOrDefault(t *testing.T) {
 	testCases := []struct {
-		name         string
-		sources      []Source
-		propertyKey  string
-		defaultValue any
-		wantExists   bool
-		wantValue    any
+		name            string
+		propertySources []PropertySource
+		propertyKey     string
+		defaultValue    any
+		wantExists      bool
+		wantValue       any
 	}{
 		{
 			name: "property does not exist",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{"anyKey": "anyValue"}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{"anyKey": "anyValue"}),
 			},
 			propertyKey:  "anotherKey",
 			defaultValue: "anotherValue",
@@ -161,8 +124,8 @@ func TestMultiSourceResolver_PropertyOrDefault(t *testing.T) {
 		},
 		{
 			name: "property exists",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{"anyKey": "anyValue"}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{"anyKey": "anyValue"}),
 			},
 			propertyKey:  "anyKey",
 			defaultValue: "anotherValue",
@@ -174,10 +137,11 @@ func TestMultiSourceResolver_PropertyOrDefault(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			resolver := NewMultiSourceResolver(SourcesAsList(tc.sources...))
+			propertySources := NewPropertySources(tc.propertySources...)
+			resolver := NewDefaultPropertyResolver(propertySources)
 
 			// when
-			val := resolver.PropertyOrDefault(tc.propertyKey, tc.defaultValue)
+			val := resolver.LookupOrDefault(tc.propertyKey, tc.defaultValue)
 
 			// then
 			assert.Equal(t, tc.wantValue, val)
@@ -185,41 +149,41 @@ func TestMultiSourceResolver_PropertyOrDefault(t *testing.T) {
 	}
 }
 
-func TestMultiSourceResolver_ResolvePlaceholders(t *testing.T) {
+func TestDefaultPropertyResolver_Expand(t *testing.T) {
 	testCases := []struct {
-		name       string
-		sources    []Source
-		text       string
-		wantResult string
+		name            string
+		propertySources []PropertySource
+		text            string
+		wantResult      string
 	}{
 		{
 			name: "no placeholders resolved",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{}),
 			},
 			text:       "Server running on ${host}:${port} with profile ${environment}",
 			wantResult: "Server running on ${host}:${port} with profile ${environment}",
 		},
 		{
 			name: "empty placeholder",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{}),
 			},
 			text:       "Server running on ${}",
 			wantResult: "Server running on ${}",
 		},
 		{
 			name: "unterminated placeholder",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{}),
 			},
 			text:       "Server running on ${",
 			wantResult: "Server running on ${",
 		},
 		{
 			name: "num without curly braces",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"123": "test",
 				}),
 			},
@@ -228,8 +192,8 @@ func TestMultiSourceResolver_ResolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "characters without curly braces",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"AnyKey": "test",
 				}),
 			},
@@ -238,8 +202,8 @@ func TestMultiSourceResolver_ResolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "alpha num without curly braces",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"Any123": "anyValue",
 				}),
 			},
@@ -248,8 +212,8 @@ func TestMultiSourceResolver_ResolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "partial placeholders resolved",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"host":        "127.0.0.1",
 					"environment": "dev",
 				}),
@@ -259,8 +223,8 @@ func TestMultiSourceResolver_ResolvePlaceholders(t *testing.T) {
 		},
 		{
 			name: "all placeholders resolved",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"host":        "127.0.0.1",
 					"port":        8090,
 					"environment": "dev",
@@ -274,10 +238,11 @@ func TestMultiSourceResolver_ResolvePlaceholders(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			resolver := NewMultiSourceResolver(SourcesAsList(tc.sources...))
+			propertySources := NewPropertySources(tc.propertySources...)
+			resolver := NewDefaultPropertyResolver(propertySources)
 
 			// when
-			result := resolver.ResolvePlaceholders(tc.text)
+			result := resolver.Expand(tc.text)
 
 			// then
 			assert.Equal(t, tc.wantResult, result)
@@ -285,18 +250,18 @@ func TestMultiSourceResolver_ResolvePlaceholders(t *testing.T) {
 	}
 }
 
-func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
+func TestDefaultPropertyResolver_ExpandStrict(t *testing.T) {
 	testCases := []struct {
-		name       string
-		sources    []Source
-		text       string
-		wantResult string
-		wantErr    error
+		name            string
+		propertySources []PropertySource
+		text            string
+		wantResult      string
+		wantErr         error
 	}{
 		{
 			name: "no placeholders resolved",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{}),
 			},
 			text:       "Server running on ${host}:${port} with profile ${environment}",
 			wantResult: "Server running on ${host}:${port} with profile ${environment}",
@@ -304,8 +269,8 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 		},
 		{
 			name: "empty placeholder",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{}),
 			},
 			text:       "Server running on ${}",
 			wantResult: "Server running on ${}",
@@ -313,8 +278,8 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 		},
 		{
 			name: "unterminated placeholder",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{}),
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{}),
 			},
 			text:       "Server running on ${",
 			wantResult: "Server running on ${",
@@ -322,8 +287,8 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 		},
 		{
 			name: "num without curly braces",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"123": "test",
 				}),
 			},
@@ -332,8 +297,8 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 		},
 		{
 			name: "characters without curly braces",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"AnyKey": "test",
 				}),
 			},
@@ -342,8 +307,8 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 		},
 		{
 			name: "alpha num without curly braces",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"Any123": "anyValue",
 				}),
 			},
@@ -352,8 +317,8 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 		},
 		{
 			name: "partial placeholders resolved",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"host":        "127.0.0.1",
 					"environment": "dev",
 				}),
@@ -364,8 +329,8 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 		},
 		{
 			name: "all placeholders resolved",
-			sources: []Source{
-				NewMapSource("anyMapName", map[string]any{
+			propertySources: []PropertySource{
+				NewMapPropertySource("anyMapName", map[string]any{
 					"host":        "127.0.0.1",
 					"port":        8090,
 					"environment": "dev",
@@ -380,10 +345,11 @@ func TestMultiSourceResolver_ResolveRequiredPlaceholders(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			resolver := NewMultiSourceResolver(SourcesAsList(tc.sources...))
+			propertySources := NewPropertySources(tc.propertySources...)
+			resolver := NewDefaultPropertyResolver(propertySources)
 
 			// when
-			result, err := resolver.ResolveRequiredPlaceholders(tc.text)
+			result, err := resolver.ExpandStrict(tc.text)
 
 			// then
 			if tc.wantErr != nil {

@@ -16,71 +16,63 @@ package config
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	stdio "io"
+
+	"codnect.io/procyon/io"
+	"gopkg.in/yaml.v3"
 )
 
-// Loader is an interface that represents a configuration loader.
-// It provides methods to check if a resource is loadable and to load configurations from a resource.
-type Loader interface {
-	// IsLoadable method checks if a resource is loadable by the loader.
-	IsLoadable(resource Resource) bool
-	// Load method loads configurations from a resource.
-	Load(ctx context.Context, resource Resource) (*Data, error)
+type PropertySourceLoader interface {
+	Extensions() []string
+	Load(ctx context.Context, name string, resource io.Resource) (PropertySource, error)
 }
 
-// DefaultLoader is a struct that represents a file loader.
-type DefaultLoader struct {
+// YamlPropertySourceLoader struct is an implementation of the PropertySourceLoader interface for YAML contents.
+type YamlPropertySourceLoader struct {
 }
 
-// NewDefaultLoader function creates a new DefaultLoader.
-func NewDefaultLoader() *DefaultLoader {
-	return &DefaultLoader{}
+// NewYamlPropertySourceLoader function creates a new YamlSourceLoader.
+func NewYamlPropertySourceLoader() *YamlPropertySourceLoader {
+	return &YamlPropertySourceLoader{}
 }
 
-// IsLoadable method checks if a resource is a file resource.
-// It returns true if the resource is a file resource, false otherwise.
-func (l *DefaultLoader) IsLoadable(resource Resource) bool {
-	if resource == nil {
-		return false
-	}
-
-	if resource.PropertySourceLoader() == nil {
-		return false
-	}
-
-	return resource.Exists()
+// Extensions method returns the file extensions supported by the YamlSourceLoader.
+func (l *YamlPropertySourceLoader) Extensions() []string {
+	return []string{"yaml", "yml"}
 }
 
-// Load method loads configurations from a file resource.
-// It returns a configuration and an error if the loading fails.
-func (l *DefaultLoader) Load(ctx context.Context, resource Resource) (*Data, error) {
+// Load method loads a config source from a resource.
+func (l *YamlPropertySourceLoader) Load(ctx context.Context, name string, resource io.Resource) (PropertySource, error) {
 	if ctx == nil {
-		return nil, errors.New("nil context")
+		return nil, fmt.Errorf("nil context")
+	}
+
+	if name == "" {
+		return nil, fmt.Errorf("empty source name")
 	}
 
 	if resource == nil {
-		return nil, errors.New("nil resource")
+		return nil, fmt.Errorf("nil resource")
 	}
 
-	loader := resource.PropertySourceLoader()
-	if loader == nil {
-		return nil, errors.New("nil resource loader")
+	loaded := make(map[string]any)
+
+	reader, err := resource.Reader()
+	if err != nil {
+		return nil, err
 	}
 
-	if !resource.Exists() {
-		return nil, errors.New("no resource found")
+	var data []byte
+	data, err = stdio.ReadAll(reader)
+	if err != nil {
+		return nil, err
 	}
 
-	reader, readerErr := resource.Reader()
-	if readerErr != nil {
-		return nil, readerErr
+	err = yaml.Unmarshal(data, &loaded)
+	if err != nil {
+		return nil, err
 	}
 
-	defer reader.Close()
-	source, loadErr := loader.Load(resource.Location(), reader)
-	if loadErr != nil {
-		return nil, loadErr
-	}
-
-	return NewData(source), nil
+	return NewMapPropertySource(name, loaded), nil
 }

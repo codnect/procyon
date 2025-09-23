@@ -15,265 +15,205 @@
 package config
 
 import (
-	"codnect.io/procyon/runtime/property"
 	"context"
 	"errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"io"
+	stdio "io"
+	"io/fs"
 	"testing"
+
+	"codnect.io/procyon/io"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-type AnyPropertySourceLoader struct {
-	mock.Mock
+type FakeFile struct {
+	contents string
+	offset   int
+	readErr  error
+	fileInfo fs.FileInfo
 }
 
-func (a *AnyPropertySourceLoader) Extensions() []string {
-	result := a.Called()
-	extensions := result.Get(0)
-	if extensions == nil {
-		return nil
+func (f *FakeFile) Reset() *FakeFile {
+	f.offset = 0
+	return f
+}
+
+func (f *FakeFile) Stat() (fs.FileInfo, error) {
+	return f.fileInfo, nil
+}
+
+func (f *FakeFile) Read(p []byte) (int, error) {
+	if f.readErr != nil {
+		return 0, f.readErr
 	}
-
-	return extensions.([]string)
-}
-
-func (a *AnyPropertySourceLoader) Load(name string, reader io.Reader) (property.Source, error) {
-	result := a.Called(name, reader)
-	source := result.Get(0)
-	if source == nil {
-		return nil, result.Error(1)
+	if f.offset >= len(f.contents) {
+		return 0, stdio.EOF
 	}
-
-	return source.(property.Source), result.Error(1)
+	n := copy(p, f.contents[f.offset:])
+	f.offset += n
+	return n, nil
 }
 
-type AnyConfigLoader struct {
-	mock.Mock
+func (f *FakeFile) Close() error {
+	return nil
 }
 
-func (a *AnyConfigLoader) IsLoadable(resource Resource) bool {
-	result := a.Called(resource)
-	return result.Bool(0)
+type AnyResource struct {
+	name     string
+	location string
+	exists   bool
+	err      error
+	reader   stdio.ReadCloser
 }
 
-func (a *AnyConfigLoader) Load(ctx context.Context, resource Resource) (*Data, error) {
-	result := a.Called(ctx, resource)
-	data := result.Get(0)
-	if data == nil {
-		return nil, result.Error(1)
+func (a *AnyResource) Name() string {
+	return a.name
+}
+
+func (a *AnyResource) Location() string {
+	return a.location
+}
+
+func (a *AnyResource) Exists() bool {
+	return a.exists
+}
+
+func (a *AnyResource) Reader() (stdio.ReadCloser, error) {
+	if a.err != nil {
+		return nil, a.err
 	}
-
-	return data.(*Data), nil
+	return a.reader, nil
 }
 
-func TestDefaultLoader_IsLoadable(t *testing.T) {
+func TestYamlPropertySourceLoader_Extensions(t *testing.T) {
+	// given
+	loader := NewYamlPropertySourceLoader()
+
+	// when
+	extensions := loader.Extensions()
+
+	// then
+	assert.Equal(t, []string{"yaml", "yml"}, extensions)
+}
+
+func TestYamlPropertySourceLoader_Load(t *testing.T) {
+
 	testCases := []struct {
-		name         string
-		preCondition func(anyDirFs *AnyDirFs) Resource
-		path         string
-		wantResult   bool
+		name           string
+		ctx            context.Context
+		sourceName     string
+		resource       io.Resource
+		wantErr        error
+		wantProperties map[string]string
 	}{
 		{
-			name: "nil resource",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				return nil
-			},
-			wantResult: false,
+			name:       "nil context",
+			ctx:        nil,
+			sourceName: "anySourceName",
+			wantErr:    errors.New("nil context"),
+			resource:   nil,
 		},
 		{
-			name: "nil property source loader",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				return newURLResource(nil, "", nil)
-			},
-			wantResult: false,
+			name:       "empty source name",
+			ctx:        context.Background(),
+			sourceName: "",
+			wantErr:    errors.New("empty source name"),
+			resource:   io.NewFileResource("resources/procyon.yaml"),
 		},
 		{
-			name: "resource does not exist",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				anyDirFs.On("Stat", "resources/procyon.yml").
-					Return(nil, errors.New("no file")).Once()
-
-				return newFileResource(anyDirFs, "procyon.yml", "resources/", "", property.NewYamlSourceLoader())
-			},
-			path:       "resources/",
-			wantResult: false,
+			name:       "nil resource",
+			ctx:        context.Background(),
+			sourceName: "anySourceName",
+			wantErr:    errors.New("nil resource"),
+			resource:   nil,
 		},
 		{
-			name: "resource exists",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				fileInfo := &AnyFileInfo{}
-				anyDirFs.On("Stat", "resources/procyon.yaml").
-					Return(fileInfo, nil).Once()
-
-				return newFileResource(anyDirFs, "procyon.yaml", "resources/", "", property.NewYamlSourceLoader())
+			name:       "invalid yaml",
+			ctx:        context.Background(),
+			sourceName: "anySourceName",
+			resource: &AnyResource{
+				reader: &FakeFile{
+					contents: "version 2.1\njobs:\n  image: 'nginx:latest'",
+				},
 			},
-			path:       "resources/",
-			wantResult: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			loader := NewDefaultLoader()
-
-			anyDirFs := &AnyDirFs{
-				dir: tc.path,
-			}
-
-			resource := tc.preCondition(anyDirFs)
-
-			// when
-			result := loader.IsLoadable(resource)
-
-			// then
-			assert.Equal(t, tc.wantResult, result)
-		})
-	}
-}
-
-func TestDefaultLoader_Load(t *testing.T) {
-	testCases := []struct {
-		name         string
-		preCondition func(anyDirFs *AnyDirFs) Resource
-		ctx          context.Context
-		path         string
-		wantErr      error
-		wantConfig   map[string]any
-	}{
-		{
-			name: "nil context",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				return newURLResource(nil, "", nil)
-			},
-			wantErr: errors.New("nil context"),
+			wantErr: errors.New("yaml: line 2: mapping values are not allowed in this context"),
 		},
 		{
-			name: "nil resource",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				return nil
+			name:       "reader error",
+			ctx:        context.Background(),
+			sourceName: "anySourceName",
+			resource: &AnyResource{
+				err: errors.New("reader error"),
 			},
-			ctx:     context.Background(),
-			wantErr: errors.New("nil resource"),
-		},
-		{
-			name: "nil property source loader",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				return newURLResource(nil, "", nil)
-			},
-			ctx:     context.Background(),
-			wantErr: errors.New("nil resource loader"),
-		},
-		{
-			name: "no resource found",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				anyDirFs.On("Stat", "resources/procyon.yml").
-					Return(nil, errors.New("no file")).Once()
-
-				return newFileResource(anyDirFs, "procyon.yml", "resources/procyon.yaml", "", property.NewYamlSourceLoader())
-			},
-			ctx:     context.Background(),
-			path:    "resources/",
-			wantErr: errors.New("no resource found"),
-			wantConfig: map[string]any{
-				"anyKey": "anyValue",
-			},
-		},
-		{
-			name: "reader error",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				fileInfo := &AnyFileInfo{}
-				anyDirFs.On("Stat", "resources/procyon.yaml").
-					Return(fileInfo, nil).Once()
-
-				anyDirFs.On("Open", "resources/procyon.yaml").
-					Return(nil, errors.New("reader error")).Once()
-
-				return newFileResource(anyDirFs, "procyon.yaml", "resources/procyon.yaml", "", property.NewYamlSourceLoader())
-			},
-			ctx:     context.Background(),
-			path:    "resources/",
 			wantErr: errors.New("reader error"),
 		},
 		{
-			name: "load error",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				fileInfo := &AnyFileInfo{}
-				anyDirFs.On("Stat", "resources/procyon.yaml").
-					Return(fileInfo, nil).Once()
-
-				fakeFile := &FakeFile{}
-				anyDirFs.On("Open", "resources/procyon.yaml").
-					Return(fakeFile, nil).Once()
-
-				anyLoader := &AnyPropertySourceLoader{}
-				anyLoader.On("Load", "resources/procyon.yaml", fakeFile).
-					Return(nil, errors.New("load error")).Once()
-
-				return newFileResource(anyDirFs, "procyon.yaml", "resources/procyon.yaml", "", anyLoader)
+			name:       "read error",
+			ctx:        context.Background(),
+			sourceName: "anySourceName",
+			resource: &AnyResource{
+				reader: &FakeFile{
+					readErr: errors.New("read error"),
+				},
 			},
-			ctx:     context.Background(),
-			path:    "resources/",
-			wantErr: errors.New("load error"),
+			wantErr: errors.New("read error"),
 		},
 		{
-			name: "load config data",
-			preCondition: func(anyDirFs *AnyDirFs) Resource {
-				fileInfo := &AnyFileInfo{}
-				anyDirFs.On("Stat", "resources/procyon.yaml").
-					Return(fileInfo, nil).Once()
-
-				fakeFile := &FakeFile{}
-				anyDirFs.On("Open", "resources/procyon.yaml").
-					Return(fakeFile, nil).Once()
-
-				anyLoader := &AnyPropertySourceLoader{}
-				anyMapSource := property.NewMapSource("anyMapName", map[string]any{
-					"anyKey": "anyValue",
-				})
-				anyLoader.On("Load", "resources/procyon.yaml", fakeFile).
-					Return(anyMapSource, nil).Once()
-
-				return newFileResource(anyDirFs, "procyon.yaml", "resources/procyon.yaml", "", anyLoader)
+			name:       "valid yaml",
+			ctx:        context.Background(),
+			sourceName: "anySourceName",
+			resource: &AnyResource{
+				reader: &FakeFile{
+					contents: "version: 2.1\njobs:\n  image: nginx:latest",
+				},
 			},
-			ctx:     context.Background(),
-			path:    "resources/",
-			wantErr: nil,
+			wantProperties: map[string]string{
+				"version":    "2.1",
+				"jobs.image": "nginx:latest",
+			},
+		},
+		{
+			name:       "valid yaml with array",
+			ctx:        context.Background(),
+			sourceName: "anySourceName",
+			resource: &AnyResource{
+				reader: &FakeFile{
+					contents: "version: 2.1\njobs:\n  build:\n    docker:\n      image: cimg/base:2023.03\n    steps:\n      - checkout\n      - echo \"this is the build job\"",
+				},
+			},
+			wantProperties: map[string]string{
+				"version":                 "2.1",
+				"jobs.build.docker.image": "cimg/base:2023.03",
+				"jobs.build.steps.0":      "checkout",
+				"jobs.build.steps.1":      "echo \"this is the build job\"",
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			loader := NewDefaultLoader()
-
-			anyDirFs := &AnyDirFs{
-				dir: tc.path,
-			}
-
-			resource := tc.preCondition(anyDirFs)
+			loader := NewYamlPropertySourceLoader()
 
 			// when
-			data, err := loader.Load(tc.ctx, resource)
+
+			propSource, err := loader.Load(tc.ctx, tc.sourceName, tc.resource)
 
 			// then
 			if tc.wantErr != nil {
-				require.Nil(t, data)
+				require.Nil(t, propSource)
 
 				require.Error(t, err)
 				require.EqualError(t, err, tc.wantErr.Error())
 				return
 			}
 
-			assert.NotNil(t, data)
-			assert.NotNil(t, data.PropertySource())
+			require.NotNil(t, propSource)
 
-			for wantKey, wantVal := range tc.wantConfig {
-				val, exists := data.PropertySource().Property(wantKey)
+			for wantKey, wantValue := range tc.wantProperties {
+				value, exists := propSource.Value(wantKey)
 				assert.True(t, exists)
-				assert.Equal(t, wantVal, val)
+				assert.Equal(t, wantValue, value)
 			}
 		})
 	}
