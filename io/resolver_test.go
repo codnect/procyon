@@ -17,9 +17,10 @@ package io
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestDefaultResourceResolver_Resolve(t *testing.T) {

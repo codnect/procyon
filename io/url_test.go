@@ -17,7 +17,6 @@ package io
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net"
 	"net/http"
@@ -26,6 +25,8 @@ import (
 	"os"
 	"syscall"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestURLResource_Name(t *testing.T) {
