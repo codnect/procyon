@@ -18,7 +18,7 @@ import (
 	"os"
 	"strings"
 
-	"codnect.io/procyon/runtime/property"
+	"codnect.io/procyon/runtime/config"
 )
 
 // Environment interface represents the application environment.
@@ -46,9 +46,9 @@ type Environment interface {
 	// The property sources of the given environment will be added to this environment.
 	Merge(other Environment) error
 	// PropertySources returns the property sources.
-	PropertySources() *property.SourceList
+	PropertySources() *config.PropertySources
 	// PropertyResolver returns the property resolver.
-	PropertyResolver() property.Resolver
+	PropertyResolver() config.PropertyResolver
 }
 
 // EnvironmentCapable is an interface that indicates the ability to
@@ -84,34 +84,14 @@ func (s *EnvPropertySource) Name() string {
 	return "systemEnvironment"
 }
 
-// Underlying returns the underlying source object.
-func (s *EnvPropertySource) Underlying() any {
-	copyOfVariables := make(map[string]string)
-	for key, value := range s.variables {
-		copyOfVariables[key] = value
-	}
-
-	return copyOfVariables
+// Origin returns the underlying source object.
+func (s *EnvPropertySource) Origin() string {
+	return "os.Environ()"
 }
 
-// ContainsProperty method checks whether the environment property with the given name exists.
-func (s *EnvPropertySource) ContainsProperty(name string) bool {
-	_, exists := s.checkPropertyName(strings.ToUpper(name))
-	if exists {
-		return true
-	}
-
-	_, exists = s.checkPropertyName(strings.ToLower(name))
-	if exists {
-		return true
-	}
-
-	return false
-}
-
-// Property method returns the value of the environment property with the given name.
-func (s *EnvPropertySource) Property(name string) (any, bool) {
-	propertyName, exists := s.checkPropertyName(strings.ToLower(name))
+// Value method returns the value of the environment property with the given key.
+func (s *EnvPropertySource) Value(key string) (any, bool) {
+	propertyName, exists := s.checkPropertyName(strings.ToLower(key))
 
 	if exists {
 		if value, ok := s.variables[propertyName]; ok {
@@ -119,7 +99,7 @@ func (s *EnvPropertySource) Property(name string) (any, bool) {
 		}
 	}
 
-	propertyName, exists = s.checkPropertyName(strings.ToUpper(name))
+	propertyName, exists = s.checkPropertyName(strings.ToUpper(key))
 
 	if exists {
 		if value, ok := s.variables[propertyName]; ok {
@@ -130,10 +110,10 @@ func (s *EnvPropertySource) Property(name string) (any, bool) {
 	return nil, false
 }
 
-// PropertyOrDefault returns the value of the given environment property name from the source.
+// ValueOrDefault returns the value of the given environment property key from the source.
 // If the environment property does not exist, it returns the default value.
-func (s *EnvPropertySource) PropertyOrDefault(name string, defaultValue any) any {
-	value, ok := s.Property(name)
+func (s *EnvPropertySource) ValueOrDefault(key string, defaultValue any) any {
+	value, ok := s.Value(key)
 
 	if !ok {
 		return defaultValue
@@ -142,7 +122,7 @@ func (s *EnvPropertySource) PropertyOrDefault(name string, defaultValue any) any
 	return value
 }
 
-// PropertyNames method returns the names of the environment properties.
+// PropertyNames method returns the keys of the environment properties.
 func (s *EnvPropertySource) PropertyNames() []string {
 	keys := make([]string, 0, len(s.variables))
 

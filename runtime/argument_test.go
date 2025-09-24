@@ -17,9 +17,10 @@ package runtime
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -244,7 +245,7 @@ func TestArgsPropertySource_Name(t *testing.T) {
 	assert.Equal(t, "commandLineArgs", name)
 }
 
-func TestArgsPropertySource_Underlying(t *testing.T) {
+func TestArgsPropertySource_Origin(t *testing.T) {
 	// given
 	args, err := ParseArgs([]string{})
 	require.NoError(t, err)
@@ -252,63 +253,14 @@ func TestArgsPropertySource_Underlying(t *testing.T) {
 	argsPropSource := NewArgsPropertySource(args)
 
 	// when
-	underlying := argsPropSource.Underlying()
+	origin := argsPropSource.Origin()
 
 	// then
-	assert.NotNil(t, underlying)
+	assert.NotNil(t, origin)
+	assert.Equal(t, "commandLineArgs", origin)
 }
 
-func TestArgsPropertySource_ContainsProperty(t *testing.T) {
-	testCases := []struct {
-		name       string
-		args       []string
-		propName   string
-		wantResult bool
-	}{
-		{
-			name:       "option does not exist",
-			args:       []string{"argKey1", "-argKey2", "--argKey3=arg3Val"},
-			propName:   "argKey4",
-			wantResult: false,
-		},
-		{
-			name:       "non-option args",
-			args:       []string{"argKey1", "-argKey2", "--argKey3=arg3Val"},
-			propName:   NonOptionArgs,
-			wantResult: true,
-		},
-		{
-			name:       "no non-option args",
-			args:       []string{"--argKey3=arg3Val"},
-			propName:   NonOptionArgs,
-			wantResult: false,
-		},
-		{
-			name:       "option exists",
-			args:       []string{"--argKey3=arg3Val"},
-			propName:   "argKey3",
-			wantResult: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			args, err := ParseArgs(tc.args)
-			require.NoError(t, err)
-
-			argsPropSource := NewArgsPropertySource(args)
-
-			// when
-			result := argsPropSource.ContainsProperty(tc.propName)
-
-			// then
-			assert.Equal(t, tc.wantResult, result)
-		})
-	}
-}
-
-func TestArgsPropertySource_Property(t *testing.T) {
+func TestArgsPropertySource_Value(t *testing.T) {
 	testCases := []struct {
 		name       string
 		args       []string
@@ -353,7 +305,7 @@ func TestArgsPropertySource_Property(t *testing.T) {
 			argsPropSource := NewArgsPropertySource(args)
 
 			// when
-			val, exists := argsPropSource.Property(tc.propName)
+			val, exists := argsPropSource.Value(tc.propName)
 
 			// then
 			assert.Equal(t, tc.wantExists, exists)
@@ -362,7 +314,7 @@ func TestArgsPropertySource_Property(t *testing.T) {
 	}
 }
 
-func TestArgsPropertySource_PropertyOrDefault(t *testing.T) {
+func TestArgsPropertySource_ValueOrDefault(t *testing.T) {
 	testCases := []struct {
 		name         string
 		args         []string
@@ -409,7 +361,7 @@ func TestArgsPropertySource_PropertyOrDefault(t *testing.T) {
 			argsPropSource := NewArgsPropertySource(args)
 
 			// when
-			val := argsPropSource.PropertyOrDefault(tc.propName, tc.defaultValue)
+			val := argsPropSource.ValueOrDefault(tc.propName, tc.defaultValue)
 
 			// then
 			assert.Equal(t, tc.wantValue, val)

@@ -16,7 +16,6 @@ package runtime
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -31,12 +30,30 @@ type Args struct {
 	nonOptsArgs []string
 }
 
-// newArgs function creates a new Args struct.
-func newArgs() *Args {
-	return &Args{
+// ParseArgs function parses the given and the command line arguments and returns an Args.
+func ParseArgs(args []string) (*Args, error) {
+	cmdLineArgs := &Args{
 		optArgs:     make(map[string][]string),
 		nonOptsArgs: make([]string, 0),
 	}
+
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "--") {
+			indexOfEqualSign := strings.Index(arg, "=")
+
+			if indexOfEqualSign == -1 {
+				return nil, fmt.Errorf("wrong argument format '%s'", arg)
+			} else {
+				cmdLineArgs.addOptionArgs(arg[2:indexOfEqualSign], arg[indexOfEqualSign+1:])
+			}
+
+		} else {
+			cmdLineArgs.addNonOptionArgs(arg)
+		}
+
+	}
+
+	return cmdLineArgs, nil
 }
 
 // OptionNames method returns the names of the option arguments.
@@ -79,39 +96,6 @@ func (a *Args) addNonOptionArgs(value string) {
 	a.nonOptsArgs = append(a.nonOptsArgs, value)
 }
 
-// mergeArguments function merges the command line arguments with the given arguments.
-func mergeArguments(args ...string) []string {
-	osArgs := os.Args[1:]
-	merged := make([]string, 0, len(osArgs)+len(args))
-	merged = append(merged, osArgs...)
-	merged = append(merged, args...)
-	return merged
-}
-
-// ParseArgs function parses the given and the command line arguments and returns an Args.
-func ParseArgs(args []string) (*Args, error) {
-	mergedArgs := mergeArguments(args...)
-	cmdLineArgs := newArgs()
-
-	for _, arg := range mergedArgs {
-		if strings.HasPrefix(arg, "--") {
-			indexOfEqualSign := strings.Index(arg, "=")
-
-			if indexOfEqualSign == -1 {
-				return nil, fmt.Errorf("wrong argument format '%s'", arg)
-			} else {
-				cmdLineArgs.addOptionArgs(arg[2:indexOfEqualSign], arg[indexOfEqualSign+1:])
-			}
-
-		} else {
-			cmdLineArgs.addNonOptionArgs(arg)
-		}
-
-	}
-
-	return cmdLineArgs, nil
-}
-
 // ArgsPropertySource struct represents a source of arguments.
 type ArgsPropertySource struct {
 	args *Args
@@ -133,23 +117,14 @@ func (s *ArgsPropertySource) Name() string {
 	return "commandLineArgs"
 }
 
-// Underlying returns the underlying source object.
-func (s *ArgsPropertySource) Underlying() any {
-	return s.args
+// Origin returns the underlying source object.
+func (s *ArgsPropertySource) Origin() string {
+	return s.Name()
 }
 
-// ContainsProperty method checks whether the argument with the given name exists.
-func (s *ArgsPropertySource) ContainsProperty(name string) bool {
-	if NonOptionArgs == name {
-		return len(s.args.NonOptionArgs()) != 0
-	}
-
-	return s.args.ContainsOption(name)
-}
-
-// Property method returns the value of the argument with the given name.
-func (s *ArgsPropertySource) Property(name string) (any, bool) {
-	if NonOptionArgs == name {
+// Value method returns the value of the argument with the given key.
+func (s *ArgsPropertySource) Value(key string) (any, bool) {
+	if NonOptionArgs == key {
 		nonOptValues := s.args.NonOptionArgs()
 
 		if len(nonOptValues) != 0 {
@@ -159,7 +134,7 @@ func (s *ArgsPropertySource) Property(name string) (any, bool) {
 		return nil, false
 	}
 
-	optValues := s.args.OptionValues(name)
+	optValues := s.args.OptionValues(key)
 
 	if optValues != nil {
 		return strings.Join(optValues, ","), true
@@ -168,10 +143,10 @@ func (s *ArgsPropertySource) Property(name string) (any, bool) {
 	return nil, false
 }
 
-// PropertyOrDefault returns the value of the given argument name from the source.
+// ValueOrDefault returns the value of the given argument key from the source.
 // If the argument does not exist, it returns the default value.
-func (s *ArgsPropertySource) PropertyOrDefault(name string, defaultValue any) any {
-	val, ok := s.Property(name)
+func (s *ArgsPropertySource) ValueOrDefault(key string, defaultValue any) any {
+	val, ok := s.Value(key)
 	if !ok {
 		return defaultValue
 	}
@@ -179,7 +154,7 @@ func (s *ArgsPropertySource) PropertyOrDefault(name string, defaultValue any) an
 	return val
 }
 
-// PropertyNames method returns the names of the arguments.
+// PropertyNames method returns the names of the option arguments.
 func (s *ArgsPropertySource) PropertyNames() []string {
 	return s.args.OptionNames()
 }

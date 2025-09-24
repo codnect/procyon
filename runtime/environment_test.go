@@ -15,10 +15,11 @@
 package runtime
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEnvPropertySource_Name(t *testing.T) {
@@ -32,91 +33,19 @@ func TestEnvPropertySource_Name(t *testing.T) {
 	assert.Equal(t, "systemEnvironment", name)
 }
 
-func TestEnvPropertySource_Underlying(t *testing.T) {
+func TestEnvPropertySource_Origin(t *testing.T) {
 	// given
 	envPropSource := NewEnvPropertySource()
 
 	// when
-	underlying := envPropSource.Underlying()
+	origin := envPropSource.Origin()
 
 	// then
-	assert.NotNil(t, underlying)
+	assert.NotNil(t, origin)
+	assert.Equal(t, "os.Environ()", origin)
 }
 
-func TestEnvPropertySource_ContainsProperty(t *testing.T) {
-	testCases := []struct {
-		name         string
-		preCondition func()
-		propName     string
-		wantResult   bool
-	}{
-		{
-			name:         "property does not exist",
-			preCondition: func() {},
-			propName:     "anyKey",
-			wantResult:   false,
-		},
-		{
-			name: "lowercase property",
-			preCondition: func() {
-				os.Setenv("any_key", "anyValue")
-			},
-			propName:   "ANY_KEY",
-			wantResult: true,
-		},
-		{
-			name: "uppercase property",
-			preCondition: func() {
-				os.Setenv("ANY_KEY", "anyValue")
-			},
-			propName:   "ANY_KEY",
-			wantResult: true,
-		},
-		{
-			name: "no hyphen property",
-			preCondition: func() {
-				os.Setenv("ANY_KEY", "anyValue")
-			},
-			propName:   "ANY-KEY",
-			wantResult: true,
-		},
-		{
-			name: "no dot property",
-			preCondition: func() {
-				os.Setenv("ANY_KEY", "anyValue")
-			},
-			propName:   "ANY.KEY",
-			wantResult: true,
-		},
-		{
-			name: "no hyphen and no dot property",
-			preCondition: func() {
-				os.Setenv("ANY_KEY_PAIR", "anyValue")
-			},
-			propName:   "ANY.KEY-PAIR",
-			wantResult: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-			if tc.preCondition != nil {
-				tc.preCondition()
-			}
-
-			envPropSource := NewEnvPropertySource()
-
-			// when
-			result := envPropSource.ContainsProperty(tc.propName)
-
-			// then
-			assert.Equal(t, tc.wantResult, result)
-		})
-	}
-}
-
-func TestEnvPropertySource_Property(t *testing.T) {
+func TestEnvPropertySource_Value(t *testing.T) {
 	testCases := []struct {
 		name         string
 		preCondition func()
@@ -187,7 +116,7 @@ func TestEnvPropertySource_Property(t *testing.T) {
 			envPropSource := NewEnvPropertySource()
 
 			// when
-			val, exists := envPropSource.Property(tc.propName)
+			val, exists := envPropSource.Value(tc.propName)
 
 			// then
 			require.Equal(t, tc.wantExists, exists)
@@ -200,7 +129,7 @@ func TestEnvPropertySource_Property(t *testing.T) {
 	}
 }
 
-func TestEnvPropertySource_PropertyOrDefault(t *testing.T) {
+func TestEnvPropertySource_ValueOrDefault(t *testing.T) {
 
 	testCases := []struct {
 		name         string
@@ -269,7 +198,7 @@ func TestEnvPropertySource_PropertyOrDefault(t *testing.T) {
 			envPropSource := NewEnvPropertySource()
 
 			// when
-			val := envPropSource.PropertyOrDefault(tc.propName, tc.defaultValue)
+			val := envPropSource.ValueOrDefault(tc.propName, tc.defaultValue)
 
 			// then
 			assert.Equal(t, tc.wantValue, val)
