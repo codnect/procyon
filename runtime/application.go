@@ -14,10 +14,32 @@
 
 package runtime
 
+import (
+	"codnect.io/procyon/component"
+	"context"
+)
+
 // Application defines the interface for an application.
 type Application interface {
 	// SetBannerPrinter sets the banner printer to use for displaying the application banner.
 	SetBannerPrinter(printer BannerPrinter)
 	// Run starts the application with the given command-line arguments.
 	Run(args ...string) error
+}
+
+// ApplicationContext represents the central runtime context of the application.
+type ApplicationContext interface {
+	context.Context
+
+	// Lifecycle interface provides start/stop lifecycle methods for the application context.
+	Lifecycle
+
+	// EnvironmentCapable interface provides access to the environment.
+	EnvironmentCapable
+
+	// ContainerCapable interface provides access to the component container.
+	component.ContainerCapable
+
+	// Refresh reloads the application context contents (environment, container)
+	Refresh() error
 }
