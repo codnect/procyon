@@ -14,8 +14,14 @@
 
 package runtime
 
-// CommandLineRunner interface allows creating a command-line application.
-type CommandLineRunner interface {
-	// Run method runs the command-line application with the given arguments.
-	Run(ctx ApplicationContext, args *Args) error
+import "context"
+
+// Lifecycle interface defines methods for managing the start/stop lifecycle of a component.
+type Lifecycle interface {
+	// Start starts this component.
+	Start(ctx context.Context) error
+	// Stop stops this component.
+	Stop(ctx context.Context) error
+	// IsRunning indicates whether this component is currently running.
+	IsRunning() bool
 }

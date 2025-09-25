@@ -14,8 +14,25 @@
 
 package runtime
 
-// CommandLineRunner interface allows creating a command-line application.
-type CommandLineRunner interface {
-	// Run method runs the command-line application with the given arguments.
-	Run(ctx ApplicationContext, args *Args) error
+import (
+	"context"
+
+	"codnect.io/procyon/component"
+)
+
+// ApplicationContext represents the central runtime context of the application.
+type ApplicationContext interface {
+	context.Context
+
+	// Lifecycle interface provides start/stop lifecycle methods for the application context.
+	Lifecycle
+
+	// EnvironmentCapable interface provides access to the environment.
+	EnvironmentCapable
+
+	// ContainerCapable interface provides access to the component container.
+	component.ContainerCapable
+
+	// Refresh reloads the application context contents (environment, container)
+	Refresh() error
 }
