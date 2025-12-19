@@ -16,8 +16,8 @@ package config
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -291,30 +291,70 @@ func (m *MapPropertySource) PropertyNames() []string {
 
 // flatMap flattens a nested map into a flat map with dot-separated keys.
 func flatMap(dst map[string]any, prefix string, propVal any) {
-	switch t := propVal.(type) {
-	case map[string]any:
-		keys := make([]string, 0, len(t))
-		for k := range t {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			child := t[k]
-			key := join(prefix, k)
-			flatMap(dst, key, child)
-		}
-	case []any:
-		for i, child := range t {
-			key := join(prefix, strconv.Itoa(i))
-			flatMap(dst, key, child)
-		}
-	case nil:
+	if propVal == nil {
 		if prefix != "" {
-			dst[prefix] = ""
+			dst[prefix] = nil
 		}
+
+		return
+	}
+
+	v := reflect.ValueOf(propVal)
+
+	switch v.Kind() {
+	case reflect.Map:
+		if v.IsNil() {
+			if prefix != "" {
+				dst[prefix] = nil
+			}
+			return
+		}
+
+		keys := v.MapKeys()
+		strKeys := make([]string, 0, len(keys))
+		keyIndex := make(map[string]reflect.Value, len(keys))
+
+		for _, k := range keys {
+			ks := ""
+			if k.IsValid() {
+				if k.Kind() == reflect.String {
+					ks = k.String()
+				} else {
+					ks = fmt.Sprint(k.Interface())
+				}
+			}
+			strKeys = append(strKeys, ks)
+			keyIndex[ks] = v.MapIndex(k)
+		}
+
+		if len(strKeys) == 0 {
+			if prefix != "" {
+				dst[prefix] = propVal
+			}
+
+			return
+		}
+
+		sort.Strings(strKeys)
+		for _, ks := range strKeys {
+			child := keyIndex[ks]
+			if child.IsValid() {
+				flatMap(dst, join(prefix, ks), child.Interface())
+			} else {
+				flatMap(dst, join(prefix, ks), nil)
+			}
+		}
+
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < v.Len(); i++ {
+			child := v.Index(i).Interface()
+			key := fmt.Sprintf("%s[%d]", prefix, i)
+			flatMap(dst, key, child)
+		}
+
 	default:
 		if prefix != "" {
-			dst[prefix] = fmt.Sprint(t)
+			dst[prefix] = propVal
 		}
 	}
 }

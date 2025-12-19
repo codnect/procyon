@@ -179,7 +179,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 		profiles     []string
 
 		wantErr        error
-		wantProperties map[string]string
+		wantProperties map[string]any
 	}{
 		{
 			name:    "nil context",
@@ -332,8 +332,8 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/",
-			wantProperties: map[string]string{
-				"version":    "2.1",
+			wantProperties: map[string]any{
+				"version":    2.1,
 				"jobs.image": "nginx:latest",
 			},
 		},
@@ -450,8 +450,8 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/procyon.yaml",
-			wantProperties: map[string]string{
-				"version":    "2.1",
+			wantProperties: map[string]any{
+				"version":    2.1,
 				"jobs.image": "nginx:latest",
 			},
 		},

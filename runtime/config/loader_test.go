@@ -104,7 +104,7 @@ func TestYamlPropertySourceLoader_Load(t *testing.T) {
 		sourceName     string
 		resource       io.Resource
 		wantErr        error
-		wantProperties map[string]string
+		wantProperties map[string]any
 	}{
 		{
 			name:       "nil context",
@@ -167,8 +167,8 @@ func TestYamlPropertySourceLoader_Load(t *testing.T) {
 					contents: "version: 2.1\njobs:\n  image: nginx:latest",
 				},
 			},
-			wantProperties: map[string]string{
-				"version":    "2.1",
+			wantProperties: map[string]any{
+				"version":    2.1,
 				"jobs.image": "nginx:latest",
 			},
 		},
@@ -181,11 +181,11 @@ func TestYamlPropertySourceLoader_Load(t *testing.T) {
 					contents: "version: 2.1\njobs:\n  build:\n    docker:\n      image: cimg/base:2023.03\n    steps:\n      - checkout\n      - echo \"this is the build job\"",
 				},
 			},
-			wantProperties: map[string]string{
-				"version":                 "2.1",
+			wantProperties: map[string]any{
+				"version":                 2.1,
 				"jobs.build.docker.image": "cimg/base:2023.03",
-				"jobs.build.steps.0":      "checkout",
-				"jobs.build.steps.1":      "echo \"this is the build job\"",
+				"jobs.build.steps[0]":     "checkout",
+				"jobs.build.steps[1]":     "echo \"this is the build job\"",
 			},
 		},
 	}

@@ -632,7 +632,7 @@ func TestMapPropertySource_Value(t *testing.T) {
 			},
 			propName:   "anyKey",
 			wantExists: true,
-			wantValue:  "",
+			wantValue:  nil,
 		},
 		{
 			name: "array property",
@@ -646,7 +646,7 @@ func TestMapPropertySource_Value(t *testing.T) {
 					"anotherArrayValue",
 				},
 			},
-			propName:   "anyArrayKey.0",
+			propName:   "anyArrayKey[0]",
 			wantExists: true,
 			wantValue:  "anyArrayValue",
 		},
