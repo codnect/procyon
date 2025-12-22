@@ -94,12 +94,12 @@ func TestNewDefaultBinder(t *testing.T) {
 			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					NewDefaultBinder(tc.propertySources)
+					NewDefaultPropertyBinder(tc.propertySources)
 				})
 				return
 			}
 
-			resolver := NewDefaultBinder(tc.propertySources)
+			resolver := NewDefaultPropertyBinder(tc.propertySources)
 
 			// then
 			require.NotNil(t, resolver)
@@ -847,7 +847,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			propSources := NewPropertySources(tc.propSource)
-			binder := NewDefaultBinder(propSources)
+			binder := NewDefaultPropertyBinder(propSources)
 
 			var target any
 			if tc.targetType != nil {

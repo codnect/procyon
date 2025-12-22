@@ -25,32 +25,32 @@ import (
 	"codnect.io/tag"
 )
 
-// Binder interface defines the method to bind configuration properties to a target.
-type Binder interface {
+// PropertyBinder interface defines the method to bind configuration properties to a target.
+type PropertyBinder interface {
 	// Bind method binds the properties with the given name to the target.
 	Bind(name string, target any) error
 }
 
-// DefaultBinder is the default implementation of the Binder interface.
-type DefaultBinder struct {
+// DefaultPropertyBinder is the default implementation of the PropertyBinder interface.
+type DefaultPropertyBinder struct {
 	propSources  *PropertySources
 	propResolver PropertyResolver
 }
 
-// NewDefaultBinder function creates a new DefaultBinder with the provided property sources.
-func NewDefaultBinder(propSources *PropertySources) *DefaultBinder {
+// NewDefaultPropertyBinder function creates a new DefaultPropertyBinder with the provided property sources.
+func NewDefaultPropertyBinder(propSources *PropertySources) *DefaultPropertyBinder {
 	if propSources == nil {
 		panic("nil property sources")
 	}
 
-	return &DefaultBinder{
+	return &DefaultPropertyBinder{
 		propSources:  propSources,
 		propResolver: NewDefaultPropertyResolver(propSources),
 	}
 }
 
 // Bind method binds the properties with the given name to the target.
-func (b *DefaultBinder) Bind(name string, target any) error {
+func (b *DefaultPropertyBinder) Bind(name string, target any) error {
 	if target == nil {
 		return errors.New("nil target")
 	}
@@ -69,7 +69,7 @@ func (b *DefaultBinder) Bind(name string, target any) error {
 }
 
 // findProperty method searches for the property with the given name in the property sources.
-func (b *DefaultBinder) findProperty(name string) (any, bool) {
+func (b *DefaultPropertyBinder) findProperty(name string) (any, bool) {
 	for _, source := range b.propSources.Slice() {
 		if value, ok := source.Value(name); ok {
 			return value, true
@@ -80,7 +80,7 @@ func (b *DefaultBinder) findProperty(name string) (any, bool) {
 }
 
 // bindValue method binds the value to the target based on its kind.
-func (b *DefaultBinder) bindValue(name string, targetVal reflect.Value) error {
+func (b *DefaultPropertyBinder) bindValue(name string, targetVal reflect.Value) error {
 	switch targetVal.Kind() {
 	case reflect.Map:
 		return b.bindMap(name, targetVal)
@@ -96,7 +96,7 @@ func (b *DefaultBinder) bindValue(name string, targetVal reflect.Value) error {
 }
 
 // bindAny method binds any property to the target.
-func (b *DefaultBinder) bindAny(name string, targetVal reflect.Value) error {
+func (b *DefaultPropertyBinder) bindAny(name string, targetVal reflect.Value) error {
 	propVal, ok := b.findProperty(name)
 	if !ok {
 		return ErrNoPropertyFound
@@ -107,7 +107,7 @@ func (b *DefaultBinder) bindAny(name string, targetVal reflect.Value) error {
 }
 
 // bindScalar method binds a scalar property to the target.
-func (b *DefaultBinder) bindScalar(name string, target reflect.Value) error {
+func (b *DefaultPropertyBinder) bindScalar(name string, target reflect.Value) error {
 	val, ok := b.findProperty(name)
 	if !ok {
 		return ErrNoPropertyFound
@@ -117,7 +117,7 @@ func (b *DefaultBinder) bindScalar(name string, target reflect.Value) error {
 }
 
 // bindSlice method binds a slice property to the target.
-func (b *DefaultBinder) bindSlice(name string, targetVal reflect.Value) error {
+func (b *DefaultPropertyBinder) bindSlice(name string, targetVal reflect.Value) error {
 	if v, ok := b.findProperty(name); ok {
 		err := b.setValue(targetVal, v)
 		if err != nil {
@@ -153,7 +153,7 @@ func (b *DefaultBinder) bindSlice(name string, targetVal reflect.Value) error {
 }
 
 // bindMap method binds a map property to the target.
-func (b *DefaultBinder) bindMap(name string, target reflect.Value) error {
+func (b *DefaultPropertyBinder) bindMap(name string, target reflect.Value) error {
 	if target.IsNil() {
 		target.Set(reflect.MakeMap(target.Type()))
 	}
@@ -187,7 +187,7 @@ func (b *DefaultBinder) bindMap(name string, target reflect.Value) error {
 }
 
 // bindStruct method binds struct properties to the target struct.
-func (b *DefaultBinder) bindStruct(name string, targetVal reflect.Value) error {
+func (b *DefaultPropertyBinder) bindStruct(name string, targetVal reflect.Value) error {
 	targetType := targetVal.Type()
 
 	for i := 0; i < targetType.NumField(); i++ {
@@ -242,7 +242,7 @@ func (b *DefaultBinder) bindStruct(name string, targetVal reflect.Value) error {
 	return nil
 }
 
-func (b *DefaultBinder) setValue(target reflect.Value, val any) error {
+func (b *DefaultPropertyBinder) setValue(target reflect.Value, val any) error {
 	source := reflect.ValueOf(val)
 
 	if source.Type().AssignableTo(target.Type()) {
@@ -266,7 +266,7 @@ func (b *DefaultBinder) setValue(target reflect.Value, val any) error {
 }
 
 // setScalar method sets a scalar value to the target based on its kind.
-func (b *DefaultBinder) setScalar(target reflect.Value, val any) error {
+func (b *DefaultPropertyBinder) setScalar(target reflect.Value, val any) error {
 	switch target.Kind() {
 	case reflect.Bool:
 		bVal, err := toBool(val)
@@ -301,7 +301,7 @@ func (b *DefaultBinder) setScalar(target reflect.Value, val any) error {
 	return nil
 }
 
-func (b *DefaultBinder) copySlice(target reflect.Value, source reflect.Value) error {
+func (b *DefaultPropertyBinder) copySlice(target reflect.Value, source reflect.Value) error {
 	if source.Kind() == reflect.String {
 		parts := strings.Split(source.String(), ",")
 		out := reflect.MakeSlice(target.Type(), 0, len(parts))
@@ -344,7 +344,7 @@ func (b *DefaultBinder) copySlice(target reflect.Value, source reflect.Value) er
 	return nil
 }
 
-func (b *DefaultBinder) copyMap(target reflect.Value, source reflect.Value) error {
+func (b *DefaultPropertyBinder) copyMap(target reflect.Value, source reflect.Value) error {
 	keyType := target.Type().Key()
 	valType := target.Type().Elem()
 
