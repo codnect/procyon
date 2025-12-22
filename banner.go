@@ -17,6 +17,8 @@ package procyon
 import (
 	"fmt"
 	"io"
+
+	"codnect.io/procyon/runtime"
 )
 
 var (
@@ -36,7 +38,7 @@ func NewBannerPrinter() *BannerPrinter {
 	return &BannerPrinter{}
 }
 
-func (b *BannerPrinter) PrintBanner(w io.Writer) error {
+func (b *BannerPrinter) Print(_ runtime.Environment, w io.Writer) error {
 	for _, line := range bannerText {
 		_, err := w.Write([]byte(line))
 		if err != nil {

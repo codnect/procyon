@@ -95,7 +95,7 @@ func TestBannerPrinter_PrintBanner(t *testing.T) {
 			bannerPrinter := NewBannerPrinter()
 
 			// when
-			err := bannerPrinter.PrintBanner(anyWriter)
+			err := bannerPrinter.Print(nil, anyWriter)
 
 			// then
 			if tc.wantErr != nil {

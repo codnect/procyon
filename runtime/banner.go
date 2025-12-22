@@ -18,6 +18,6 @@ import "io"
 
 // BannerPrinter interface represents a banner that can be printed to an io.Writer.
 type BannerPrinter interface {
-	// PrintBanner method prints the banner to the provided io.Writer.
-	PrintBanner(writer io.Writer) error
+	// Print method prints the banner to the provided io.Writer.
+	Print(env Environment, writer io.Writer) error
 }
