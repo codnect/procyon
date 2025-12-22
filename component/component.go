@@ -99,6 +99,33 @@ func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
 	}
 }
 
+// Load retrieves and constructs a component by its name, ensuring it matches the expected type T.
+// It returns an error if the component is not found, if there is a type mismatch, or if construction fails.
+func Load[T any](name string, args ...any) (T, error) {
+	muComponents.RLock()
+	defer muComponents.RUnlock()
+
+	var zeroVal T
+	component, exists := components[name]
+	if !exists {
+		return zeroVal, fmt.Errorf("component with name %q does not exists", name)
+	}
+
+	targetType := reflect.TypeFor[T]()
+	definition := component.Definition()
+	sourceType := definition.Type()
+	if !convertibleTo(sourceType, targetType) {
+		return zeroVal, fmt.Errorf("mismatched type for component with name %q", name)
+	}
+
+	out, err := definition.Constructor().Invoke(args...)
+	if err != nil {
+		return zeroVal, err
+	}
+
+	return out.(T), nil
+}
+
 // List returns all registered components as a slice.
 func List() []*Component {
 	muComponents.RLock()

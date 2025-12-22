@@ -75,17 +75,14 @@ func (f Constructor) Invoke(args ...any) (any, error) {
 		return nil, fmt.Errorf("invalid parameter count, expected %d but got %d", numIn, len(args))
 	}
 
-	var variadicType reflect.Type
 	inputs := make([]reflect.Value, 0)
-
-	if isVariadic {
-		variadicType = f.fnType.In(numIn - 1).Elem()
-	}
 
 	for index, arg := range args {
 		argType := reflect.TypeOf(arg)
 
 		if isVariadic && index >= numIn-1 {
+			variadicType := f.fnType.In(numIn - 1).Elem()
+
 			if arg == nil {
 				inputs = append(inputs, reflect.New(variadicType).Elem())
 				continue

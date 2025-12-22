@@ -16,6 +16,7 @@ package component
 
 import (
 	"context"
+	"errors"
 	"reflect"
 )
 
@@ -38,4 +39,58 @@ type Resolver interface {
 
 	// ResolveAll retrieves all instances assignable to the specified type.
 	ResolveAll(ctx context.Context, typ reflect.Type) ([]any, error)
+}
+
+// Resolve retrieves a component instance of type T from the container by its name.
+// It returns an error if the container is nil or if resolution fails.
+func Resolve[T any](ctx context.Context, container Container, name string) (T, error) {
+	var zeroVal T
+
+	if container == nil {
+		return zeroVal, errors.New("nil container")
+	}
+
+	instance, err := container.ResolveAs(ctx, name, reflect.TypeFor[T]())
+	if err != nil {
+		return zeroVal, err
+	}
+
+	return instance.(T), nil
+}
+
+// ResolveType retrieves a component instance of type T from the container by its type.
+// It returns an error if the container is nil or if resolution fails.
+func ResolveType[T any](ctx context.Context, container Container) (T, error) {
+	var zeroVal T
+
+	if container == nil {
+		return zeroVal, errors.New("nil container")
+	}
+
+	instance, err := container.ResolveType(ctx, reflect.TypeFor[T]())
+	if err != nil {
+		return zeroVal, err
+	}
+
+	return instance.(T), nil
+}
+
+// ResolveAll retrieves all component instances of type T from the container.
+// It returns an error if the container is nil or if resolution fails.
+func ResolveAll[T any](ctx context.Context, container Container) ([]T, error) {
+	if container == nil {
+		return nil, errors.New("nil container")
+	}
+
+	instances, err := container.ResolveAll(ctx, reflect.TypeFor[T]())
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]T, len(instances))
+	for index, instance := range instances {
+		result[index] = instance.(T)
+	}
+
+	return result, nil
 }
