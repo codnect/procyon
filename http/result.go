@@ -1,8 +1,6 @@
 package http
 
-import (
-	"io"
-)
+import "io"
 
 type Result interface {
 	StatusCode() Status
@@ -148,62 +146,149 @@ func Text(content, contentType string) Result {
 	return nil
 }
 
-type FileResult struct {
-	Content      []byte
-	ContentType  string
-	DownloadName string
-	Path         string
+type FileContentResult struct {
+	Bytes       []byte
+	Status      Status
+	ContentType string
+	FileName    string
+	//Disposition Disposition
+	Header map[string]string
 }
 
-func File(path string) Result {
-	return nil
+func FileContent(bytes []byte) Result {
+	return FileContentResult{
+		Bytes:  bytes,
+		Status: StatusOK,
+	}
 }
 
-func Attachment(path string, fileName string) Result {
-	return nil
+func (f FileContentResult) StatusCode() Status {
+	//TODO implement me
+	panic("implement me")
 }
 
-func Inline(path string, fileName string) Result {
-	return nil
+func (f FileContentResult) Body() any {
+	//TODO implement me
+	panic("implement me")
 }
 
-func Blob(content []byte, contentType string) Result {
-	return nil
+func (f FileContentResult) Headers() map[string]string {
+	//TODO implement me
+	panic("implement me")
 }
 
-func BlobInline(content []byte, contentType, fileName string) Result {
-	return nil
+type FileStreamResult struct {
+	Reader      io.Reader
+	Status      Status
+	ContentType string
+	FileName    string
+	//Disposition Disposition
+	Header map[string]string
 }
 
-func BlobAttachment(content []byte, contentType, fileName string) Result {
-	return nil
+func FileStream(reader io.Reader) Result {
+	return FileStreamResult{
+		Reader: reader,
+		Status: StatusOK,
+	}
+}
+
+func (f FileStreamResult) StatusCode() Status {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (f FileStreamResult) Body() any {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (f FileStreamResult) Headers() map[string]string {
+	//TODO implement me
+	panic("implement me")
+}
+
+type PhysicalFileResult struct {
+	Path        string
+	Status      Status
+	ContentType string
+	FileName    string
+	//Disposition Disposition
+	Header map[string]string
+}
+
+func PhysicalFile(path string) Result {
+	return PhysicalFileResult{}
+}
+
+func (f PhysicalFileResult) StatusCode() Status {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (f PhysicalFileResult) Body() any {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (f PhysicalFileResult) Headers() map[string]string {
+	//TODO implement me
+	panic("implement me")
+}
+
+type BytesResult struct {
+	Content     []byte
+	ContentType string
+	Status      Status
+	Header      map[string]string
+}
+
+func Bytes(content []byte, contentType string) Result {
+	return BytesResult{
+		Content:     content,
+		ContentType: contentType,
+		Status:      StatusOK,
+	}
+}
+
+func (b BytesResult) StatusCode() Status {
+	return b.Status
+}
+
+func (b BytesResult) Body() any {
+	return b.Content
+}
+
+func (b BytesResult) Headers() map[string]string {
+	return b.Header
+}
+
+type StreamResult struct {
+	Reader io.Reader
+	Status Status
+	header map[string]string
 }
 
 func Stream(reader io.Reader, contentType string) Result {
+	return StreamResult{
+		Reader: reader,
+		Status: StatusOK,
+		header: map[string]string{
+			HeaderContentType: contentType,
+		},
+	}
+}
+
+func (s StreamResult) StatusCode() Status {
+	return s.Status
+}
+
+func (s StreamResult) Body() any {
 	return nil
 }
 
-func StreamInline(reader io.Reader, contentType, fileName string) Result {
-	return nil
-}
-
-func StreamAttachment(reader io.Reader, contentType, fileName string) Result {
-	return nil
-}
-
-func (f FileResult) StatusCode() Status {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (f FileResult) Body() any {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (f FileResult) Headers() map[string]string {
-	//TODO implement me
-	panic("implement me")
+func (s StreamResult) Headers() map[string]string {
+	return s.header
 }
 
 type ViewResult struct {
