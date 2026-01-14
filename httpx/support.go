@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package http
+package httpx
 
 import "net/http"
 
@@ -160,7 +160,7 @@ func (code Status) String() string {
 	case StatusPermanentRedirect:
 		return "Permanent Redirect"
 	case StatusBadRequest:
-		return "Bad ServerRequest"
+		return "Bad Request"
 	case StatusUnauthorized:
 		return "Unauthorized"
 	case StatusPaymentRequired:
@@ -176,7 +176,7 @@ func (code Status) String() string {
 	case StatusProxyAuthRequired:
 		return "Proxy Authentication Required"
 	case StatusRequestTimeout:
-		return "ServerRequest Timeout"
+		return "Request Timeout"
 	case StatusConflict:
 		return "Conflict"
 	case StatusGone:
@@ -186,9 +186,9 @@ func (code Status) String() string {
 	case StatusPreconditionFailed:
 		return "Precondition Failed"
 	case StatusRequestEntityTooLarge:
-		return "ServerRequest Entity Too Large"
+		return "Request Entity Too Large"
 	case StatusRequestURITooLong:
-		return "ServerRequest-URI Too Long"
+		return "Request-URI Too Long"
 	case StatusUnsupportedMediaType:
 		return "Unsupported Media Type"
 	case StatusRequestedRangeNotSatisfiable:
@@ -198,7 +198,7 @@ func (code Status) String() string {
 	case StatusTeapot:
 		return "I'm a teapot"
 	case StatusMisdirectedRequest:
-		return "Misdirected ServerRequest"
+		return "Misdirected Request"
 	case StatusUnprocessableEntity:
 		return "Unprocessable Entity"
 	case StatusLocked:
@@ -214,7 +214,7 @@ func (code Status) String() string {
 	case StatusTooManyRequests:
 		return "Too Many Requests"
 	case StatusRequestHeaderFieldsTooLarge:
-		return "ServerRequest Header Fields Too Large"
+		return "Request Header Fields Too Large"
 	case StatusUnavailableForLegalReasons:
 		return "Unavailable For Legal Reasons"
 	case StatusInternalServerError:
@@ -276,9 +276,9 @@ const (
 	// HeaderAcceptRanges allows the server to indicate its acceptance of range requests for a resource.
 	HeaderAcceptRanges = "Accept-Ranges"
 
-	// HeaderAccessControlAllowCredentials indicates whether the response to the defaultServerRequest can be exposed when the credentials flag is true.
+	// HeaderAccessControlAllowCredentials indicates whether the response to the defaultRequest can be exposed when the credentials flag is true.
 	HeaderAccessControlAllowCredentials = "Access-Control-Allow-Credentials"
-	// HeaderAccessControlAllowHeaders specifies the headers that are allowed in the actual defaultServerRequest.
+	// HeaderAccessControlAllowHeaders specifies the headers that are allowed in the actual defaultRequest.
 	HeaderAccessControlAllowHeaders = "Access-Control-Allow-Headers"
 	// HeaderAccessControlAllowMethods specifies the methods that are allowed when accessing the resource.
 	HeaderAccessControlAllowMethods = "Access-Control-Allow-Methods"
@@ -286,12 +286,12 @@ const (
 	HeaderAccessControlAllowOrigin = "Access-Control-Allow-Origin"
 	// HeaderAccessControlExposeHeaders specifies the headers that are exposed to the client.
 	HeaderAccessControlExposeHeaders = "Access-Control-Expose-Headers"
-	// HeaderAccessControlMaxAge specifies the maximum amount of time that the results of a preflight defaultServerRequest can be cached.
+	// HeaderAccessControlMaxAge specifies the maximum amount of time that the results of a preflight defaultRequest can be cached.
 	HeaderAccessControlMaxAge = "Access-Control-Max-Age"
-	// HeaderAccessControlRequestHeaders is used when issuing a preflight defaultServerRequest to let the server know what HTTP headers will be used in the actual defaultServerRequest.
-	HeaderAccessControlRequestHeaders = "Access-Control-ServerRequest-Headers"
-	// HeaderAccessControlRequestMethod is used when issuing a preflight defaultServerRequest to let the server know what HTTP method will be used in the actual defaultServerRequest.
-	HeaderAccessControlRequestMethod = "Access-Control-ServerRequest-Method"
+	// HeaderAccessControlRequestHeaders is used when issuing a preflight defaultRequest to let the server know what HTTP headers will be used in the actual defaultRequest.
+	HeaderAccessControlRequestHeaders = "Access-Control-Request-Headers"
+	// HeaderAccessControlRequestMethod is used when issuing a preflight defaultRequest to let the server know what HTTP method will be used in the actual defaultRequest.
+	HeaderAccessControlRequestMethod = "Access-Control-Request-Method"
 
 	// HeaderAge indicates the age of the response.
 	HeaderAge = "Age"
@@ -328,15 +328,15 @@ const (
 	// HeaderHost specifies the domain name of the server and optionally the TCP port number.
 	HeaderHost = "Host"
 
-	// HeaderIfMatch is used to make a defaultServerRequest method conditional.
+	// HeaderIfMatch is used to make a defaultRequest method conditional.
 	HeaderIfMatch = "If-Match"
-	// HeaderIfModifiedSince is used to make a GET or HEAD defaultServerRequest method conditional.
+	// HeaderIfModifiedSince is used to make a GET or HEAD defaultRequest method conditional.
 	HeaderIfModifiedSince = "If-Modified-Since"
-	// HeaderIfNoneMatch is used to make a defaultServerRequest method conditional.
+	// HeaderIfNoneMatch is used to make a defaultRequest method conditional.
 	HeaderIfNoneMatch = "If-None-Match"
-	// HeaderIfRange is used to make a partial GET defaultServerRequest conditional.
+	// HeaderIfRange is used to make a partial GET defaultRequest conditional.
 	HeaderIfRange = "If-Range"
-	// HeaderIfUnmodifiedSince is used to make a defaultServerRequest method conditional.
+	// HeaderIfUnmodifiedSince is used to make a defaultRequest method conditional.
 	HeaderIfUnmodifiedSince = "If-Unmodified-Since"
 	// HeaderLastModified indicates the date and time at which the server believes the variant was last modified.
 	HeaderLastModified = "Last-Modified"
@@ -354,13 +354,13 @@ const (
 	HeaderProxyAuthenticate = "Proxy-Authenticate"
 	// HeaderProxyAuthorization allows the client to identify itself (or its user) to a proxy which requires authentication.
 	HeaderProxyAuthorization = "Proxy-Authorization"
-	// HeaderRange is used in an HTTP defaultServerRequest to defaultServerRequest only part of a document.
+	// HeaderRange is used in an HTTP defaultRequest to defaultRequest only part of a document.
 	HeaderRange = "Range"
-	// HeaderReferer allows the client to specify, for the server's benefit, the address of the document (or element within the document) from which the URI in the defaultServerRequest was obtained.
+	// HeaderReferer allows the client to specify, for the server's benefit, the address of the document (or element within the document) from which the URI in the defaultRequest was obtained.
 	HeaderReferer = "Referer"
-	// HeaderRetryAfter indicates how long the user agent should wait before making a follow-up defaultServerRequest.
+	// HeaderRetryAfter indicates how long the user agent should wait before making a follow-up defaultRequest.
 	HeaderRetryAfter = "Retry-After"
-	// HeaderServer contains information about the software used by the origin server to handle the defaultServerRequest.
+	// HeaderServer contains information about the software used by the origin server to handle the defaultRequest.
 	HeaderServer = "Server"
 	// HeaderSetCookie is sent by the server to the user agent with an HTTP response.
 	HeaderSetCookie = "Set-Cookie"
@@ -374,9 +374,9 @@ const (
 	HeaderTransferEncoding = "TransferEncoding"
 	// HeaderUpgrade allows the client to specify what additional communication protocols it supports and would like to use if the server finds it appropriate to switch protocols.
 	HeaderUpgrade = "Upgrade"
-	// HeaderUserAgent contains information about the user agent originating the defaultServerRequest.
+	// HeaderUserAgent contains information about the user agent originating the defaultRequest.
 	HeaderUserAgent = "UserAgent"
-	// HeaderVary determines how to match future defaultServerRequest headers to decide whether a cached response can be used rather than requesting a fresh one from the origin server.
+	// HeaderVary determines how to match future defaultRequest headers to decide whether a cached response can be used rather than requesting a fresh one from the origin server.
 	HeaderVary = "Vary"
 	// HeaderVia is used by gateways and proxies to indicate the intermediate protocols and recipients between the user agent and the server on requests, and between the origin server and the client on responses.
 	HeaderVia = "Via"

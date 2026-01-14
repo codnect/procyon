@@ -1,4 +1,4 @@
-package http
+package httpx
 
 // ConsumesMetadata is used to specify the content types that the route accepts.
 type ConsumesMetadata struct {

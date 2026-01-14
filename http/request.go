@@ -1,4 +1,4 @@
-// Copyright 2025 Codnect
+// Copyright 2026 Codnect
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,41 +20,31 @@ import (
 	"net/url"
 )
 
-const (
-	// PathValuesContextKey is the key for path values in the context
-	PathValuesContextKey = "PathValues"
-)
+type Void struct{}
 
-// PathValues represents the values of the path parameters.
-type PathValues map[string]string
+// HandlerFunc represents a delegate that can handle an HTTP defaultServerRequest.
+// It is used in the middleware chain to invoke the next handler.
+type HandlerFunc func(ctx *Context) (Result, error)
 
-// Put adds a new path parameter with the provided name and value.
-func (p PathValues) Put(name string, value string) {
-	p[name] = value
+func (f HandlerFunc) Handle(ctx *Context) (Result, error) {
+	return f(ctx)
 }
 
-// Value returns the value of the path parameter with the provided name.
-func (p PathValues) Value(name string) (string, bool) {
-	if val, ok := p[name]; ok {
-		return val, true
-	}
-
-	return "", false
+type Handler interface {
+	Handle(ctx *Context) (Result, error)
 }
 
-// Clear removes all path values.
-func (p PathValues) Clear() {
-	clear(p)
-}
+type RequestDelegate func(ctx *Context) error
+type FilterDelegate func(ctx *Context) (Result, error)
 
-// Request interface represents an HTTP defaultRequest.
-type Request interface {
-	// Context returns the context associated with the defaultRequest.
-	Context() Context
+// ServerRequest interface represents an HTTP defaultServerRequest.
+type ServerRequest interface {
+	// Context returns the context associated with the defaultServerRequest.
+	Context() *Context
 
 	// Cookie returns the cookie with the specified name.
 	Cookie(name string) (*Cookie, bool)
-	// Cookies returns all the cookies associated with the defaultRequest.
+	// Cookies returns all the cookies associated with the defaultServerRequest.
 	Cookies() []*Cookie
 
 	// QueryParam returns the query parameter with the specified name.
@@ -63,7 +53,7 @@ type Request interface {
 	QueryParamNames() []string
 	// QueryParams returns all the query parameters with the specified name.
 	QueryParams(name string) []string
-	// QueryString returns the query string of the defaultRequest.
+	// QueryString returns the query string of the defaultServerRequest.
 	QueryString() string
 
 	// Header returns the header with the specified name.
@@ -73,53 +63,41 @@ type Request interface {
 	// Headers returns all the headers with the specified name.
 	Headers(name string) []string
 
-	// Path returns the path of the defaultRequest.
+	// Path returns the path of the defaultServerRequest.
 	Path() string
 	// PathValue returns the value of the path parameter with the specified name.
 	PathValue(name string) (string, bool)
-	// Method returns the method of the defaultRequest.
+	// Method returns the method of the defaultServerRequest.
 	Method() Method
-	// Reader returns the reader of the defaultRequest body.
-	Reader() io.Reader
-	// Scheme returns the scheme of the defaultRequest.
+	// Body returns the reader of the body.
+	Body() io.Reader
+	// Scheme returns the scheme of the defaultServerRequest.
 	Scheme() string
-	// IsSecure returns whether the defaultRequest is secure.
+	// IsSecure returns whether the defaultServerRequest is secure.
 	IsSecure() bool
 }
 
-// RequestDelegate represents a delegate that can handle an HTTP defaultRequest.
-// It is used in the middleware chain to invoke the next handler.
-type RequestDelegate func(ctx Context) error
+type defaultServerRequest struct {
+	nativeReq *http.Request
+	ctx       *Context
+	body      io.Reader
 
-type defaultRequestDelegate struct {
-	ctx *defaultContext
-}
-
-func (d defaultRequestDelegate) Invoke(ctx Context) {
-	d.ctx.Invoke(ctx)
-}
-
-type defaultRequest struct {
-	req    *http.Request
-	ctx    Context
-	reader io.Reader
-
+	pathValues   PathValues
 	queryCache   url.Values
 	cookiesCache []*Cookie
-	pathValues   PathValues
 }
 
-func (r *defaultRequest) Context() Context {
+func (r *defaultServerRequest) Context() *Context {
 	return r.ctx
 }
 
-func (r *defaultRequest) initCookieCache() {
+func (r *defaultServerRequest) initCookieCache() {
 	if r.cookiesCache == nil {
-		r.cookiesCache = r.req.Cookies()
+		r.cookiesCache = r.nativeReq.Cookies()
 	}
 }
 
-func (r *defaultRequest) Cookie(name string) (*Cookie, bool) {
+func (r *defaultServerRequest) Cookie(name string) (*Cookie, bool) {
 	r.initCookieCache()
 
 	for _, cookie := range r.cookiesCache {
@@ -131,20 +109,22 @@ func (r *defaultRequest) Cookie(name string) (*Cookie, bool) {
 	return nil, false
 }
 
-func (r *defaultRequest) Cookies() []*Cookie {
+func (r *defaultServerRequest) Cookies() []*Cookie {
 	r.initCookieCache()
 	return r.cookiesCache
 }
 
-func (r *defaultRequest) initQueryCache() {
+func (r *defaultServerRequest) initQueryCache() {
 	if r.queryCache == nil {
-		if r.req != nil && r.req.URL != nil {
-			r.queryCache = r.req.URL.Query()
+		if r.nativeReq != nil && r.nativeReq.URL != nil {
+			r.queryCache = r.nativeReq.URL.Query()
+		} else {
+			r.queryCache = url.Values{}
 		}
 	}
 }
 
-func (r *defaultRequest) QueryParam(name string) (string, bool) {
+func (r *defaultServerRequest) QueryParam(name string) (string, bool) {
 	r.initQueryCache()
 
 	values, ok := r.queryCache[name]
@@ -155,30 +135,34 @@ func (r *defaultRequest) QueryParam(name string) (string, bool) {
 	return "", false
 }
 
-func (r *defaultRequest) QueryParamNames() []string {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *defaultRequest) QueryParams(name string) []string {
+func (r *defaultServerRequest) QueryParamNames() []string {
 	r.initQueryCache()
 
-	queryParams := make([]string, 0, len(r.queryCache))
+	names := make([]string, 0, len(r.queryCache))
 
-	for queryParam := range r.queryCache {
-		queryParams = append(queryParams, queryParam)
+	for name := range r.queryCache {
+		names = append(names, name)
 	}
 
-	return queryParams
+	return names
 }
 
-func (r *defaultRequest) QueryString() string {
+func (r *defaultServerRequest) QueryParams(name string) []string {
 	r.initQueryCache()
-	return r.req.URL.RawQuery
+	values, ok := r.queryCache[name]
+	if ok {
+		return values
+	}
+
+	return nil
 }
 
-func (r *defaultRequest) Header(name string) (string, bool) {
-	values := r.req.Header.Values(name)
+func (r *defaultServerRequest) QueryString() string {
+	return r.nativeReq.URL.RawQuery
+}
+
+func (r *defaultServerRequest) Header(name string) (string, bool) {
+	values := r.nativeReq.Header.Values(name)
 
 	if len(values) != 0 {
 		return values[0], true
@@ -187,131 +171,48 @@ func (r *defaultRequest) Header(name string) (string, bool) {
 	return "", false
 }
 
-func (r *defaultRequest) HeaderNames() []string {
-	headers := make([]string, 0, len(r.req.Header))
+func (r *defaultServerRequest) HeaderNames() []string {
+	headers := make([]string, 0, len(r.nativeReq.Header))
 
-	for header := range r.req.Header {
+	for header := range r.nativeReq.Header {
 		headers = append(headers, header)
 	}
 
 	return headers
 }
 
-func (r *defaultRequest) Headers(name string) []string {
-	return r.req.Header.Values(name)
+func (r *defaultServerRequest) Headers(name string) []string {
+	return r.nativeReq.Header.Values(name)
 }
 
-func (r *defaultRequest) Path() string {
-	return r.req.URL.Path
+func (r *defaultServerRequest) Path() string {
+	return r.nativeReq.URL.Path
 }
 
-func (r *defaultRequest) PathValue(name string) (string, bool) {
+func (r *defaultServerRequest) PathValue(name string) (string, bool) {
 	return r.pathValues.Value(name)
 }
 
-func (r *defaultRequest) Method() Method {
-	return Method(r.req.Method)
+func (r *defaultServerRequest) Method() Method {
+	return Method(r.nativeReq.Method)
 }
 
-func (r *defaultRequest) Reader() io.Reader {
-	if r.reader != nil {
-		return r.reader
+func (r *defaultServerRequest) Body() io.Reader {
+	if r.body != nil {
+		return r.body
 	}
 
-	return r.req.Body
+	return r.nativeReq.Body
 }
 
-func (r *defaultRequest) Scheme() string {
-	return ""
+func (r *defaultServerRequest) Scheme() string {
+	if r.nativeReq.TLS != nil {
+		return "https"
+	}
+
+	return "http"
 }
 
-func (r *defaultRequest) IsSecure() bool {
-	return false
-}
-
-// RequestWrapper is a wrapper for the Request.
-type RequestWrapper struct {
-	// request is the original request.
-	request Request
-	// context is the context associated with the request.
-	context Context
-}
-
-// Context returns the context associated with the defaultRequest.
-func (r RequestWrapper) Context() Context {
-	return r.context
-}
-
-// Cookie returns the cookie with the specified name.
-func (r RequestWrapper) Cookie(name string) (*Cookie, bool) {
-	return r.request.Cookie(name)
-}
-
-// Cookies returns all the cookies associated with the defaultRequest.
-func (r RequestWrapper) Cookies() []*Cookie {
-	return r.request.Cookies()
-}
-
-// QueryParam returns the query parameter with the specified name.
-func (r RequestWrapper) QueryParam(name string) (string, bool) {
-	return r.request.QueryParam(name)
-}
-
-// QueryParamNames returns the names of all query parameters.
-func (r RequestWrapper) QueryParamNames() []string {
-	return r.request.QueryParamNames()
-}
-
-// QueryParams returns all the query parameters with the specified name.
-func (r RequestWrapper) QueryParams(name string) []string {
-	return r.request.QueryParams(name)
-}
-
-// QueryString returns the query string of the defaultRequest.
-func (r RequestWrapper) QueryString() string {
-	return r.request.QueryString()
-}
-
-// Header returns the header with the specified name.
-func (r RequestWrapper) Header(name string) (string, bool) {
-	return r.request.Header(name)
-}
-
-// HeaderNames returns the names of all headers.
-func (r RequestWrapper) HeaderNames() []string {
-	return r.request.HeaderNames()
-}
-
-// Headers returns all the headers with the specified name.
-func (r RequestWrapper) Headers(name string) []string {
-	return r.request.Headers(name)
-}
-
-// Path returns the path of the defaultRequest.
-func (r RequestWrapper) Path() string {
-	return r.request.Path()
-}
-
-func (r RequestWrapper) PathValue(name string) (string, bool) {
-	return r.request.PathValue(name)
-}
-
-// Method returns the method of the defaultRequest.
-func (r RequestWrapper) Method() Method {
-	return r.request.Method()
-}
-
-// Reader returns the reader of the defaultRequest body.
-func (r RequestWrapper) Reader() io.Reader {
-	return r.request.Reader()
-}
-
-// Scheme returns the scheme of the defaultRequest.
-func (r RequestWrapper) Scheme() string {
-	return r.request.Scheme()
-}
-
-// IsSecure returns whether the defaultRequest is secure.
-func (r RequestWrapper) IsSecure() bool {
-	return r.request.IsSecure()
+func (r *defaultServerRequest) IsSecure() bool {
+	return r.nativeReq.TLS != nil
 }

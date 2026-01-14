@@ -1,4 +1,4 @@
-// Copyright 2025 Codnect
+// Copyright 2026 Codnect
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,293 +15,162 @@
 package http
 
 import (
-	"context"
+	"errors"
 	"net/http"
 	"time"
 )
 
-// Context is an interface that extends the standard context.Context interface in Go.
-// It provides additional methods that are specific to handling HTTP requests and responses.
-type Context interface {
-	context.Context
-	// Endpoint returns the endpoint associated with the context.
-	Endpoint() *Endpoint
-	// IsCompleted checks if the HTTP defaultRequest has been completed.
-	IsCompleted() bool
-	// Abort aborts the HTTP defaultRequest.
-	Abort()
-	// IsAborted checks if the HTTP defaultRequest has been aborted.
-	IsAborted() bool
-	// Request returns the HTTP defaultRequest associated with the context.
-	Request() Request
-	// Response returns the HTTP response associated with the context.
-	Response() Response
-}
+type Context struct {
+	parent   *Context
+	request  *defaultServerRequest
+	response *defaultServerResponse
 
-// defaultContext is the default implementation of the Context interface.
-type defaultContext struct {
-	request  defaultRequest
-	response defaultResponse
-
-	middlewares      []MiddlewareFunc
 	nextHandlerIndex int
 
 	err       error
 	completed bool
 	aborted   bool
 
-	delegate defaultRequestDelegate
+	values map[any]any
 }
 
-func (c *defaultContext) Deadline() (deadline time.Time, ok bool) {
-	return
-}
-
-func (c *defaultContext) Done() <-chan struct{} {
-	return nil
-}
-
-func (c *defaultContext) Err() error {
-	return nil
-}
-
-// Value returns the value associated with this context for key, or nil if no value is associated with key.
-// Successive calls to Value with the same key returns the same result.
-func (c *defaultContext) Value(key any) any {
-	if key == PathValuesContextKey {
-		return c.request.pathValues
+func NewContext(request ServerRequest, response ServerResponse) *Context {
+	if request == nil {
+		panic("nil request")
 	}
 
+	if response == nil {
+		panic("nil response")
+	}
+
+	return &Context{}
+}
+
+func ContextWithRequest(parent *Context, request ServerRequest) *Context {
+	if parent == nil {
+		panic("cannot create context from nil parent")
+	}
+
+	if request == nil {
+		panic("nil request")
+	}
+
+	return &Context{
+		parent: parent,
+	}
+}
+
+func ContextWithResponse(parent *Context, response ServerResponse) *Context {
+	if parent == nil {
+		panic("cannot create context from nil parent")
+	}
+
+	if response == nil {
+		panic("nil response")
+	}
+
+	return &Context{
+		parent: parent,
+	}
+}
+
+func (c *Context) Deadline() (deadline time.Time, ok bool) {
+	if c.request == nil {
+		return
+	}
+
+	return c.request.nativeReq.Context().Deadline()
+}
+
+func (c *Context) Done() <-chan struct{} {
+	if c.request == nil {
+		return nil
+	}
+
+	return c.request.nativeReq.Context().Done()
+}
+
+func (c *Context) Err() error {
+	ctxErr := c.request.nativeReq.Context().Err()
+	if c.err != nil && ctxErr != nil {
+		return errors.Join(c.err, ctxErr)
+	}
+
+	if c.err != nil {
+		return c.err
+	}
+
+	return ctxErr
+}
+
+func (c *Context) Value(key any) any {
+	val, ok := c.values[key]
+	if !ok {
+		return c.request.nativeReq.Context().Value(key)
+	}
+
+	return val
+}
+
+// Endpoint returns the endpoint associated with the context.
+func (c *Context) Endpoint() *Endpoint {
 	return nil
 }
 
-// IsCompleted checks if the HTTP defaultRequest has been completed.
-func (c *defaultContext) IsCompleted() bool {
+// IsCompleted checks if the HTTP defaultServerRequest has been completed.
+func (c *Context) IsCompleted() bool {
+	if c.parent != nil {
+		return c.parent.IsCompleted()
+	}
+
 	return c.completed
 }
 
-// Abort aborts the HTTP defaultRequest.
-func (c *defaultContext) Abort() {
+// Abort aborts the HTTP defaultServerRequest.
+func (c *Context) Abort() {
+	if c.parent != nil {
+		c.parent.Abort()
+		return
+	}
+
 	c.aborted = true
 }
 
-// IsAborted checks if the HTTP defaultRequest has been aborted.
-func (c *defaultContext) IsAborted() bool {
-	return c.aborted
+// IsAborted checks if the HTTP defaultServerRequest has been aborted.
+func (c *Context) IsAborted() bool {
+	if c.parent == nil {
+		return c.aborted
+	}
+
+	return c.parent.IsAborted()
 }
 
-// Request returns the HTTP defaultRequest associated with the context.
-func (c *defaultContext) Request() Request {
-	return &c.request
+// Request returns the HTTP defaultServerRequest associated with the context.
+func (c *Context) Request() ServerRequest {
+	if c.parent != nil && c.request == nil {
+		return c.parent.request
+	}
+
+	return c.request
 }
 
 // Response returns the HTTP response associated with the context.
-func (c *defaultContext) Response() Response {
-	return &c.response
-}
-
-// Invoke invokes the handler chain.
-func (c *defaultContext) Invoke(ctx Context) {
-	if len(c.middlewares) == 0 {
-		return
+func (c *Context) Response() ServerResponse {
+	if c.parent != nil && c.response == nil {
+		return c.parent.response
 	}
 
-	nextHandler := c.nextHandlerIndex
-
-	if c.completed || c.aborted || len(c.middlewares) <= nextHandler {
-		return
-	}
-
-	next := c.middlewares[nextHandler]
-	nextHandler++
-	err := next(ctx, c.delegate)
-
-	if err != nil {
-		c.err = err
-	}
-
-	if c.completed || c.aborted {
-		return
-	}
-
-	if nextHandler != len(c.middlewares) {
-		c.aborted = true
-	} else {
-		c.completed = true
-	}
+	return c.response
 }
 
 // reset resets the context with the specified writer and defaultRequest.
-func (c *defaultContext) reset(writer http.ResponseWriter, request *http.Request) {
-	c.request.req = request
-	c.delegate.ctx = c
+func (c *Context) reset(writer http.ResponseWriter, request *http.Request) {
+	c.request.nativeReq = request
+	//c.delegate.ctx = c
 
 	c.err = nil
 	c.completed = false
 	c.aborted = false
 
 	c.nextHandlerIndex = 0
-}
-
-// contextWrapper is an implementation of the Context interface.
-// It wraps a parent Context, a Request, and a Response.
-type contextWrapper struct {
-	parent          Context
-	requestWrapper  RequestWrapper
-	responseWrapper ResponseWrapper
-	key             any
-	value           any
-}
-
-// NewContext creates a new instance of Context.
-func NewContext(request Request, response Response) Context {
-	if request == nil {
-		panic("nil defaultRequest")
-	}
-
-	if response == nil {
-		panic("nil response")
-	}
-
-	wrapper := &contextWrapper{
-		requestWrapper: RequestWrapper{
-			request: request,
-		},
-		responseWrapper: ResponseWrapper{
-			response: response,
-		},
-	}
-
-	wrapper.requestWrapper.context = wrapper
-	wrapper.responseWrapper.context = wrapper
-	return wrapper
-}
-
-// ContextWithValue creates a new instance of Context with a value.
-func ContextWithValue(parent Context, key, val any) Context {
-	if parent == nil {
-		panic("cannot create context from nil parent")
-	}
-
-	if key == nil {
-		panic("nil key")
-	}
-
-	wrapper := &contextWrapper{
-		parent: parent,
-		requestWrapper: RequestWrapper{
-			request: parent.Request(),
-		},
-		responseWrapper: ResponseWrapper{
-			response: parent.Response(),
-		},
-		key:   key,
-		value: val,
-	}
-
-	wrapper.requestWrapper.context = wrapper
-	wrapper.responseWrapper.context = wrapper
-	return wrapper
-}
-
-// NewContextWithRequest creates a new instance of Context with a defaultRequest.
-func NewContextWithRequest(parent Context, request Request) Context {
-	if parent == nil {
-		panic("cannot create context from nil parent")
-	}
-
-	if request == nil {
-		panic("nil defaultRequest")
-	}
-
-	wrapper := &contextWrapper{
-		parent: parent,
-		requestWrapper: RequestWrapper{
-			request: request,
-		},
-		responseWrapper: ResponseWrapper{
-			response: parent.Response(),
-		},
-	}
-
-	wrapper.requestWrapper.context = wrapper
-	wrapper.responseWrapper.context = wrapper
-	return wrapper
-}
-
-// NewContextWithResponse creates a new instance of Context with a response.
-func NewContextWithResponse(parent Context, response Response) Context {
-	if parent == nil {
-		panic("cannot create context from nil parent")
-	}
-
-	if response == nil {
-		panic("nil response")
-	}
-
-	wrapper := &contextWrapper{
-		parent: parent,
-		requestWrapper: RequestWrapper{
-			request: parent.Request(),
-		},
-		responseWrapper: ResponseWrapper{
-			response: response,
-		},
-	}
-
-	wrapper.requestWrapper.context = wrapper
-	wrapper.responseWrapper.context = wrapper
-	return wrapper
-}
-
-// Deadline returns the time when work done on behalf of this context should be canceled.
-func (c *contextWrapper) Deadline() (deadline time.Time, ok bool) {
-	return c.parent.Deadline()
-}
-
-// Done returns a channel that's closed when work done on behalf of this context should be canceled.
-// Done may return nil if this context can never be canceled.
-func (c *contextWrapper) Done() <-chan struct{} {
-	return c.parent.Done()
-}
-
-// Err returns a non-nil error value after Done is closed. Err returns Canceled if the context was canceled
-// or DeadlineExceeded if the context's deadline passed.
-func (c *contextWrapper) Err() error {
-	return c.parent.Err()
-}
-
-// Value returns the value associated with this context for key, or nil if no value is associated with key.
-// Successive calls to Value with the same key returns the same result.
-func (c *contextWrapper) Value(key any) any {
-	if c.key != nil && c.key == key {
-		return c.value
-	}
-
-	return c.parent.Value(key)
-}
-
-// IsCompleted checks if the HTTP defaultRequest has been completed.
-func (c *contextWrapper) IsCompleted() bool {
-	return c.parent.IsCompleted()
-}
-
-// Abort aborts the HTTP defaultRequest.
-func (c *contextWrapper) Abort() {
-	c.parent.Abort()
-}
-
-// IsAborted checks if the HTTP defaultRequest has been aborted.
-func (c *contextWrapper) IsAborted() bool {
-	return c.parent.IsAborted()
-}
-
-// Request returns the HTTP defaultRequest associated with the context.
-func (c *contextWrapper) Request() Request {
-	return c.requestWrapper
-}
-
-// Response returns the HTTP response associated with the context.
-func (c *contextWrapper) Response() Response {
-	return c.responseWrapper
 }

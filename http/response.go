@@ -1,4 +1,4 @@
-// Copyright 2025 Codnect
+// Copyright 2026 Codnect
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,16 +15,18 @@
 package http
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
-// Response interface represents an HTTP response.
-type Response interface {
+// ServerResponse interface represents an HTTP response.
+type ServerResponse interface {
 	// Context returns the context associated with the response.
-	Context() Context
+	Context() *Context
 	// AddCookie adds a cookie to the response.
 	AddCookie(cookie *Cookie)
 
@@ -72,25 +74,26 @@ type Response interface {
 	// IsCommitted checks if the response is committed.
 	IsCommitted() bool
 	// Reset resets the response.
-	Reset()
+	Reset() error
 }
 
-type defaultResponse struct {
+type defaultServerResponse struct {
 	responseWriter http.ResponseWriter
-	ctx            Context
+	ctx            *Context
 	writer         io.Writer
 
-	headers        http.Header
-	statusCode     Status
-	writtenHeaders bool
-	writerUsed     bool
+	characterEncoding string
+	headers           http.Header
+	statusCode        Status
+	writtenHeaders    bool
+	writerUsed        bool
 }
 
-func (r *defaultResponse) Context() Context {
+func (r *defaultServerResponse) Context() *Context {
 	return r.ctx
 }
 
-func (r *defaultResponse) AddCookie(cookie *Cookie) {
+func (r *defaultServerResponse) AddCookie(cookie *Cookie) {
 	if r.writtenHeaders {
 		return
 	}
@@ -109,16 +112,16 @@ func (r *defaultResponse) AddCookie(cookie *Cookie) {
 		MaxAge:   cookie.MaxAge,
 		Secure:   cookie.Secure,
 		HttpOnly: cookie.HttpOnly,
-		SameSite: http.SameSite(cookie.SameSite),
+		SameSite: cookie.SameSite,
 	}
 
 	if v := stdCookie.String(); v != "" {
-		r.headers.Add("Set-Cookie", v)
+		r.headers.Add(HeaderSetCookie, v)
 	}
 }
 
-func (r *defaultResponse) ContentLength() int {
-	length := r.headers.Get("Content-Length")
+func (r *defaultServerResponse) ContentLength() int {
+	length := r.headers.Get(HeaderContentLength)
 
 	if length != "" {
 		val, err := strconv.Atoi(length)
@@ -132,35 +135,35 @@ func (r *defaultResponse) ContentLength() int {
 	return 0
 }
 
-func (r *defaultResponse) SetContentLength(len int) {
+func (r *defaultServerResponse) SetContentLength(len int) {
 	if r.writtenHeaders {
 		return
 	}
 
-	r.headers.Add(HeaderContentLength, strconv.Itoa(len))
+	r.headers.Set(HeaderContentLength, strconv.Itoa(len))
 }
 
-func (r *defaultResponse) CharacterEncoding() string {
-	return ""
+func (r *defaultServerResponse) CharacterEncoding() string {
+	return r.characterEncoding
 }
 
-func (r *defaultResponse) SetCharacterEncoding(charset string) {
-
+func (r *defaultServerResponse) SetCharacterEncoding(charset string) {
+	r.characterEncoding = charset
 }
 
-func (r *defaultResponse) ContentType() string {
+func (r *defaultServerResponse) ContentType() string {
 	return r.headers.Get(HeaderContentType)
 }
 
-func (r *defaultResponse) SetContentType(contentType string) {
+func (r *defaultServerResponse) SetContentType(contentType string) {
 	if r.writtenHeaders {
 		return
 	}
 
-	r.headers.Add(HeaderContentType, contentType)
+	r.headers.Set(HeaderContentType, contentType)
 }
 
-func (r *defaultResponse) AddHeader(name string, value string) {
+func (r *defaultServerResponse) AddHeader(name string, value string) {
 	if r.writtenHeaders {
 		return
 	}
@@ -168,7 +171,7 @@ func (r *defaultResponse) AddHeader(name string, value string) {
 	r.headers.Add(name, value)
 }
 
-func (r *defaultResponse) SetHeader(name string, value string) {
+func (r *defaultServerResponse) SetHeader(name string, value string) {
 	if r.writtenHeaders {
 		return
 	}
@@ -176,7 +179,7 @@ func (r *defaultResponse) SetHeader(name string, value string) {
 	r.headers.Set(name, value)
 }
 
-func (r *defaultResponse) DeleteHeader(name string) {
+func (r *defaultServerResponse) DeleteHeader(name string) {
 	if r.writtenHeaders {
 		return
 	}
@@ -184,7 +187,7 @@ func (r *defaultResponse) DeleteHeader(name string) {
 	r.headers.Del(name)
 }
 
-func (r *defaultResponse) Header(name string) (string, bool) {
+func (r *defaultServerResponse) Header(name string) (string, bool) {
 	values := r.headers.Values(name)
 
 	if len(values) != 0 {
@@ -194,7 +197,7 @@ func (r *defaultResponse) Header(name string) (string, bool) {
 	return "", false
 }
 
-func (r *defaultResponse) HeaderNames() []string {
+func (r *defaultServerResponse) HeaderNames() []string {
 	headers := make([]string, 0, len(r.headers))
 
 	for header := range r.headers {
@@ -204,15 +207,15 @@ func (r *defaultResponse) HeaderNames() []string {
 	return headers
 }
 
-func (r *defaultResponse) Headers(name string) []string {
+func (r *defaultServerResponse) Headers(name string) []string {
 	return r.headers.Values(name)
 }
 
-func (r *defaultResponse) Status() Status {
+func (r *defaultServerResponse) Status() Status {
 	return r.statusCode
 }
 
-func (r *defaultResponse) SetStatus(status Status) {
+func (r *defaultServerResponse) SetStatus(status Status) {
 	if r.writtenHeaders {
 		return
 	}
@@ -220,12 +223,19 @@ func (r *defaultResponse) SetStatus(status Status) {
 	r.statusCode = status
 }
 
-func (r *defaultResponse) Redirect(location string, status Status) error {
+func (r *defaultServerResponse) Redirect(location string, status Status) error {
+	if r.writtenHeaders {
+		return errors.New("already committed")
+	}
+
+	r.headers.Set(HeaderLocation, location)
+	r.statusCode = status
 	return nil
 }
 
-func (r *defaultResponse) Writer() io.Writer {
+func (r *defaultServerResponse) Writer() io.Writer {
 	r.writerUsed = true
+	r.writeHeaders()
 
 	if r.writer != nil {
 		return r.writer
@@ -234,154 +244,48 @@ func (r *defaultResponse) Writer() io.Writer {
 	return r.responseWriter
 }
 
-func (r *defaultResponse) Flush() error {
+func (r *defaultServerResponse) Flush() error {
 	r.writeHeaders()
-	if !r.writerUsed {
-		return nil
+
+	if flusher, ok := r.responseWriter.(http.Flusher); ok {
+		flusher.Flush()
 	}
 
-	if r.writer == nil {
-		r.responseWriter.WriteHeader(int(r.statusCode))
-	}
-
-	// flush data
 	return nil
 }
 
-func (r *defaultResponse) IsCommitted() bool {
-	return false
+func (r *defaultServerResponse) IsCommitted() bool {
+	return r.writtenHeaders
 }
 
-func (r *defaultResponse) Reset() {
-	r.headers = http.Header{}
-}
-
-func (r *defaultResponse) writeHeaders() {
-	if !r.writtenHeaders {
-		for key, values := range r.headers {
-			if len(values) == 1 {
-				r.responseWriter.Header().Set(key, values[0])
-			} else {
-				for _, value := range values {
-					r.responseWriter.Header().Add(key, value)
-				}
-			}
-		}
-		r.writtenHeaders = true
+func (r *defaultServerResponse) Reset() error {
+	if r.IsCommitted() {
+		return errors.New("already committed")
 	}
+
+	r.statusCode = StatusOK
+	r.headers = http.Header{}
+	return nil
 }
 
-// ResponseWrapper is a wrapper for the Response.
-type ResponseWrapper struct {
-	// ResponseWrapper is a wrapper for the Response interface.
-	response Response
-	// context is the context associated with the response.
-	context Context
-}
+func (r *defaultServerResponse) writeHeaders() {
+	if r.writtenHeaders {
+		return
+	}
 
-// Context returns the context associated with the response.
-func (r ResponseWrapper) Context() Context {
-	return r.context
-}
+	if r.characterEncoding != "" {
+		ct := r.headers.Get(HeaderContentType)
+		if ct != "" && !strings.Contains(ct, "charset") {
+			r.headers.Set(HeaderContentType, ct+"; charset="+r.characterEncoding)
+		}
+	}
 
-// AddCookie adds a cookie to the response.
-func (r ResponseWrapper) AddCookie(cookie *Cookie) {
-	r.response.AddCookie(cookie)
-}
+	for key, values := range r.headers {
+		for _, value := range values {
+			r.responseWriter.Header().Add(key, value)
+		}
+	}
 
-// ContentLength returns the content length of the response.
-func (r ResponseWrapper) ContentLength() int {
-	return r.response.ContentLength()
-}
-
-// SetContentLength sets the content length of the response.
-func (r ResponseWrapper) SetContentLength(len int) {
-	r.response.SetContentLength(len)
-}
-
-// CharacterEncoding returns the character encoding of the response.
-func (r ResponseWrapper) CharacterEncoding() string {
-	return r.response.CharacterEncoding()
-}
-
-// SetCharacterEncoding sets the character encoding of the response.
-func (r ResponseWrapper) SetCharacterEncoding(charset string) {
-	r.response.SetCharacterEncoding(charset)
-}
-
-// ContentType returns the content type of the response.
-func (r ResponseWrapper) ContentType() string {
-	return r.response.ContentType()
-}
-
-// SetContentType sets the content type of the response.
-func (r ResponseWrapper) SetContentType(contentType string) {
-	r.response.SetContentType(contentType)
-}
-
-// AddHeader adds a header to the response.
-// If the header is already set, it will be appended.
-func (r ResponseWrapper) AddHeader(name string, value string) {
-	r.response.AddHeader(name, value)
-}
-
-// SetHeader sets a header in the response.
-// If the header is already set, it will be overwritten.
-func (r ResponseWrapper) SetHeader(name string, value string) {
-	r.response.SetHeader(name, value)
-}
-
-// DeleteHeader deletes a header from the response.
-func (r ResponseWrapper) DeleteHeader(name string) {
-	r.response.DeleteHeader(name)
-}
-
-// Header returns the value of a header in the response.
-func (r ResponseWrapper) Header(name string) (string, bool) {
-	return r.response.Header(name)
-}
-
-// HeaderNames returns the names of all headers in the response.
-func (r ResponseWrapper) HeaderNames() []string {
-	return r.response.HeaderNames()
-}
-
-// Headers returns all the values of a header in the response.
-func (r ResponseWrapper) Headers(name string) []string {
-	return r.response.Headers(name)
-}
-
-// Status returns the status of the response.
-func (r ResponseWrapper) Status() Status {
-	return r.response.Status()
-}
-
-// SetStatus sets the status of the response.
-func (r ResponseWrapper) SetStatus(status Status) {
-	r.response.SetStatus(status)
-}
-
-// Redirect redirects the response to a location with a status.
-func (r ResponseWrapper) Redirect(location string, status Status) error {
-	return r.response.Redirect(location, status)
-}
-
-// Writer returns the writer of the response.
-func (r ResponseWrapper) Writer() io.Writer {
-	return r.response.Writer()
-}
-
-// Flush flushes the response.
-func (r ResponseWrapper) Flush() error {
-	return r.response.Flush()
-}
-
-// IsCommitted checks if the response is committed.
-func (r ResponseWrapper) IsCommitted() bool {
-	return r.response.IsCommitted()
-}
-
-// Reset resets the response.
-func (r ResponseWrapper) Reset() {
-	r.response.Reset()
+	r.responseWriter.WriteHeader(int(r.statusCode))
+	r.writtenHeaders = true
 }

@@ -1,22 +1,19 @@
-package http
-
-import "reflect"
+package httpx
 
 // EndpointOption represents a function that configures an endpoint.
 type EndpointOption func(endpoint *Endpoint)
 
-// Endpoint represents a route that is used to handle an HTTP defaultServerRequest.
+// Endpoint represents a route that is used to handle an HTTP defaultRequest.
 type Endpoint struct {
 	pattern     string
 	methods     []Method
-	handler     HandlerFunc
-	middlewares []Middleware
+	handler     RequestDelegate
+	middlewares []*Middleware
 	tags        []string
-	metadata    map[reflect.Type][]any
 }
 
 // NewEndpoint creates a new route with the provided pattern, handler and options.
-func NewEndpoint(pattern string, handler HandlerFunc, options ...EndpointOption) *Endpoint {
+func NewEndpoint(pattern string, handler RequestDelegate, options ...EndpointOption) *Endpoint {
 	route := &Endpoint{
 		pattern: pattern,
 		handler: handler,
@@ -41,7 +38,7 @@ func (r *Endpoint) Pattern() string {
 	return r.pattern
 }
 
-func (r *Endpoint) Handler() HandlerFunc {
+func (r *Endpoint) RequestDelegate() RequestDelegate {
 	return r.handler
 }
 
@@ -80,8 +77,8 @@ func WithMetadata(metadata any) EndpointOption {
 	}
 }
 
-// WithFilter creates a new route option with the provided middleware.
-func WithFilter(filter Filter) EndpointOption {
+// WithMiddleware creates a new route option with the provided middleware.
+func WithMiddleware(middleware Middleware) EndpointOption {
 	return func(route *Endpoint) {
 	}
 }
