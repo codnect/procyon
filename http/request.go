@@ -107,13 +107,13 @@ func (r *ServerRequest) QueryValues(name string) []string {
 
 	r.initQueryCache()
 
-	values := make([]string, 0)
 	if v, ok := r.queryCache[name]; ok {
 		out := make([]string, len(v))
 		copy(out, v)
 		return out
 	}
-	return values
+
+	return nil
 }
 
 // QueryString returns the raw, unparsed query string (the part after '?').
@@ -165,8 +165,8 @@ func (r *ServerRequest) Method() string {
 	return r.nativeReq.Method
 }
 
-// Body returns the request body reader.
-func (r *ServerRequest) Body() io.Reader {
+// Body returns the request body as an io.ReadCloser.
+func (r *ServerRequest) Body() io.ReadCloser {
 	return r.nativeReq.Body
 }
 
