@@ -26,7 +26,7 @@ type ServerResponse struct {
 	ctx    *Context
 	writer http.ResponseWriter
 
-	headers Headers
+	headers Header
 	status  Status
 
 	writtenHeaders bool

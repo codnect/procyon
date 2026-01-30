@@ -15,10 +15,18 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
 )
+
+type serverContext interface {
+	context.Context
+	SetValue(key, value any)
+	Request() *ServerRequest
+	Response() *ServerResponse
+}
 
 // Context represents the context for an HTTP request and response.
 type Context struct {
@@ -89,4 +97,65 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	} else {
 		clear(c.res.headers)
 	}
+}
+
+// EndpointContext represents a typed context for an HTTP endpoint handler.
+// It wraps the base Context and provides access to parsed input data
+// from path parameters, query strings, and request body.
+type EndpointContext[I any] struct {
+	ctx   *Context
+	input I
+}
+
+// Deadline returns the time when work done on behalf of
+// this context should be canceled.
+func (e *EndpointContext[I]) Deadline() (deadline time.Time, ok bool) {
+	return e.ctx.Deadline()
+}
+
+// Done returns a channel that's closed when work done on behalf of
+// this context should be canceled.
+func (e *EndpointContext[I]) Done() <-chan struct{} {
+	return e.ctx.Done()
+}
+
+// Err returns the error associated with the context.
+func (e *EndpointContext[I]) Err() error {
+	return e.ctx.Err()
+}
+
+// Value returns the value associated with the key in the context.
+func (e *EndpointContext[I]) Value(key any) any {
+	return e.ctx.Value(key)
+}
+
+// SetValue sets a value in the context.
+func (e *EndpointContext[I]) SetValue(key, value any) {
+	e.ctx.SetValue(key, value)
+}
+
+// Request returns the server request associated with the context.
+func (e *EndpointContext[I]) Request() *ServerRequest {
+	return e.ctx.Request()
+}
+
+// Response returns the server response associated with the context.
+func (e *EndpointContext[I]) Response() *ServerResponse {
+	return e.ctx.Response()
+}
+
+// Input returns the parsed input data bound from path parameters,
+// query strings, headers, and request body.
+func (e *EndpointContext[I]) Input() I {
+	return e.input
+}
+
+// NativeContext returns the underlying base Context.
+func (e *EndpointContext[I]) NativeContext() *Context {
+	return e.ctx
+}
+
+// setContext sets the underlying base Context.
+func (e *EndpointContext[I]) setContext(ctx *Context) {
+	e.ctx = ctx
 }

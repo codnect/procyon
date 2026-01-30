@@ -33,8 +33,8 @@ const (
 	SameSiteNoneMode
 )
 
-// A Headers represents the key-value pairs in an HTTP header.
-type Headers = http.Header
+// A Header represents the key-value pairs in an HTTP header.
+type Header = http.Header
 
 // Method represents an HTTP method.
 type Method string

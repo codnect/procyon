@@ -1,10 +1,3 @@
-package http
-
-import (
-	"path"
-	"strings"
-)
-
 // Copyright 2026 Codnect
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,112 +12,119 @@ import (
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Routes interface represents a collection of HTTP routes.
+package http
+
+import (
+	"path"
+	"strings"
+)
+
+// Endpoints interface represents a collection of HTTP routes.
 // It provides methods to map handler functions to specific paths and HTTP methods.
-type Routes interface {
+type Endpoints interface {
 	// MapAny maps a handler function to the specified path for all HTTP methods.
-	MapAny(path string, handler Handler) *RouteHandler
+	MapAny(path string, handler Handler) *EndpointBuilder
 	// MapMethods maps a handler function to the specified path for the given HTTP methods.
-	MapMethods(path string, methods []Method, handler Handler) *RouteHandler
+	MapMethods(path string, methods []Method, handler Handler) *EndpointBuilder
 	// MapGet maps a handler function to the specified path for the GET HTTP method.
-	MapGet(path string, handler Handler) *RouteHandler
+	MapGet(path string, handler Handler) *EndpointBuilder
 	// MapPost maps a handler function to the specified path for the POST HTTP method.
-	MapPost(path string, handler Handler) *RouteHandler
+	MapPost(path string, handler Handler) *EndpointBuilder
 	// MapPut maps a handler function to the specified path for the PUT HTTP method.
-	MapPut(path string, handler Handler) *RouteHandler
+	MapPut(path string, handler Handler) *EndpointBuilder
 	// MapDelete maps a handler function to the specified path for the DELETE HTTP method.
-	MapDelete(path string, handler Handler) *RouteHandler
+	MapDelete(path string, handler Handler) *EndpointBuilder
 	// MapPatch maps a handler function to the specified path for the PATCH HTTP method.
-	MapPatch(path string, handler Handler) *RouteHandler
-	// MapGroup creates a new RouteGroup with the specified prefix.
-	MapGroup(prefix string) *RouteGroup
+	MapPatch(path string, handler Handler) *EndpointBuilder
+	// MapGroup creates a new EndpointGroup with the specified prefix.
+	MapGroup(prefix string) *EndpointGroup
 }
 
-// RouteConfigurer interface represents a type that can configure HTTP routes.
-type RouteConfigurer interface {
-	// ConfigureRoutes method configures the given routes.
-	ConfigureRoutes(routes Routes)
+// EndpointConfigurer interface represents a type that can configure HTTP routes.
+type EndpointConfigurer interface {
+	// ConfigureEndpoints method configures the given routes.
+	ConfigureEndpoints(endpoints Endpoints)
 }
 
-// RouteHandler represents a route definition bound to a path,
+// EndpointBuilder represents a route definition bound to a path,
 // a set of HTTP methods, and a handler.
-type RouteHandler struct {
+type EndpointBuilder struct {
 	path    string
 	methods []Method
 	handler Handler
 }
 
-// newRouteHandler creates a new RouteHandler with the given path, methods, and handler.
-func newRouteHandler(path string, methods []Method, handler Handler) *RouteHandler {
-	return &RouteHandler{
+// newEndpointBuilder creates a new EndpointBuilder with the given path, methods, and handler.
+func newEndpointBuilder(path string, methods []Method, handler Handler) *EndpointBuilder {
+	return &EndpointBuilder{
 		path:    path,
 		methods: methods,
 		handler: handler,
 	}
 }
 
-// RouteGroup represents a group of routes with a common prefix.
-type RouteGroup struct {
+// EndpointGroup represents a group of routes with a common prefix.
+type EndpointGroup struct {
 	prefix   string
-	routes   []*RouteHandler
-	children []*RouteGroup
+	routes   []*EndpointBuilder
+	children []*EndpointGroup
 }
 
-func newRouteGroup(prefix string) *RouteGroup {
+func newEndpointGroup(prefix string) *EndpointGroup {
 	if prefix == "" {
 		prefix = "/"
 	}
 
-	return &RouteGroup{
+	return &EndpointGroup{
 		prefix:   prefix,
-		routes:   make([]*RouteHandler, 0),
-		children: make([]*RouteGroup, 0),
+		routes:   make([]*EndpointBuilder, 0),
+		children: make([]*EndpointGroup, 0),
 	}
 }
 
 // MapAny maps a handler function to the specified path for all HTTP methods within the group.
-func (g *RouteGroup) MapAny(path string, handler Handler) *RouteHandler {
+func (g *EndpointGroup) MapAny(path string, handler Handler) *EndpointBuilder {
 	return g.MapMethods(path, nil, handler)
 }
 
 // MapMethods maps a handler function to the specified path for the given HTTP methods within the group.
-func (g *RouteGroup) MapMethods(path string, methods []Method, handler Handler) *RouteHandler {
+func (g *EndpointGroup) MapMethods(path string, methods []Method, handler Handler) *EndpointBuilder {
 	result := joinPaths(g.prefix, path)
 
-	routeHandler := newRouteHandler(result, methods, handler)
+	routeHandler := newEndpointBuilder(result, methods, handler)
 	g.routes = append(g.routes, routeHandler)
 	return routeHandler
 }
 
 // MapGet maps a handler function to the specified path for the GET HTTP method within the group.
-func (g *RouteGroup) MapGet(path string, handler Handler) *RouteHandler {
+func (g *EndpointGroup) MapGet(path string, handler Handler) *EndpointBuilder {
 	return g.MapMethods(path, []Method{MethodGet}, handler)
 }
 
 // MapPost maps a handler function to the specified path for the POST HTTP method within the group.
-func (g *RouteGroup) MapPost(path string, handler Handler) *RouteHandler {
+func (g *EndpointGroup) MapPost(path string, handler Handler) *EndpointBuilder {
 	return g.MapMethods(path, []Method{MethodPost}, handler)
 }
 
 // MapPut maps a handler function to the specified path for the PUT HTTP method within the group.
-func (g *RouteGroup) MapPut(path string, handler Handler) *RouteHandler {
+func (g *EndpointGroup) MapPut(path string, handler Handler) *EndpointBuilder {
 	return g.MapMethods(path, []Method{MethodPut}, handler)
 }
 
 // MapDelete maps a handler function to the specified path for the DELETE HTTP method within the group.
-func (g *RouteGroup) MapDelete(path string, handler Handler) *RouteHandler {
+func (g *EndpointGroup) MapDelete(path string, handler Handler) *EndpointBuilder {
 	return g.MapMethods(path, []Method{MethodDelete}, handler)
 }
 
 // MapPatch maps a handler function to the specified path for the PATCH HTTP method within the group.
-func (g *RouteGroup) MapPatch(path string, handler Handler) *RouteHandler {
+func (g *EndpointGroup) MapPatch(path string, handler Handler) *EndpointBuilder {
 	return g.MapMethods(path, []Method{MethodPatch}, handler)
 }
 
-// MapGroup creates a new RouteGroup with the specified prefix within the current group.
-func (g *RouteGroup) MapGroup(prefix string) *RouteGroup {
+// MapGroup creates a new EndpointGroup with the specified prefix within the current group.
+func (g *EndpointGroup) MapGroup(prefix string) *EndpointGroup {
 	result := joinPaths(g.prefix, prefix)
-	group := newRouteGroup(result)
+	group := newEndpointGroup(result)
 	g.children = append(g.children, group)
 	return group
 }
