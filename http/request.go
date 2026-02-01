@@ -20,6 +20,9 @@ import (
 	"net/url"
 )
 
+// RequestDelegate represents the next middleware or handler in the pipeline.
+type RequestDelegate func(ctx *Context) error
+
 // ServerRequest wraps an incoming HTTP request and provides convenience accessors
 // with small, per-request caches for cookies and query parameters.
 type ServerRequest struct {
