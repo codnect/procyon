@@ -56,6 +56,19 @@ type EndpointDataSource interface {
 	Endpoints() []*Endpoint
 }
 
+// EndpointMatcher matches an incoming request context
+// against a set of endpoint definitions.
+//
+// The matcher is responsible only for selection logic;
+// execution and metadata processing are handled elsewhere
+// in the request pipeline.
+type EndpointMatcher interface {
+	// Match attempts to find a matching endpoint for the given context.
+	// It returns the matched endpoint and true if a match is found,
+	// or nil and false otherwise.
+	Match(ctx *Context) (*Endpoint, bool)
+}
+
 // Endpoints interface represents a collection of HTTP routes.
 // It provides methods to map handler functions to specific paths and HTTP methods.
 type Endpoints interface {
