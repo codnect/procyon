@@ -19,6 +19,43 @@ import (
 	"strings"
 )
 
+// Endpoint represents a fully described HTTP endpoint definition.
+type Endpoint struct {
+	// path is the route pattern associated with this endpoint
+	// (e.g. "/users/{id}", "/health", "/files/**").
+	path string
+
+	// method is the HTTP method this endpoint responds to
+	// (e.g. GET, POST, PUT).
+	method Method
+
+	// delegate is the request handler invoked when this endpoint
+	// matches an incoming request.
+	delegate RequestDelegate
+}
+
+// Path returns the route pattern of the endpoint.
+func (e Endpoint) Path() string {
+	return e.path
+}
+
+// Method returns the HTTP method associated with the endpoint.
+func (e Endpoint) Method() Method {
+	return e.method
+}
+
+// RequestDelegate returns the handler responsible for processing
+// requests matched to this endpoint.
+func (e Endpoint) RequestDelegate() RequestDelegate {
+	return e.delegate
+}
+
+// EndpointDataSource provides a collection of endpoint definitions.
+type EndpointDataSource interface {
+	// Endpoints returns all available endpoint definitions.
+	Endpoints() []*Endpoint
+}
+
 // Endpoints interface represents a collection of HTTP routes.
 // It provides methods to map handler functions to specific paths and HTTP methods.
 type Endpoints interface {
