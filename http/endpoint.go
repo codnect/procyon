@@ -21,13 +21,13 @@ import (
 
 // Endpoint represents a fully described HTTP endpoint definition.
 type Endpoint struct {
-	// path is the route pattern associated with this endpoint
-	// (e.g. "/users/{id}", "/health", "/files/**").
-	path string
-
 	// method is the HTTP method this endpoint responds to
 	// (e.g. GET, POST, PUT).
 	method Method
+
+	// path is the route pattern associated with this endpoint
+	// (e.g. "/users/{id}", "/health", "/files/**").
+	path string
 
 	// delegate is the request handler invoked when this endpoint
 	// matches an incoming request.

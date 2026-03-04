@@ -30,11 +30,29 @@ type serverContext interface {
 
 // Context represents the context for an HTTP request and response.
 type Context struct {
-	req *ServerRequest
-	res *ServerResponse
+	endpoint *Endpoint
+	req      *ServerRequest
+	res      *ServerResponse
 
 	values map[any]any
 	err    error
+}
+
+func NewContext(req *http.Request, writer http.ResponseWriter) *Context {
+	ctx := &Context{
+		values: make(map[any]any),
+		req: &ServerRequest{
+			nativeReq: req,
+		},
+		res: &ServerResponse{
+			writer: writer,
+		},
+	}
+
+	ctx.req.ctx = ctx
+	ctx.res.ctx = ctx
+
+	return ctx
 }
 
 // Deadline method returns the time when work done on behalf of
@@ -77,6 +95,14 @@ func (c *Context) Request() *ServerRequest {
 // Response returns the server response associated with the context.
 func (c *Context) Response() *ServerResponse {
 	return c.res
+}
+
+func (c *Context) Endpoint() *Endpoint {
+	return c.endpoint
+}
+
+func (c *Context) SetEndpoint(endpoint *Endpoint) {
+	c.endpoint = endpoint
 }
 
 // reset clears the context state and assigns a new HTTP request and response writer.

@@ -23,6 +23,52 @@ import (
 // RequestDelegate represents the next middleware or handler in the pipeline.
 type RequestDelegate func(ctx *Context) error
 
+type pathValue struct {
+	name  string
+	Value string
+}
+
+type pathValues struct {
+	values [maxParams]pathValue
+	count  int
+}
+
+func (p *pathValues) get(name string) string {
+	for i := 0; i < p.count; i++ {
+		if p.values[i].name == name {
+			return p.values[i].Value
+		}
+	}
+	return ""
+}
+
+func (p *pathValues) reset() {
+	p.count = 0
+}
+
+func (p *pathValues) len() int {
+	return p.count
+}
+
+func (p *pathValues) setLen(n int) {
+	p.count = n
+}
+
+func (p *pathValues) pushRaw(value string) bool {
+	if p.count >= maxParams {
+		return false
+	}
+	p.values[p.count] = pathValue{Value: value}
+	p.count++
+	return true
+}
+
+func (p *pathValues) setName(i int, name string) {
+	if i >= 0 && i < p.count {
+		p.values[i].name = name
+	}
+}
+
 // ServerRequest wraps an incoming HTTP request and provides convenience accessors
 // with small, per-request caches for cookies and query parameters.
 type ServerRequest struct {
@@ -31,6 +77,8 @@ type ServerRequest struct {
 
 	cookiesCache []*Cookie
 	queryCache   url.Values
+
+	pathValues pathValues
 }
 
 // Context returns the Context associated with the ServerRequest.
@@ -159,13 +207,16 @@ func (r *ServerRequest) Path() string {
 // PathValue returns the value of a path parameter captured by the route matcher.
 // If the parameter does not exist, it returns an empty string.
 func (r *ServerRequest) PathValue(name string) string {
-	// TODO: Implement path parameter extraction based on the routing mechanism.
-	return ""
+	if name == "" {
+		return ""
+	}
+
+	return r.pathValues.get(name)
 }
 
 // Method returns the HTTP method (GET, POST, PUT, ...).
-func (r *ServerRequest) Method() string {
-	return r.nativeReq.Method
+func (r *ServerRequest) Method() Method {
+	return Method(r.nativeReq.Method)
 }
 
 // Body returns the request body as an io.ReadCloser.
