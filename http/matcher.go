@@ -332,6 +332,18 @@ func (t *radixTreeMatcher) match(n *radixNode, path string, ctx *Context, mi int
 				return n.doubleWildcardChild
 			}
 
+			// static child whose remaining prefix is just "/" may have a ** beneath it
+			for i, c := range n.indices {
+				child := n.children[i]
+				_ = c
+				if len(child.prefix) == 1 && child.prefix[0] == '/' {
+					if child.doubleWildcardChild != nil &&
+						child.doubleWildcardChild.routes[mi] != nil {
+						return child.doubleWildcardChild
+					}
+				}
+			}
+
 			return nil
 		}
 
@@ -353,6 +365,27 @@ func (t *radixTreeMatcher) match(n *radixNode, path string, ctx *Context, mi int
 				if match {
 					if result := t.match(child, path[prefixLen:], ctx, mi); result != nil {
 						return result
+					}
+				}
+			}
+
+			// partial match: path is shorter than child prefix
+			// if the unmatched suffix is just "/" and child has **, try it
+			if len(path) < prefixLen && len(path) > 0 {
+				match := true
+				for i := 0; i < len(path); i++ {
+					if path[i] != child.prefix[i] {
+						match = false
+						break
+					}
+				}
+				if match {
+					remaining := child.prefix[len(path):]
+					if remaining == "/" {
+						if child.doubleWildcardChild != nil &&
+							child.doubleWildcardChild.routes[mi] != nil {
+							return child.doubleWildcardChild
+						}
 					}
 				}
 			}
@@ -439,7 +472,6 @@ func (t *radixTreeMatcher) match(n *radixNode, path string, ctx *Context, mi int
 
 // Match resolves the incoming request to a registered endpoint.
 func (t *radixTreeMatcher) Match(ctx *Context) (*Endpoint, bool) {
-
 	request := ctx.Request()
 	path := request.Path()
 
@@ -464,16 +496,8 @@ func (t *radixTreeMatcher) Match(ctx *Context) (*Endpoint, bool) {
 
 	route := node.routes[mi]
 
-	if route == nil {
-		return nil, false
-	}
-
 	// assign parameter names
 	limit := route.paramCount
-
-	if request.pathValues.count < limit {
-		limit = request.pathValues.count
-	}
 
 	for i := 0; i < limit; i++ {
 		request.pathValues.setName(i, route.paramNames[i])
@@ -612,7 +636,6 @@ func hasPatternChars(seg string) bool {
 
 // methodIndex maps HTTP methods to a compact index used in route tables.
 func methodIndex(m Method) int {
-
 	if len(m) == 0 {
 		return 9
 	}
