@@ -34,6 +34,15 @@ type Endpoint struct {
 	delegate RequestDelegate
 }
 
+// NewEndpoint creates a new Endpoint with the specified method, path, and delegate.
+func NewEndpoint(method Method, path string, delegate RequestDelegate) *Endpoint {
+	return &Endpoint{
+		method:   method,
+		path:     path,
+		delegate: delegate,
+	}
+}
+
 // Path returns the route pattern of the endpoint.
 func (e Endpoint) Path() string {
 	return e.path
@@ -54,6 +63,18 @@ func (e Endpoint) RequestDelegate() RequestDelegate {
 type EndpointDataSource interface {
 	// Endpoints returns all available endpoint definitions.
 	Endpoints() []*Endpoint
+}
+
+type endpointDataSource struct {
+	endpoints []*Endpoint
+}
+
+func NewEndpointDataSource(endpoints ...*Endpoint) EndpointDataSource {
+	return &endpointDataSource{endpoints: endpoints}
+}
+
+func (s *endpointDataSource) Endpoints() []*Endpoint {
+	return s.endpoints
 }
 
 // EndpointMatcher matches an incoming request context
