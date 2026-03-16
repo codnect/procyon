@@ -53,10 +53,6 @@ type routeEntry struct {
 	// parameter metadata extracted from the pattern
 	paramNames [maxParams]string
 	paramCount int
-
-	// information about ** wildcard usage
-	hasDoubleWildcard   bool
-	doubleWildcardIndex int
 }
 
 // radixNode represents a node in the radix tree used for routing.
@@ -186,6 +182,9 @@ func (t *radixTreeMatcher) insertStatic(n *radixNode, path string) *radixNode {
 
 // addEndpoint registers a new endpoint into the radix tree.
 func (t *radixTreeMatcher) addEndpoint(endpoint *Endpoint) error {
+	if methodIndex(endpoint.method) < 0 {
+		return fmt.Errorf("unsupported HTTP method: %s", endpoint.method)
+	}
 
 	// normalize path
 	pattern := endpoint.path
@@ -305,7 +304,7 @@ func (t *radixTreeMatcher) addEndpoint(endpoint *Endpoint) error {
 	if n.routes[mi] != nil {
 		return fmt.Errorf(
 			"route already exists for path %s and method %s",
-			endpoint.path,
+			pattern,
 			endpoint.method,
 		)
 	}
@@ -510,9 +509,8 @@ func (t *radixTreeMatcher) Match(ctx *Context) (*Endpoint, bool) {
 // from a route pattern.
 func buildRouteEntry(path string, endpoint *Endpoint) (*routeEntry, error) {
 	entry := &routeEntry{
-		pattern:             path,
-		endpoint:            endpoint,
-		doubleWildcardIndex: -1,
+		pattern:  path,
+		endpoint: endpoint,
 	}
 
 	i := 0
@@ -549,9 +547,6 @@ func buildRouteEntry(path string, endpoint *Endpoint) (*routeEntry, error) {
 
 		// double wildcard **
 		case i+1 < len(path) && path[i] == '*' && path[i+1] == '*':
-			entry.hasDoubleWildcard = true
-			entry.doubleWildcardIndex = entry.paramCount
-
 			i += 2
 			if i < len(path) && path[i] == '/' {
 				i++
@@ -634,10 +629,10 @@ func hasPatternChars(seg string) bool {
 	return false
 }
 
-// methodIndex maps HTTP methods to a compact index used in route tables.
+// methodIndex maps HTTP method strings to integer indices for route storage.
 func methodIndex(m Method) int {
 	if len(m) == 0 {
-		return 9
+		return -1
 	}
 
 	switch m[0] {
@@ -666,5 +661,5 @@ func methodIndex(m Method) int {
 		return 8
 	}
 
-	return 9
+	return -1
 }

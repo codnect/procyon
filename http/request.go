@@ -25,7 +25,7 @@ type RequestDelegate func(ctx *Context) error
 
 type pathValue struct {
 	name  string
-	Value string
+	value string
 }
 
 type pathValues struct {
@@ -36,7 +36,7 @@ type pathValues struct {
 func (p *pathValues) get(name string) string {
 	for i := 0; i < p.count; i++ {
 		if p.values[i].name == name {
-			return p.values[i].Value
+			return p.values[i].value
 		}
 	}
 	return ""
@@ -58,7 +58,7 @@ func (p *pathValues) pushRaw(value string) bool {
 	if p.count >= maxParams {
 		return false
 	}
-	p.values[p.count] = pathValue{Value: value}
+	p.values[p.count] = pathValue{value: value}
 	p.count++
 	return true
 }
