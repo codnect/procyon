@@ -41,10 +41,6 @@ type Environment interface {
 	// SetDefaultProfiles sets the default profiles.
 	// This will replace any existing default profiles.
 	SetDefaultProfiles(profiles ...string) error
-	// Merge merges the given environment into this environment.
-	// The active and default profiles of the given environment will be added to this environment.
-	// The property sources of the given environment will be added to this environment.
-	Merge(other Environment) error
 	// PropertySources returns the property sources.
 	PropertySources() *config.PropertySources
 	// PropertyResolver returns the property resolver.
@@ -56,6 +52,12 @@ type Environment interface {
 type EnvironmentCapable interface {
 	// Environment returns the associated Environment.
 	Environment() Environment
+}
+
+// EnvironmentCustomizer interface represents a customizer for the application environment.
+type EnvironmentCustomizer interface {
+	// CustomizeEnvironment method customizes the given environment for the application.
+	CustomizeEnvironment(env Environment, app Application) error
 }
 
 // EnvPropertySource struct represents a source of environment properties.
