@@ -17,5 +17,5 @@ package runtime
 // CommandLineRunner interface allows creating a command-line application.
 type CommandLineRunner interface {
 	// Run method runs the command-line application with the given arguments.
-	Run(ctx ApplicationContext, args *Args) error
+	Run(ctx Context, args *Args) error
 }
