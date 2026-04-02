@@ -25,3 +25,15 @@ type Lifecycle interface {
 	// IsRunning indicates whether this component is currently running.
 	IsRunning() bool
 }
+
+// LifecycleManager is responsible for the management of the container's
+// lifecycle components. It processes startup and shutdown signals
+// from the application context.
+type LifecycleManager interface {
+	// Startup starts all lifecycle components in the container.
+	Startup(ctx context.Context) error
+	// Shutdown stops all running lifecycle components before destruction.
+	Shutdown(ctx context.Context) error
+	// IsRunning indicates whether this lifecycle manager is currently running.
+	IsRunning() bool
+}

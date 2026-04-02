@@ -45,7 +45,10 @@ type Context interface {
 	component.ContainerCapable
 
 	// Refresh reloads the application context contents (environment, container)
-	Refresh() error
+	Refresh(ctx context.Context) error
+
+	// Close closes the application context and releases all resources.
+	Close(ctx context.Context) error
 }
 
 // ContextCustomizer is an interface for customizing the application context.
