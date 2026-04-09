@@ -16,23 +16,27 @@ package procyon
 
 import (
 	"context"
+	"reflect"
 	"sync"
+	"time"
 
 	"codnect.io/procyon/component"
 	"codnect.io/procyon/runtime"
 )
 
 type defaultLifecycleManager struct {
-	container        component.Container
-	lifecycleObjects []runtime.Lifecycle
+	container       component.Container
+	shutdownTimeout time.Duration
 
-	running bool
-	mu      sync.Mutex
+	lifecycleObjects map[string]runtime.Lifecycle
+	running          bool
+	mu               sync.RWMutex
 }
 
 func newDefaultLifecycleManager(container component.Container) *defaultLifecycleManager {
 	return &defaultLifecycleManager{
-		container: container,
+		container:        container,
+		lifecycleObjects: make(map[string]runtime.Lifecycle),
 	}
 }
 
@@ -40,15 +44,18 @@ func (d *defaultLifecycleManager) Startup(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	lifecycleObjects, err := component.ResolveAll[runtime.Lifecycle](ctx, d.container)
-	if err != nil {
-		return err
+	definitions := d.container.DefinitionsOf(reflect.TypeFor[runtime.Lifecycle]())
+	for _, definition := range definitions {
+		lifecycleObj, err := d.container.Resolve(ctx, definition.Name())
+		if err != nil {
+			return err
+		}
+
+		d.lifecycleObjects[definition.Name()] = lifecycleObj.(runtime.Lifecycle)
 	}
 
-	d.lifecycleObjects = lifecycleObjects
-
-	for _, lifecycle := range lifecycleObjects {
-		if err = lifecycle.Start(ctx); err != nil {
+	for _, lifecycle := range d.lifecycleObjects {
+		if err := lifecycle.Start(ctx); err != nil {
 			return err
 		}
 	}
@@ -61,9 +68,24 @@ func (d *defaultLifecycleManager) Shutdown(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	for _, lifecycle := range d.lifecycleObjects {
-		if err := lifecycle.Stop(ctx); err != nil {
-			return err
+	shutdownCtx, cancel := context.WithTimeout(ctx, d.shutdownTimeout)
+	defer cancel()
+
+	for name, lifecycle := range d.lifecycleObjects {
+		done := make(chan error, 1)
+
+		go func() {
+			done <- lifecycle.Stop(shutdownCtx)
+		}()
+
+		select {
+		case err := <-done:
+			if err != nil {
+				log.Warn("Failed to stop component {}", name, err)
+			}
+		case <-shutdownCtx.Done():
+			d.running = false
+			return nil
 		}
 	}
 
@@ -72,7 +94,7 @@ func (d *defaultLifecycleManager) Shutdown(ctx context.Context) error {
 }
 
 func (d *defaultLifecycleManager) IsRunning() bool {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	return d.running
 }

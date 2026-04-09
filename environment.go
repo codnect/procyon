@@ -15,10 +15,14 @@
 package procyon
 
 import (
+	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
+	"codnect.io/procyon/component"
+	"codnect.io/procyon/runtime"
 	"codnect.io/procyon/runtime/config"
 )
 
@@ -27,6 +31,9 @@ const (
 	DefaultProfilesProp = "procyon.profiles.default"
 	// ActiveProfilesProp is the property key for specifying active profiles.
 	ActiveProfilesProp = "procyon.profiles.active"
+
+	// DefaultConfigLocation is the default location for configuration files.
+	DefaultConfigLocation = "resources/"
 )
 
 // Environment represents the default implementation of the Environment interface.
@@ -233,4 +240,132 @@ func validateProfile(profile string) error {
 	}
 
 	return nil
+}
+
+// configEnvCustomizer customizes the environment by loading configuration files.
+// It tracks previously loaded config sources to prevent duplicate loading.
+type configEnvCustomizer struct {
+	loadedConfig []string
+}
+
+func newConfigEnvCustomizer() *configEnvCustomizer {
+	return &configEnvCustomizer{
+		loadedConfig: make([]string, 0),
+	}
+}
+
+// CustomizeEnvironment loads configuration files and applies them to the environment.
+// It first loads the base (profile-independent) config, resolves the default profiles,
+// then loads profile-specific config files on top of the base configuration.
+func (c *configEnvCustomizer) CustomizeEnvironment(env runtime.Environment, app runtime.Application) error {
+	clear(c.loadedConfig)
+
+	resResolver := app.ResourceResolver()
+	loaders, err := loadPropSourceLoaders()
+	if err != nil {
+		return err
+	}
+
+	dataLoader := config.NewStandardDataLoader(resResolver, loaders...)
+	propSources := config.NewPropertySources()
+	resPropResolver := config.NewDefaultPropertyResolver(propSources)
+
+	// Load base configuration without any profile filtering.
+	err = c.loadConfig(propSources, dataLoader)
+	if err != nil {
+		return err
+	}
+
+	// Resolve which profiles should be active based on environment and base config.
+	defaultProfiles := c.getDefaultProfiles(env, resPropResolver)
+
+	profiles := make([]string, 0)
+	profiles = append(profiles, defaultProfiles...)
+
+	// Load profile-specific configuration files on top of the base config.
+	err = c.loadConfig(propSources, dataLoader, profiles...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// getDefaultProfiles determines the default profiles to be used based on the environment and the loaded configuration.
+func (c *configEnvCustomizer) getDefaultProfiles(env runtime.Environment, resPropResolver config.PropertyResolver) []string {
+	envPropVal, envPropExists := env.PropertyResolver().Lookup(DefaultProfilesProp)
+	if envPropExists {
+		envPropProfiles := strings.Split(strings.TrimSpace(envPropVal.(string)), ",")
+		return envPropProfiles
+	}
+
+	envProfiles := env.DefaultProfiles()
+	if len(envProfiles) != 0 && !slices.Equal(envProfiles, []string{"default"}) {
+		return envProfiles
+	}
+
+	resPropVal, resPropExists := resPropResolver.Lookup(DefaultProfilesProp)
+	if resPropExists {
+		resPropProfiles := strings.Split(strings.TrimSpace(resPropVal.(string)), ",")
+		return resPropProfiles
+	}
+
+	return []string{"default"}
+}
+
+// loadConfig loads configuration data from the specified location and profiles, and
+// adds the property sources to the environment.
+func (c *configEnvCustomizer) loadConfig(propSources *config.PropertySources, dataLoader config.DataLoader, profiles ...string) error {
+	cfgData, err := dataLoader.Load(context.Background(), DefaultConfigLocation, profiles...)
+	if err != nil {
+		return err
+	}
+
+	for _, data := range cfgData {
+		if slices.Contains(c.loadedConfig, data.PropertySource().Origin()) {
+			continue
+		}
+
+		if err = checkForInvalidProps(data); err != nil && len(profiles) != 0 {
+			return err
+		}
+
+		c.loadedConfig = append(c.loadedConfig, data.PropertySource().Origin())
+		propSources.PushBack(data.PropertySource())
+	}
+
+	return nil
+}
+
+// checkForInvalidProps checks if the configuration data contains properties that are not allowed in
+// profile-specific config files.
+func checkForInvalidProps(data config.Data) error {
+	propSource := data.PropertySource()
+
+	if _, ok := propSource.Value(DefaultProfilesProp); ok {
+		return fmt.Errorf("%s property cannot be set in profile specific config file", DefaultProfilesProp)
+	}
+
+	if _, ok := propSource.Value(ActiveProfilesProp); ok {
+		return fmt.Errorf("%s property cannot be set in profile specific config file", ActiveProfilesProp)
+	}
+
+	return nil
+}
+
+// loadPropSourceLoaders loads all registered PropertySourceLoader components and returns them as a slice.
+func loadPropSourceLoaders() ([]config.PropertySourceLoader, error) {
+	loaders := make([]config.PropertySourceLoader, 0)
+	components := component.ListOf[config.PropertySourceLoader]()
+
+	for _, comp := range components {
+		loader, err := component.Load[config.PropertySourceLoader](comp.Definition().Name())
+		if err != nil {
+			return nil, err
+		}
+
+		loaders = append(loaders, loader)
+	}
+
+	return loaders, nil
 }

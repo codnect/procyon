@@ -70,7 +70,6 @@ func (a *Application) Run(args ...string) error {
 		return err
 	}
 
-	startupCtx := context.Background()
 	a.env, err = prepareEnvironment(rArgs, a)
 
 	err = a.bannerPrinter.Print(a.env, os.Stdout)
@@ -78,11 +77,15 @@ func (a *Application) Run(args ...string) error {
 		return err
 	}
 
+	signalCtx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopSignals()
+
 	a.runtimeCtx, err = prepareRuntimeContext(a.env, rArgs)
 	if err != nil {
 		return err
 	}
 
+	startupCtx := context.Background()
 	err = a.runtimeCtx.Refresh(startupCtx)
 
 	if err != nil {
@@ -98,27 +101,12 @@ func (a *Application) Run(args ...string) error {
 	}
 
 	if isServerApplication() {
-		shutdownChannel := make(chan os.Signal, 1)
-		signal.Notify(shutdownChannel, syscall.SIGINT, syscall.SIGTERM)
-
-		select {
-		case sig := <-shutdownChannel:
-			log.Info("Received signal: {}, shutting down...", sig)
-		case <-a.runtimeCtx.Done():
-			log.Info("Application context closed, shutting down...")
-		}
-
-		signal.Stop(shutdownChannel)
-
-		stopCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		return a.runtimeCtx.Stop(stopCtx)
+		<-signalCtx.Done()
 	}
 
 	if a.runtimeCtx.IsRunning() {
-		stopCtx := context.Background()
-		return a.runtimeCtx.Stop(stopCtx)
+		closeCtx := context.Background()
+		return a.runtimeCtx.Close(closeCtx)
 	}
 
 	return nil
@@ -184,7 +172,7 @@ func customizeEnv(env runtime.Environment, app runtime.Application) error {
 // prepareRuntimeContext creates the application context, allows customizers to modify it, and registers
 // the command-line arguments in the context's container.
 func prepareRuntimeContext(env runtime.Environment, args *runtime.Args) (runtime.Context, error) {
-	runtimeCtx := newContext(env)
+	runtimeCtx := createContext(env)
 	err := customizeRuntimeContext(runtimeCtx)
 	if err != nil {
 		return nil, err

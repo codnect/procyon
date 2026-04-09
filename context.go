@@ -16,6 +16,7 @@ package procyon
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -32,21 +33,26 @@ const (
 
 // Context struct represents the application context of Procyon.
 type Context struct {
-	running bool
-	err     error
-	mu      sync.RWMutex
+	done chan struct{}
+	err  error
+	mu   sync.RWMutex
 
-	done      chan struct{}
 	env       runtime.Environment
 	container component.Container
 
 	lifecycleManager runtime.LifecycleManager
 }
 
-// NewContext creates a new application context with the given environment.
+// createContext creates a new application context with the given environment.
 // The returned context is not started yet. You need to call Start method to start the context.
-func newContext(env runtime.Environment) *Context {
+func createContext(env runtime.Environment) *Context {
+	if env == nil {
+		panic("nil environment")
+	}
+
 	return &Context{
+		done:      make(chan struct{}),
+		mu:        sync.RWMutex{},
 		env:       env,
 		container: component.NewDefaultContainer(),
 	}
@@ -78,9 +84,14 @@ func (c *Context) Value(key any) any {
 // as a singleton, and initializes singleton components. After this method is called, the context is
 // considered running.
 func (c *Context) Start(ctx context.Context) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	c.running = true
-	return nil
+	if c.lifecycleManager == nil {
+		return errors.New("lifecycle manager is not initialized, invoke refresh method before starting the context")
+	}
+
+	return c.start(ctx)
 }
 
 // Stop stops the application context. It cancels the parent context and marks the context as not running.
@@ -88,24 +99,37 @@ func (c *Context) Stop(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.running = false
-	c.err = context.Canceled
-	close(c.done)
-	return nil
+	if c.lifecycleManager == nil {
+		return errors.New("lifecycle manager is not initialized, invoke refresh method before stoping the context")
+	}
+
+	return c.stop(ctx)
 }
 
 // IsRunning returns true if the application context is currently running, false otherwise.
 func (c *Context) IsRunning() bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.running
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.lifecycleManager != nil && c.lifecycleManager.IsRunning()
 }
 
 func (c *Context) Refresh(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	err := c.loadComponentDefinitions(ctx)
+	if c.err != nil {
+		return c.err
+	}
+
+	err := c.stop(ctx)
+	if err != nil {
+		return err
+	}
+
+	c.container = component.NewDefaultContainer()
+
+	err = c.loadComponentDefinitions(ctx)
 	if err != nil {
 		return err
 	}
@@ -126,33 +150,77 @@ func (c *Context) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	return c.lifecycleManager.Startup(ctx)
+	err = c.start(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Context) Close(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if c.err != nil {
+		return c.err
+	}
+
+	err := c.stop(ctx)
+	if err != nil {
+		return err
+	}
+
+	// todo close all components
+
+	c.err = context.Canceled
+	close(c.done)
+	return nil
+}
+
+func (c *Context) Environment() runtime.Environment {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.env
+}
+
+func (c *Context) Container() component.Container {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if c.container == nil {
+		panic("container is not initialized, invoke refresh method before accessing the container")
+	}
+
+	return c.container
+}
+
+func (c *Context) start(ctx context.Context) error {
+	if c.err != nil {
+		return c.err
+	}
+
+	if c.lifecycleManager != nil && !c.lifecycleManager.IsRunning() {
+		if err := c.lifecycleManager.Startup(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Context) stop(ctx context.Context) error {
+	if c.err != nil {
+		return c.err
+	}
+
 	if c.lifecycleManager != nil && c.lifecycleManager.IsRunning() {
 		if err := c.lifecycleManager.Shutdown(ctx); err != nil {
 			return err
 		}
 	}
 
-	c.running = false
 	return nil
-}
-
-func (c *Context) Environment() runtime.Environment {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.env
-}
-
-// Container returns the component container associated with this application context.
-func (c *Context) Container() component.Container {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.container
 }
 
 // loadComponentDefinitions loads component definitions into the container using a ConditionalLoader.
