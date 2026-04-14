@@ -16,6 +16,7 @@ package procyon
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -54,10 +55,12 @@ func (d *defaultLifecycleManager) Startup(ctx context.Context) error {
 		d.lifecycleObjects[definition.Name()] = lifecycleObj.(runtime.Lifecycle)
 	}
 
-	for _, lifecycle := range d.lifecycleObjects {
+	for objectName, lifecycle := range d.lifecycleObjects {
 		if err := lifecycle.Start(ctx); err != nil {
-			return err
+			return fmt.Errorf("failed to start lifecycle component: %s", objectName)
 		}
+
+		log.Debug("Started lifecycle component '{}'", objectName)
 	}
 
 	d.running = true
@@ -81,8 +84,10 @@ func (d *defaultLifecycleManager) Shutdown(ctx context.Context) error {
 		select {
 		case err := <-done:
 			if err != nil {
-				log.Warn("Failed to stop component {}", name, err)
+				log.Warn("Failed to stopLifecycleManager component '{}'", name, err)
 			}
+
+			log.Debug("Stopped lifecycle component '{}'", name)
 		case <-shutdownCtx.Done():
 			d.running = false
 			return nil

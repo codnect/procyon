@@ -63,8 +63,11 @@ type DefaultContainer struct {
 	muDefinitions sync.RWMutex
 
 	singletons            map[string]any
+	singletonOrder        []string
 	singletonState        *creationState
 	typesOfSingletons     map[string]reflect.Type
+	dependents            map[string]map[string]struct{}
+	dependencies          map[string]map[string]struct{}
 	muSingletons          sync.RWMutex
 	resolvableInstances   map[reflect.Type]any
 	muResolvableInstances sync.RWMutex
@@ -84,8 +87,11 @@ func NewDefaultContainer() *DefaultContainer {
 		muDefinitions: sync.RWMutex{},
 
 		singletons:        make(map[string]any),
+		singletonOrder:    make([]string, 0),
 		singletonState:    newCreationState(),
 		typesOfSingletons: make(map[string]reflect.Type),
+		dependents:        make(map[string]map[string]struct{}),
+		dependencies:      make(map[string]map[string]struct{}),
 		muSingletons:      sync.RWMutex{},
 
 		scopes:   make(map[string]Scope),
@@ -209,6 +215,7 @@ func (d *DefaultContainer) RegisterSingleton(name string, instance any) error {
 	}
 
 	d.singletons[name] = instance
+	d.singletonOrder = append(d.singletonOrder, name)
 	d.typesOfSingletons[name] = reflect.TypeOf(instance)
 	return nil
 }
@@ -248,6 +255,51 @@ func (d *DefaultContainer) RemoveSingleton(name string) error {
 	delete(d.typesOfSingletons, name)
 
 	return nil
+}
+
+// DestroySingletons destroys all registered singleton instances in reverse creation order.
+// For each singleton, its dependents are recursively destroyed first.
+func (d *DefaultContainer) DestroySingletons() {
+	d.muSingletons.Lock()
+	defer d.muSingletons.Unlock()
+
+	destroyed := make(map[string]struct{}, len(d.singletonOrder))
+
+	for i := len(d.singletonOrder) - 1; i >= 0; i-- {
+		d.destroySingleton(d.singletonOrder[i], destroyed)
+	}
+
+	clear(d.singletons)
+	clear(d.typesOfSingletons)
+	clear(d.dependents)
+	clear(d.dependencies)
+	d.singletonOrder = d.singletonOrder[:0]
+}
+
+// destroySingleton recursively destroys a singleton and its dependents first.
+// Must be called while holding muSingletons lock.
+func (d *DefaultContainer) destroySingleton(name string, destroyed map[string]struct{}) {
+	if _, done := destroyed[name]; done {
+		return
+	}
+
+	// destroy dependents first (components that depend on this one)
+	for dependent := range d.dependents[name] {
+		d.destroySingleton(dependent, destroyed)
+	}
+
+	destroyed[name] = struct{}{}
+
+	instance, exists := d.singletons[name]
+	if !exists {
+		return
+	}
+
+	if disposable, ok := instance.(Disposable); ok {
+		if err := disposable.Dispose(); err != nil {
+			log.Warn("failed to dispose instance {}", name, err)
+		}
+	}
 }
 
 // CanResolve checks if a component with the given name is resolvable.
@@ -534,7 +586,34 @@ func (d *DefaultContainer) createSingleton(ctx context.Context, def *Definition)
 		return nil, err
 	}
 
-	instance, err := d.createInstance(ctx, def)
+	constructor := def.Constructor()
+
+	args, err := d.resolveArguments(ctx, constructor.Args())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, arg := range constructor.Args() {
+		if arg.Type().Kind() == reflect.Slice {
+			for _, depDef := range d.DefinitionsOf(arg.Type().Elem()) {
+				d.registerDependency(name, depDef.Name())
+			}
+		} else if arg.Name() != "" {
+			d.registerDependency(name, arg.Name())
+		} else {
+			if defs := d.DefinitionsOf(arg.Type()); len(defs) == 1 {
+				d.registerDependency(name, defs[0].Name())
+			}
+		}
+	}
+
+	var instance any
+	instance, err = constructor.Invoke(args...)
+	if err != nil {
+		return nil, err
+	}
+
+	instance, err = d.initialize(ctx, instance)
 	if err != nil {
 		return nil, err
 	}
@@ -619,6 +698,23 @@ func (d *DefaultContainer) resolveSingletons(typ reflect.Type) []any {
 	}
 
 	return singletons
+}
+
+// registerDependency records that component "name" depends on "dependency".
+// This populates both the dependents map (reverse lookup) and the dependencies map (forward lookup).
+func (d *DefaultContainer) registerDependency(name, dependency string) {
+	d.muSingletons.Lock()
+	defer d.muSingletons.Unlock()
+
+	if d.dependents[dependency] == nil {
+		d.dependents[dependency] = make(map[string]struct{})
+	}
+	d.dependents[dependency][name] = struct{}{}
+
+	if d.dependencies[name] == nil {
+		d.dependencies[name] = make(map[string]struct{})
+	}
+	d.dependencies[name][dependency] = struct{}{}
 }
 
 // initialize runs pre-processors, the Init method (if defined), and post-processors

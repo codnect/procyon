@@ -29,4 +29,7 @@ type SingletonRegistry interface {
 
 	// RemoveSingleton removes the singleton instance associated with the specified name.
 	RemoveSingleton(name string) error
+
+	// DestroySingletons destroys all registered singleton instances, performing any necessary cleanup.
+	DestroySingletons()
 }

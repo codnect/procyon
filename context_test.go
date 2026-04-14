@@ -24,25 +24,65 @@ import (
 	"codnect.io/procyon/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-type anyLifecycle struct {
+type anyLifecycleManager struct {
 	mock.Mock
 }
 
-func (a *anyLifecycle) Start(ctx context.Context) error {
-	results := a.Called(ctx)
-	return results.Error(0)
+func (a *anyLifecycleManager) Startup(ctx context.Context) error {
+	result := a.Called(ctx)
+	return result.Error(0)
 }
 
-func (a *anyLifecycle) Stop(ctx context.Context) error {
-	results := a.Called(ctx)
-	return results.Error(0)
+func (a *anyLifecycleManager) Shutdown(ctx context.Context) error {
+	result := a.Called(ctx)
+	return result.Error(0)
 }
 
-func (a *anyLifecycle) IsRunning() bool {
-	results := a.Called()
-	return results.Bool(0)
+func (a *anyLifecycleManager) IsRunning() bool {
+	result := a.Called()
+	return result.Bool(0)
+}
+
+func TestCreateContext(t *testing.T) {
+	testCases := []struct {
+		name        string
+		environment runtime.Environment
+		wantPanic   error
+	}{
+		{
+			name:        "nil environment",
+			environment: nil,
+			wantPanic:   errors.New("nil environment"),
+		},
+		{
+			name:        "valid environment",
+			environment: NewEnvironment(),
+			wantPanic:   nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+
+			// when
+			if tc.wantPanic != nil {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
+					createContext(tc.environment)
+				})
+				return
+			}
+
+			ctx := createContext(tc.environment)
+
+			// then
+			require.NotNil(t, ctx)
+		})
+	}
+
 }
 
 func TestContext_Deadline(t *testing.T) {
@@ -62,28 +102,30 @@ func TestContext_Done(t *testing.T) {
 	testCases := []struct {
 		name         string
 		preCondition func(ctx *Context)
-		wantDone     bool
+		wantClosed   bool
 	}{
 		{
-			name: "context is closed",
+			name:         "non-refreshed context",
+			preCondition: nil,
+			wantClosed:   false,
+		},
+		{
+			name: "stopped context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Stop(context.Background())
+				assert.NoError(t, err)
+			},
+			wantClosed: false,
+		},
+		{
+			name: "already closed context",
 			preCondition: func(ctx *Context) {
 				err := ctx.Close(context.Background())
 				assert.NoError(t, err)
 			},
-			wantDone: true,
-		},
-		{
-			name: "context is stopped",
-			preCondition: func(ctx *Context) {
-				err := ctx.Stop(context.Background())
-				assert.NoError(t, err)
-			},
-			wantDone: false,
-		},
-		{
-			name:         "context is running",
-			preCondition: nil,
-			wantDone:     false,
+			wantClosed: true,
 		},
 	}
 
@@ -97,13 +139,24 @@ func TestContext_Done(t *testing.T) {
 			}
 
 			// when
-			select {
-			case <-ctx.Done():
-				// then
-				assert.True(t, true, "Done channel was closed as expected")
-			case <-time.After(2 * time.Second):
-				if tc.wantDone {
-					assert.Fail(t, "Done channel was not closed within timeout")
+			doneCh := ctx.Done()
+
+			// then
+			if tc.wantClosed {
+				assert.Eventually(t, func() bool {
+					select {
+					case <-doneCh:
+						return true
+					default:
+						return false
+					}
+				}, time.Second, 10*time.Millisecond)
+			} else {
+				select {
+				case <-doneCh:
+					t.Fatal("done channel should not be closed")
+				default:
+					// do nothing
 				}
 			}
 		})
@@ -117,25 +170,27 @@ func TestContext_Err(t *testing.T) {
 		wantErr      error
 	}{
 		{
-			name: "context is closed",
+			name:         "non-refreshed context",
+			preCondition: nil,
+			wantErr:      nil,
+		},
+		{
+			name: "stopped context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Stop(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "already closed context",
 			preCondition: func(ctx *Context) {
 				err := ctx.Close(context.Background())
 				assert.NoError(t, err)
 			},
 			wantErr: context.Canceled,
-		},
-		{
-			name: "stop context before invoking refresh",
-			preCondition: func(ctx *Context) {
-				err := ctx.Stop(context.Background())
-				assert.NoError(t, err)
-			},
-			wantErr: errors.New("lifecycle manager is not initialized, invoke refresh method before stoping the context"),
-		},
-		{
-			name:         "context is running",
-			preCondition: nil,
-			wantErr:      nil,
 		},
 	}
 
@@ -170,87 +225,398 @@ func TestContext_Value(t *testing.T) {
 }
 
 func TestContext_Start(t *testing.T) {
-	// given
-	lifecycle := &anyLifecycle{}
-	component.Register(func() runtime.Lifecycle {
-		return lifecycle
-	})
+	testCases := []struct {
+		name         string
+		preCondition func(ctx *Context)
+		wantErr      error
+	}{
+		{
+			name:         "non-refreshed context",
+			preCondition: nil,
+			wantErr:      errors.New("lifecycle manager is not initialized, invoke refresh method before starting the context"),
+		},
+		{
+			name: "refreshed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "already closed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Close(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: context.Canceled,
+		},
+		{
+			name: "already stopped context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Stop(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "already started context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Start(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "lifecycle component error",
+			preCondition: func(ctx *Context) {
+				lifecycleManager := &anyLifecycleManager{}
+				lifecycleManager.On("Startup", mock.AnythingOfType("context.backgroundCtx")).
+					Return(errors.New("lifecycle component error"))
+				lifecycleManager.On("Shutdown", mock.AnythingOfType("context.backgroundCtx")).
+					Return(nil)
+				lifecycleManager.On("IsRunning").
+					Return(false)
 
-	env := NewEnvironment()
-	ctx := createContext(env)
-
-	lifecycle.On("Stop", mock.AnythingOfType("context.backgroundCtx")).
-		Return(nil).
-		Once()
-	lifecycle.On("Start", mock.AnythingOfType("context.backgroundCtx")).
-		Return(nil).
-		Once()
-
-	err := ctx.Refresh(context.Background())
-	if err != nil {
-		assert.Fail(t, "Failed to refresh context", err)
-		return
+				ctx.lifecycleManager = lifecycleManager
+			},
+			wantErr: errors.New("lifecycle component error"),
+		},
 	}
 
-	err = ctx.Stop(context.Background())
-	if err != nil {
-		assert.Fail(t, "Failed to stop context", err)
-		return
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			env := NewEnvironment()
+			ctx := createContext(env)
+			if tc.preCondition != nil {
+				tc.preCondition(ctx)
+			}
+
+			// when
+			err := ctx.Start(context.Background())
+
+			// then
+			assert.Equal(t, tc.wantErr, err)
+		})
 	}
-
-	// when
-	err = ctx.Start(context.Background())
-
-	// then
-	assert.NoError(t, err)
 }
 
 func TestContext_Stop(t *testing.T) {
-	// given
-	env := NewEnvironment()
-	ctx := createContext(env)
+	testCases := []struct {
+		name         string
+		preCondition func(ctx *Context)
+		wantErr      error
+	}{
+		{
+			name:         "non-refreshed context",
+			preCondition: nil,
+			wantErr:      errors.New("lifecycle manager is not initialized, invoke refresh method before stopping the context"),
+		},
+		{
+			name: "refreshed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "already closed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Close(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: context.Canceled,
+		},
+		{
+			name: "already stopped context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Stop(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "lifecycle component error",
+			preCondition: func(ctx *Context) {
+				lifecycleManager := &anyLifecycleManager{}
+				lifecycleManager.On("Startup", mock.AnythingOfType("context.backgroundCtx")).
+					Return(nil)
+				lifecycleManager.On("Shutdown", mock.AnythingOfType("context.backgroundCtx")).
+					Return(errors.New("lifecycle component error"))
+				lifecycleManager.On("IsRunning").
+					Return(true)
 
-	// when
-	err := ctx.Stop(context.Background())
+				ctx.lifecycleManager = lifecycleManager
+			},
+			wantErr: errors.New("lifecycle component error"),
+		},
+	}
 
-	// then
-	assert.NoError(t, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			env := NewEnvironment()
+			ctx := createContext(env)
+			if tc.preCondition != nil {
+				tc.preCondition(ctx)
+			}
+
+			// when
+			err := ctx.Stop(context.Background())
+
+			// then
+			assert.Equal(t, tc.wantErr, err)
+		})
+	}
 }
 
 func TestContext_IsRunning(t *testing.T) {
-	// given
-	env := NewEnvironment()
-	ctx := createContext(env)
+	testCases := []struct {
+		name          string
+		preCondition  func(ctx *Context)
+		wantIsRunning bool
+	}{
+		{
+			name:          "non-refreshed context",
+			preCondition:  nil,
+			wantIsRunning: false,
+		},
+		{
+			name: "refreshed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+			},
+			wantIsRunning: true,
+		},
+		{
+			name: "stopped context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Stop(context.Background())
+				assert.NoError(t, err)
+			},
+			wantIsRunning: false,
+		},
+		{
+			name: "closed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Close(context.Background())
+				assert.NoError(t, err)
+			},
+			wantIsRunning: false,
+		},
+		{
+			name: "started context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Start(context.Background())
+				assert.NoError(t, err)
+			},
+			wantIsRunning: true,
+		},
+	}
 
-	// when
-	running := ctx.IsRunning()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			env := NewEnvironment()
+			ctx := createContext(env)
+			if tc.preCondition != nil {
+				tc.preCondition(ctx)
+			}
 
-	// then
-	assert.False(t, running)
+			// when
+			isRunning := ctx.IsRunning()
+
+			// then
+			assert.Equal(t, tc.wantIsRunning, isRunning)
+		})
+	}
 }
 
 func TestContext_Refresh(t *testing.T) {
-	// given
-	env := NewEnvironment()
-	ctx := createContext(env)
+	testCases := []struct {
+		name         string
+		preCondition func(ctx *Context)
+		wantErr      error
+	}{
+		{
+			name:         "non-refreshed context",
+			preCondition: nil,
+			wantErr:      nil,
+		},
+		{
+			name: "already closed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Close(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: context.Canceled,
+		},
+		{
+			name: "already stopped context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Stop(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "lifecycle component start error",
+			preCondition: func(ctx *Context) {
+				lifecycleManager := &anyLifecycleManager{}
+				lifecycleManager.On("Startup", mock.AnythingOfType("context.backgroundCtx")).
+					Return(errors.New("lifecycle component error"))
+				lifecycleManager.On("Shutdown", mock.AnythingOfType("context.backgroundCtx")).
+					Return(nil)
+				lifecycleManager.On("IsRunning").
+					Return(false)
 
-	// when
-	err := ctx.Refresh(context.Background())
+				ctx.lifecycleManager = lifecycleManager
+			},
+			wantErr: errors.New("lifecycle component error"),
+		},
+		{
+			name: "lifecycle component stop error",
+			preCondition: func(ctx *Context) {
+				lifecycleManager := &anyLifecycleManager{}
+				lifecycleManager.On("Startup", mock.AnythingOfType("context.backgroundCtx")).
+					Return(nil)
+				lifecycleManager.On("Shutdown", mock.AnythingOfType("context.backgroundCtx")).
+					Return(errors.New("lifecycle component error"))
+				lifecycleManager.On("IsRunning").
+					Return(true)
 
-	// then
-	assert.NoError(t, err)
+				ctx.lifecycleManager = lifecycleManager
+			},
+			wantErr: errors.New("lifecycle component error"),
+		},
+		{
+			name: "multiple lifecycle manager",
+			preCondition: func(ctx *Context) {
+				ctx.containerProvider = func() component.Container {
+					container := component.NewDefaultContainer()
+					err := container.RegisterSingleton("anyLifecycleManager", &anyLifecycleManager{})
+					assert.NoError(t, err)
+					err = container.RegisterSingleton("anotherLifecycleManager", &anyLifecycleManager{})
+					assert.NoError(t, err)
+					return container
+				}
+			},
+			wantErr: errors.New("multiple singletons found"),
+		},
+		{
+			name: "already registered app context",
+			preCondition: func(ctx *Context) {
+				ctx.containerProvider = func() component.Container {
+					container := component.NewDefaultContainer()
+					err := container.RegisterSingleton(appContextContainerKey, &Context{})
+					assert.NoError(t, err)
+					return container
+				}
+			},
+			wantErr: errors.New("instance already exists"),
+		},
+		{
+			name: "already registered lifecycle manager",
+			preCondition: func(ctx *Context) {
+				ctx.containerProvider = func() component.Container {
+					container := component.NewDefaultContainer()
+					err := container.RegisterSingleton(lifecycleManagerContainerKey, &defaultLifecycleManager{})
+					assert.NoError(t, err)
+					return container
+				}
+			},
+			wantErr: errors.New("instance already exists"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			env := NewEnvironment()
+			ctx := createContext(env)
+			if tc.preCondition != nil {
+				tc.preCondition(ctx)
+			}
+
+			// when
+			err := ctx.Refresh(context.Background())
+
+			// then
+			assert.Equal(t, tc.wantErr, err)
+		})
+	}
 }
 
 func TestContext_Close(t *testing.T) {
-	// given
-	env := NewEnvironment()
-	ctx := createContext(env)
+	testCases := []struct {
+		name         string
+		preCondition func(ctx *Context)
+		wantErr      error
+	}{
+		{
+			name:         "non-refreshed context",
+			preCondition: func(ctx *Context) {},
+			wantErr:      nil,
+		},
+		{
+			name: "refreshed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+		{
+			name: "already closed context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Close(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: context.Canceled,
+		},
+		{
+			name: "already stopped context",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+				err = ctx.Stop(context.Background())
+				assert.NoError(t, err)
+			},
+			wantErr: nil,
+		},
+	}
 
-	// when
-	err := ctx.Close(context.Background())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			env := NewEnvironment()
+			ctx := createContext(env)
+			if tc.preCondition != nil {
+				tc.preCondition(ctx)
+			}
 
-	// then
-	assert.NoError(t, err)
+			// when
+			err := ctx.Close(context.Background())
+
+			// then
+			assert.Equal(t, tc.wantErr, err)
+		})
+	}
 }
 
 func TestContext_Environment(t *testing.T) {
@@ -266,13 +632,46 @@ func TestContext_Environment(t *testing.T) {
 }
 
 func TestContext_Container(t *testing.T) {
-	// given
-	env := NewEnvironment()
-	ctx := createContext(env)
+	testCases := []struct {
+		name         string
+		preCondition func(ctx *Context)
+		wantPanic    error
+	}{
+		{
+			name: "refresh context before accessing container",
+			preCondition: func(ctx *Context) {
+				err := ctx.Refresh(context.Background())
+				assert.NoError(t, err)
+			},
+		},
+		{
+			name:         "access container without refreshing context",
+			preCondition: nil,
+			wantPanic:    errors.New("container is not initialized, invoke refresh method before accessing the container"),
+		},
+	}
 
-	// when
-	container := ctx.Container()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			env := NewEnvironment()
+			ctx := createContext(env)
+			if tc.preCondition != nil {
+				tc.preCondition(ctx)
+			}
 
-	// then
-	assert.NotNil(t, container)
+			// when
+			if tc.wantPanic != nil {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
+					ctx.Container()
+				})
+				return
+			}
+
+			container := ctx.Container()
+
+			// then
+			assert.NotNil(t, container)
+		})
+	}
 }

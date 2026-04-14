@@ -96,6 +96,11 @@ func (a *AnyContainer) RemoveSingleton(name string) error {
 	return result.Error(0)
 }
 
+func (a *AnyContainer) DestroySingletons() error {
+	result := a.Called()
+	return result.Error(0)
+}
+
 func (a *AnyContainer) CanResolve(name string) bool {
 	result := a.Called(name)
 	return result.Bool(0)

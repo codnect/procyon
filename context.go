@@ -37,10 +37,11 @@ type Context struct {
 	err  error
 	mu   sync.RWMutex
 
-	env       runtime.Environment
-	container component.Container
-
+	env              runtime.Environment
+	container        component.Container
 	lifecycleManager runtime.LifecycleManager
+
+	containerProvider func() component.Container
 }
 
 // createContext creates a new application context with the given environment.
@@ -51,10 +52,12 @@ func createContext(env runtime.Environment) *Context {
 	}
 
 	return &Context{
-		done:      make(chan struct{}),
-		mu:        sync.RWMutex{},
-		env:       env,
-		container: component.NewDefaultContainer(),
+		done: make(chan struct{}),
+		mu:   sync.RWMutex{},
+		env:  env,
+		containerProvider: func() component.Container {
+			return component.NewDefaultContainer()
+		},
 	}
 }
 
@@ -87,11 +90,19 @@ func (c *Context) Start(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if c.err != nil {
+		return c.err
+	}
+
 	if c.lifecycleManager == nil {
 		return errors.New("lifecycle manager is not initialized, invoke refresh method before starting the context")
 	}
 
-	return c.start(ctx)
+	if c.lifecycleManager.IsRunning() {
+		return nil
+	}
+
+	return c.startLifecycleManager(ctx)
 }
 
 // Stop stops the application context. It cancels the parent context and marks the context as not running.
@@ -99,11 +110,19 @@ func (c *Context) Stop(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.lifecycleManager == nil {
-		return errors.New("lifecycle manager is not initialized, invoke refresh method before stoping the context")
+	if c.err != nil {
+		return c.err
 	}
 
-	return c.stop(ctx)
+	if c.lifecycleManager == nil {
+		return errors.New("lifecycle manager is not initialized, invoke refresh method before stopping the context")
+	}
+
+	if !c.lifecycleManager.IsRunning() {
+		return nil
+	}
+
+	return c.stopLifecycleManager(ctx)
 }
 
 // IsRunning returns true if the application context is currently running, false otherwise.
@@ -122,12 +141,17 @@ func (c *Context) Refresh(ctx context.Context) error {
 		return c.err
 	}
 
-	err := c.stop(ctx)
+	err := c.stopLifecycleManager(ctx)
 	if err != nil {
 		return err
 	}
 
-	c.container = component.NewDefaultContainer()
+	if c.container != nil {
+		c.container.DestroySingletons()
+		c.container = nil
+	}
+
+	c.container = c.containerProvider()
 
 	err = c.loadComponentDefinitions(ctx)
 	if err != nil {
@@ -144,13 +168,24 @@ func (c *Context) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	c.lifecycleManager = newDefaultLifecycleManager(c.container)
+	var lifecycleManager runtime.LifecycleManager
+	lifecycleManager, err = component.ResolveType[runtime.LifecycleManager](ctx, c.container)
+	if err != nil && !errors.Is(err, component.ErrInstanceNotFound) {
+		return err
+	} else if lifecycleManager != nil {
+		c.lifecycleManager = lifecycleManager
+	}
+
+	if c.lifecycleManager == nil {
+		c.lifecycleManager = newDefaultLifecycleManager(c.container)
+	}
+
 	err = c.container.RegisterSingleton(lifecycleManagerContainerKey, c.lifecycleManager)
 	if err != nil {
 		return err
 	}
 
-	err = c.start(ctx)
+	err = c.startLifecycleManager(ctx)
 	if err != nil {
 		return err
 	}
@@ -166,16 +201,17 @@ func (c *Context) Close(ctx context.Context) error {
 		return c.err
 	}
 
-	err := c.stop(ctx)
-	if err != nil {
-		return err
+	err := c.stopLifecycleManager(ctx)
+
+	if c.container != nil {
+		c.container.DestroySingletons()
+		c.container = nil
 	}
 
-	// todo close all components
-
+	c.lifecycleManager = nil
 	c.err = context.Canceled
 	close(c.done)
-	return nil
+	return err
 }
 
 func (c *Context) Environment() runtime.Environment {
@@ -195,11 +231,7 @@ func (c *Context) Container() component.Container {
 	return c.container
 }
 
-func (c *Context) start(ctx context.Context) error {
-	if c.err != nil {
-		return c.err
-	}
-
+func (c *Context) startLifecycleManager(ctx context.Context) error {
 	if c.lifecycleManager != nil && !c.lifecycleManager.IsRunning() {
 		if err := c.lifecycleManager.Startup(ctx); err != nil {
 			return err
@@ -209,11 +241,7 @@ func (c *Context) start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Context) stop(ctx context.Context) error {
-	if c.err != nil {
-		return c.err
-	}
-
+func (c *Context) stopLifecycleManager(ctx context.Context) error {
 	if c.lifecycleManager != nil && c.lifecycleManager.IsRunning() {
 		if err := c.lifecycleManager.Shutdown(ctx); err != nil {
 			return err
