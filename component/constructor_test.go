@@ -35,19 +35,19 @@ func TestCreateConstructor(t *testing.T) {
 		{
 			name:          "nil constructor function",
 			constructorFn: nil,
-			wantErr:       errors.New("nil constructor"),
+			wantErr:       errors.New("nil constructor function"),
 		},
 		{
 			name:          "invalid constructor function",
 			constructorFn: "string value",
-			wantErr:       errors.New("constructor must be a function"),
+			wantErr:       errors.New("constructor is not a function"),
 		},
 		{
 			name: "multi result constructor function",
 			constructorFn: func() (string, int, error) {
 				return "", -1, nil
 			},
-			wantErr: errors.New("constructor must only return one result"),
+			wantErr: errors.New("constructor must return exactly one result"),
 		},
 		{
 			name:          "valid constructor function",
@@ -108,7 +108,7 @@ func TestConstructor_Invoke(t *testing.T) {
 		{
 			name:          "invalid parameter count",
 			constructorFn: NewAnotherComponent,
-			wantErr:       errors.New("invalid parameter count, expected 1 but got 0"),
+			wantErr:       errors.New("invalid argument count: got 0, want 1"),
 		},
 		{
 			name:          "invalid parameter",
@@ -116,7 +116,7 @@ func TestConstructor_Invoke(t *testing.T) {
 			inputs: []any{
 				"invalid parameter",
 			},
-			wantErr: errors.New("expected DependentComponent but got string at index 0"),
+			wantErr: errors.New("argument 0 has type string, want component.DependentComponent"),
 		},
 		{
 			name:          "nil parameter",
@@ -142,7 +142,7 @@ func TestConstructor_Invoke(t *testing.T) {
 			inputs: []any{
 				"invalid parameter",
 			},
-			wantErr: errors.New("expected DependentComponent but got string at index 0"),
+			wantErr: errors.New("argument 0 has type string, want component.DependentComponent"),
 		},
 		{
 			name: "nil variadic parameter",

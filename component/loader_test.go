@@ -117,7 +117,7 @@ func TestConditionalLoader_Load(t *testing.T) {
 				createComponent(anyComponentDef),
 				createComponent(anyComponentDef),
 			},
-			wantErr: fmt.Errorf("failed to register component \"anyComponent\": %s", ErrDefinitionAlreadyExists),
+			wantErr: fmt.Errorf("register component \"anyComponent\": definition already exists"),
 		},
 	}
 

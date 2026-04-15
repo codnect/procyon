@@ -119,7 +119,7 @@ func (d *DefaultContainer) RegisterDefinition(def *Definition) error {
 	defer d.muDefinitions.Unlock()
 
 	if _, exists := d.definitions[name]; exists {
-		return ErrDefinitionAlreadyExists
+		return fmt.Errorf("%q: %w", name, ErrDefinitionAlreadyRegistered)
 	}
 
 	d.definitions[name] = def
@@ -134,7 +134,7 @@ func (d *DefaultContainer) UnregisterDefinition(name string) error {
 	defer d.muDefinitions.Unlock()
 
 	if _, exists := d.definitions[name]; !exists {
-		return ErrDefinitionNotFound
+		return fmt.Errorf(`%q: %w`, name, ErrDefinitionNotFound)
 	}
 
 	delete(d.definitions, name)
@@ -196,27 +196,27 @@ func (d *DefaultContainer) DefinitionsOf(typ reflect.Type) []*Definition {
 	return matches
 }
 
-// RegisterSingleton registers a singleton instance with the given name.
+// RegisterSingleton registers a singleton with the given name.
 // Returns an error if a singleton with the same name already exists.
-func (d *DefaultContainer) RegisterSingleton(name string, instance any) error {
+func (d *DefaultContainer) RegisterSingleton(name string, value any) error {
 	if name == "" {
 		return errors.New("empty name")
 	}
 
-	if instance == nil {
-		return errors.New("nil instance")
+	if value == nil {
+		return errors.New("nil value")
 	}
 
 	d.muSingletons.Lock()
 	defer d.muSingletons.Unlock()
 
 	if _, exists := d.singletons[name]; exists {
-		return ErrInstanceAlreadyExists
+		return fmt.Errorf("%q: %w", name, ErrAlreadyRegistered)
 	}
 
-	d.singletons[name] = instance
+	d.singletons[name] = value
 	d.singletonOrder = append(d.singletonOrder, name)
-	d.typesOfSingletons[name] = reflect.TypeOf(instance)
+	d.typesOfSingletons[name] = reflect.TypeOf(value)
 	return nil
 }
 
@@ -229,7 +229,7 @@ func (d *DefaultContainer) ContainsSingleton(name string) bool {
 	return exists
 }
 
-// Singleton retrieves the singleton instance associated with the given name.
+// Singleton retrieves the singleton associated with the given name.
 // Returns the instance and a boolean indicating its existence.
 func (d *DefaultContainer) Singleton(name string) (any, bool) {
 	d.muSingletons.Lock()
@@ -242,13 +242,13 @@ func (d *DefaultContainer) Singleton(name string) (any, bool) {
 	return nil, false
 }
 
-// RemoveSingleton removes the singleton instance associated with the specified name.
+// RemoveSingleton removes the singleton associated with the specified name.
 func (d *DefaultContainer) RemoveSingleton(name string) error {
 	d.muSingletons.Lock()
 	defer d.muSingletons.Unlock()
 
 	if _, exists := d.singletons[name]; !exists {
-		return ErrInstanceNotFound
+		return fmt.Errorf(`%q: %w`, name, ErrNotFound)
 	}
 
 	delete(d.singletons, name)
@@ -257,7 +257,7 @@ func (d *DefaultContainer) RemoveSingleton(name string) error {
 	return nil
 }
 
-// DestroySingletons destroys all registered singleton instances in reverse creation order.
+// DestroySingletons destroys all registered singletons in reverse creation order.
 // For each singleton, its dependents are recursively destroyed first.
 func (d *DefaultContainer) DestroySingletons() {
 	d.muSingletons.Lock()
@@ -290,12 +290,12 @@ func (d *DefaultContainer) destroySingleton(name string, destroyed map[string]st
 
 	destroyed[name] = struct{}{}
 
-	instance, exists := d.singletons[name]
+	singleton, exists := d.singletons[name]
 	if !exists {
 		return
 	}
 
-	if disposable, ok := instance.(Disposable); ok {
+	if disposable, ok := singleton.(Disposable); ok {
 		if err := disposable.Dispose(); err != nil {
 			log.Warn("failed to dispose instance {}", name, err)
 		}
@@ -359,7 +359,7 @@ func (d *DefaultContainer) Resolve(ctx context.Context, name string) (any, error
 
 	def, defExists := d.Definition(name)
 	if !defExists {
-		return nil, ErrDefinitionNotFound
+		return nil, fmt.Errorf("%q: %w", name, ErrNotFound)
 	}
 
 	state := creationStateFromContext(ctx)
@@ -383,7 +383,7 @@ func (d *DefaultContainer) Resolve(ctx context.Context, name string) (any, error
 
 	scope, scopeExists := d.Scope(def.Scope())
 	if !scopeExists {
-		return nil, ErrScopeNotFound
+		return nil, fmt.Errorf("resolve %q with scope %q: %w", name, def.Scope(), ErrScopeNotFound)
 	}
 
 	return scope.Resolve(ctx, name, func(ctx context.Context) (any, error) {
@@ -406,26 +406,26 @@ func (d *DefaultContainer) ResolveType(ctx context.Context, typ reflect.Type) (a
 
 	resolvableCandidates := d.findResolvableCandidates(typ)
 	if len(resolvableCandidates) > 1 {
-		return nil, errors.New("multiple instance found")
+		return nil, fmt.Errorf("type %s: %w", typ, ErrMultipleMatches)
 	} else if len(resolvableCandidates) == 1 {
 		return resolvableCandidates[0], nil
 	}
 
 	singletons := d.resolveSingletons(typ)
 	if len(singletons) > 1 {
-		return nil, errors.New("multiple singletons found")
+		return nil, fmt.Errorf("type %s: %w", typ, ErrMultipleMatches)
 	} else if len(singletons) == 1 {
 		return singletons[0], nil
 	}
 
 	definitions := d.DefinitionsOf(typ)
 	if len(definitions) > 1 {
-		return nil, errors.New("multiple definitions found")
+		return nil, fmt.Errorf("type %s: %w", typ, ErrMultipleMatches)
 	} else if len(definitions) == 1 {
 		return d.Resolve(ctx, definitions[0].Name())
 	}
 
-	return nil, ErrInstanceNotFound
+	return nil, fmt.Errorf("type %s: %w", typ, ErrNotFound)
 }
 
 // ResolveAs retrieves a component by both name and expected type.
@@ -447,7 +447,7 @@ func (d *DefaultContainer) ResolveAs(ctx context.Context, name string, typ refle
 
 	instanceType := reflect.TypeOf(instance)
 	if !convertibleTo(instanceType, typ) {
-		return nil, fmt.Errorf("component %q is not assignable to %s", name, typ)
+		return nil, fmt.Errorf("%q: %w", name, ErrTypeMismatch)
 	}
 
 	return instance, nil
@@ -477,18 +477,18 @@ func (d *DefaultContainer) ResolveAll(ctx context.Context, typ reflect.Type) ([]
 }
 
 // RegisterResolvable registers type with the corresponding value.
-func (d *DefaultContainer) RegisterResolvable(typ reflect.Type, instance any) error {
+func (d *DefaultContainer) RegisterResolvable(typ reflect.Type, value any) error {
 	if typ == nil {
 		return errors.New("nil type")
 	}
 
-	if instance == nil {
-		return errors.New("nil instance")
+	if value == nil {
+		return errors.New("nil value")
 	}
 
 	d.muResolvableInstances.Lock()
 	defer d.muResolvableInstances.Unlock()
-	d.resolvableInstances[typ] = instance
+	d.resolvableInstances[typ] = value
 
 	return nil
 }
@@ -496,7 +496,7 @@ func (d *DefaultContainer) RegisterResolvable(typ reflect.Type, instance any) er
 // RegisterScope adds a new scope with the specified name to the registry.
 func (d *DefaultContainer) RegisterScope(name string, scope Scope) error {
 	if strings.TrimSpace(name) == "" {
-		return ErrInvalidScopeName
+		return errors.New("empty scope name")
 	}
 
 	if scope == nil {
@@ -511,7 +511,7 @@ func (d *DefaultContainer) RegisterScope(name string, scope Scope) error {
 		return nil
 	}
 
-	return ErrScopeReplacementNotAllowed
+	return fmt.Errorf("%q: %w", name, ErrScopeReplacementNotAllowed)
 }
 
 // Scope retrieves the scope associated with the given name.
@@ -559,18 +559,18 @@ func (d *DefaultContainer) createInstance(ctx context.Context, def *Definition) 
 
 	args, err := d.resolveArguments(ctx, constructor.Args())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create %v: %w", def.Type(), err)
 	}
 
 	var instance any
 	instance, err = constructor.Invoke(args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invoke constructor for %v: %w", def.Type(), err)
 	}
 
 	instance, err = d.initialize(ctx, instance)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("initialize %v: %w", def.Type(), err)
 	}
 
 	return instance, nil
@@ -590,7 +590,7 @@ func (d *DefaultContainer) createSingleton(ctx context.Context, def *Definition)
 
 	args, err := d.resolveArguments(ctx, constructor.Args())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create %v: %w", def.Type(), err)
 	}
 
 	for _, arg := range constructor.Args() {
@@ -610,12 +610,12 @@ func (d *DefaultContainer) createSingleton(ctx context.Context, def *Definition)
 	var instance any
 	instance, err = constructor.Invoke(args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invoke constructor for %v: %w", def.Type(), err)
 	}
 
 	instance, err = d.initialize(ctx, instance)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("initialize %v: %w", def.Type(), err)
 	}
 
 	err = d.RegisterSingleton(name, instance)
@@ -630,13 +630,13 @@ func (d *DefaultContainer) createSingleton(ctx context.Context, def *Definition)
 func (d *DefaultContainer) resolveArguments(ctx context.Context, args []Arg) ([]any, error) {
 	resolvedArgs := make([]any, 0, len(args))
 
-	for _, arg := range args {
+	for idx, arg := range args {
 
 		if arg.Type().Kind() == reflect.Slice {
 			elemType := arg.Type().Elem()
 			instances, err := d.ResolveAll(ctx, elemType)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("argument %d (%v): %w", idx, arg.Type(), err)
 			}
 
 			sliceVal := reflect.MakeSlice(arg.Type(), len(instances), len(instances))
@@ -660,7 +660,11 @@ func (d *DefaultContainer) resolveArguments(ctx context.Context, args []Arg) ([]
 		}
 
 		if err != nil {
-			return nil, err
+			if arg.Name() != "" {
+				return nil, fmt.Errorf("argument %d (%v, name %q): %w", idx, arg.Type(), arg.Name(), err)
+			}
+
+			return nil, fmt.Errorf("argument %d (%v): %w", idx, arg.Type(), err)
 		}
 
 		resolvedArgs = append(resolvedArgs, instance)

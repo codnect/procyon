@@ -35,16 +35,16 @@ type Constructor struct {
 // If valid, it extracts the argument types and returns a populated Constructor.
 func createConstructor(fn ConstructorFunc) (Constructor, error) {
 	if fn == nil {
-		return Constructor{}, fmt.Errorf("nil constructor")
+		return Constructor{}, fmt.Errorf("nil constructor function")
 	}
 
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
-		return Constructor{}, fmt.Errorf("constructor must be a function")
+		return Constructor{}, fmt.Errorf("constructor is not a function")
 	}
 
 	if fnType.NumOut() != 1 {
-		return Constructor{}, fmt.Errorf("constructor must only return one result")
+		return Constructor{}, fmt.Errorf("constructor must return exactly one result")
 	}
 
 	return Constructor{
@@ -70,12 +70,17 @@ func (f Constructor) Invoke(args ...any) (any, error) {
 	numIn := f.fnType.NumIn()
 	isVariadic := f.fnType.IsVariadic()
 
-	// Check if the number of arguments matches the number of parameters in the function.
-	if (isVariadic && len(args) < numIn) || (!isVariadic && len(args) != numIn) {
-		return nil, fmt.Errorf("invalid parameter count, expected %d but got %d", numIn, len(args))
+	if isVariadic {
+		if len(args) < numIn-1 {
+			return nil, fmt.Errorf("invalid argument count: got %d, want at least %d", len(args), numIn-1)
+		}
+	} else {
+		if len(args) != numIn {
+			return nil, fmt.Errorf("invalid argument count: got %d, want %d", len(args), numIn)
+		}
 	}
 
-	inputs := make([]reflect.Value, 0)
+	inputs := make([]reflect.Value, 0, len(args))
 
 	for index, arg := range args {
 		argType := reflect.TypeOf(arg)
@@ -86,8 +91,9 @@ func (f Constructor) Invoke(args ...any) (any, error) {
 			if arg == nil {
 				inputs = append(inputs, reflect.New(variadicType).Elem())
 				continue
-			} else if !argType.ConvertibleTo(variadicType) {
-				return nil, fmt.Errorf("expected %s but got %s at index %d", variadicType.Name(), argType.Name(), index)
+			}
+			if !argType.ConvertibleTo(variadicType) {
+				return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, variadicType)
 			}
 
 			inputs = append(inputs, reflect.ValueOf(arg))
@@ -98,24 +104,17 @@ func (f Constructor) Invoke(args ...any) (any, error) {
 
 		if arg == nil {
 			inputs = append(inputs, reflect.New(expectedArgType).Elem())
-		} else {
-			if !argType.ConvertibleTo(expectedArgType) {
-				return nil, fmt.Errorf("expected %s but got %s at index %d", expectedArgType.Name(), argType.Name(), index)
-			}
-
-			inputs = append(inputs, reflect.ValueOf(arg))
+			continue
 		}
+		if !argType.ConvertibleTo(expectedArgType) {
+			return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, expectedArgType)
+		}
+
+		inputs = append(inputs, reflect.ValueOf(arg))
 	}
 
-	// Call the function and collect the results.
-	outputs := make([]any, 0)
 	results := f.fnValue.Call(inputs)
-
-	for _, result := range results {
-		outputs = append(outputs, result.Interface())
-	}
-
-	return outputs[0], nil
+	return results[0].Interface(), nil
 }
 
 // Arg represents an argument of a constructor function.

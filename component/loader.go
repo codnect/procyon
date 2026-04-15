@@ -62,7 +62,7 @@ func (l *ConditionalLoader) Load(ctx context.Context) error {
 
 		def := comp.definition
 		if err := l.container.RegisterDefinition(def); err != nil {
-			return fmt.Errorf("failed to register component %q: %w", def.Name(), err)
+			return fmt.Errorf("register component %q: %w", def.Name(), err)
 		}
 	}
 

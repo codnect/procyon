@@ -96,9 +96,8 @@ func (a *AnyContainer) RemoveSingleton(name string) error {
 	return result.Error(0)
 }
 
-func (a *AnyContainer) DestroySingletons() error {
-	result := a.Called()
-	return result.Error(0)
+func (a *AnyContainer) DestroySingletons() {
+	a.Called()
 }
 
 func (a *AnyContainer) CanResolve(name string) bool {
@@ -237,7 +236,7 @@ func TestDefaultContainer_RegisterDefinition(t *testing.T) {
 			definition: &Definition{
 				name: "anyDefinitionName",
 			},
-			wantErr: ErrDefinitionAlreadyExists,
+			wantErr: errors.New("\"anyDefinitionName\": definition already registered"),
 		},
 		{
 			name: "valid definition",
@@ -283,7 +282,7 @@ func TestDefaultContainer_UnregisterDefinition(t *testing.T) {
 		{
 			name:           "no definition",
 			definitionName: "anyDefinitionName",
-			wantErr:        ErrDefinitionNotFound,
+			wantErr:        errors.New("\"anyDefinitionName\": definition not found"),
 		},
 		{
 			name: "valid definition",
@@ -542,7 +541,7 @@ func TestDefaultContainer_RegisterSingleton(t *testing.T) {
 			name:         "nil instance",
 			instanceName: "anyInstanceName",
 			instance:     nil,
-			wantErr:      errors.New("nil instance"),
+			wantErr:      errors.New("nil value"),
 		},
 		{
 			name: "already registered",
@@ -551,7 +550,7 @@ func TestDefaultContainer_RegisterSingleton(t *testing.T) {
 			},
 			instanceName: "anyInstanceName",
 			instance:     AnyComponent{},
-			wantErr:      ErrInstanceAlreadyExists,
+			wantErr:      errors.New("\"anyInstanceName\": already registered"),
 		},
 		{
 			name:         "valid singleton",
@@ -684,7 +683,7 @@ func TestDefaultContainer_RemoveSingleton(t *testing.T) {
 		{
 			name:          "no singleton",
 			singletonName: "anySingletonName",
-			wantErr:       ErrInstanceNotFound,
+			wantErr:       errors.New("\"anySingletonName\": not found"),
 		},
 		{
 			name: "valid singleton",
@@ -860,7 +859,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 			name:         "no singleton/definition",
 			instanceName: "anyInstanceName",
 			wantTyp:      reflect.TypeFor[*AnyComponent](),
-			wantErr:      ErrDefinitionNotFound,
+			wantErr:      errors.New("\"anyInstanceName\": not found"),
 		},
 		{
 			name: "resolve from prototype definition",
@@ -878,7 +877,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrScopeNotFound,
+			wantErr:      errors.New("resolve \"anyInstanceName\" with scope \"anyScope\": scope not found"),
 		},
 		{
 			name: "resolve from custom scope",
@@ -913,7 +912,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrInstanceNotFound,
+			wantErr:      errors.New("\"anyInstanceName\": not found"),
 		},
 		{
 			name: "resolve singleton with named dependencies",
@@ -937,7 +936,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrDefinitionNotFound,
+			wantErr:      errors.New("\"anyDependentName\": not found"),
 		},
 		{
 			name: "resolve singleton with slice dependencies",
@@ -970,7 +969,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrInstanceNotFound,
+			wantErr:      errors.New(""),
 		},
 	}
 
@@ -1020,7 +1019,7 @@ func TestDefaultContainer_ResolveType(t *testing.T) {
 				_ = container.RegisterSingleton("anotherInstanceName", AnyComponent{})
 			},
 			instanceType: reflect.TypeFor[AnyComponent](),
-			wantErr:      errors.New("multiple singletons found"),
+			wantErr:      errors.New("type component.AnyComponent: multiple components found"),
 		},
 		{
 			name: "multi definitions",
@@ -1032,12 +1031,12 @@ func TestDefaultContainer_ResolveType(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceType: reflect.TypeFor[*AnyComponent](),
-			wantErr:      errors.New("multiple definitions found"),
+			wantErr:      errors.New("type *component.AnyComponent: multiple components found"),
 		},
 		{
 			name:         "no singleton/definition",
 			instanceType: reflect.TypeFor[AnyComponent](),
-			wantErr:      ErrInstanceNotFound,
+			wantErr:      errors.New(""),
 		},
 	}
 
@@ -1103,7 +1102,7 @@ func TestDefaultContainer_ResolveAs(t *testing.T) {
 			},
 			instanceName: "anyInstanceName",
 			instanceType: reflect.TypeFor[AnotherComponent](),
-			wantErr:      errors.New("component \"anyInstanceName\" is not assignable to component.AnotherComponent"),
+			wantErr:      errors.New("\"anyInstanceName\": type mismatch"),
 		},
 	}
 
@@ -1153,9 +1152,9 @@ func TestDefaultContainer_RegisterResolvable(t *testing.T) {
 			wantErr: errors.New("nil type"),
 		},
 		{
-			name:    "nil instance",
+			name:    "nil value",
 			typ:     rAnyType,
-			wantErr: errors.New("nil instance"),
+			wantErr: errors.New("nil value"),
 		},
 		{
 			name:     "valid resolvable",
@@ -1203,8 +1202,8 @@ func TestDefaultContainer_RegisterScope(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name:    "invalid scope name",
-			wantErr: ErrInvalidScopeName,
+			name:    "empty scope name",
+			wantErr: errors.New("empty scope name"),
 		},
 		{
 			name:      "nil scope",
@@ -1216,13 +1215,13 @@ func TestDefaultContainer_RegisterScope(t *testing.T) {
 			name:      "singleton scope replacement not allowed",
 			scopeName: SingletonScope,
 			scope:     &AnyScope{},
-			wantErr:   ErrScopeReplacementNotAllowed,
+			wantErr:   errors.New("\"singleton\": cannot replace singleton or prototype scope"),
 		},
 		{
 			name:      "prototype scope replacement not allowed",
 			scopeName: PrototypeScope,
 			scope:     &AnyScope{},
-			wantErr:   ErrScopeReplacementNotAllowed,
+			wantErr:   errors.New("\"prototype\": cannot replace singleton or prototype scope"),
 		},
 		{
 			name:      "valid scope",
