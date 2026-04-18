@@ -118,8 +118,8 @@ func (d *DefaultContainer) RegisterDefinition(def *Definition) error {
 	d.muDefinitions.Lock()
 	defer d.muDefinitions.Unlock()
 
-	if _, exists := d.definitions[name]; exists {
-		return ErrDefinitionAlreadyExists
+	if _, dup := d.definitions[name]; dup {
+		return fmt.Errorf("register definition %q: duplicate definition", name)
 	}
 
 	d.definitions[name] = def
@@ -134,7 +134,7 @@ func (d *DefaultContainer) UnregisterDefinition(name string) error {
 	defer d.muDefinitions.Unlock()
 
 	if _, exists := d.definitions[name]; !exists {
-		return ErrDefinitionNotFound
+		return fmt.Errorf("unregister definition %q: definition not found", name)
 	}
 
 	delete(d.definitions, name)
@@ -181,8 +181,12 @@ func (d *DefaultContainer) Definitions() []*Definition {
 
 // DefinitionsOf returns a slice of component definitions that are assignable to the specified type.
 func (d *DefaultContainer) DefinitionsOf(typ reflect.Type) []*Definition {
-	muComponents.RLock()
-	defer muComponents.RUnlock()
+	if typ == nil {
+		panic("nil definition type")
+	}
+
+	d.muDefinitions.RLock()
+	defer d.muDefinitions.RUnlock()
 
 	matches := make([]*Definition, 0)
 
@@ -197,33 +201,36 @@ func (d *DefaultContainer) DefinitionsOf(typ reflect.Type) []*Definition {
 }
 
 // RegisterSingleton registers a singleton instance with the given name.
-// Returns an error if a singleton with the same name already exists.
+// Returns an error if a singleton instance with the same name already exists.
 func (d *DefaultContainer) RegisterSingleton(name string, instance any) error {
 	if name == "" {
-		return errors.New("empty name")
+		return errors.New("empty instance name")
 	}
 
 	if instance == nil {
 		return errors.New("nil instance")
 	}
 
+	d.muSingletons.Lock()
+	defer d.muSingletons.Unlock()
+
 	return d.registerSingleton(name, instance)
 }
 
 // ContainsSingleton checks whether a singleton with the specified name exists.
 func (d *DefaultContainer) ContainsSingleton(name string) bool {
-	d.muSingletons.Lock()
-	defer d.muSingletons.Unlock()
+	d.muSingletons.RLock()
+	defer d.muSingletons.RUnlock()
 
 	_, exists := d.singletons[name]
 	return exists
 }
 
-// Singleton retrieves the singleton instance associated with the given name.
+// Singleton retrieves the singleton associated with the given name.
 // Returns the instance and a boolean indicating its existence.
 func (d *DefaultContainer) Singleton(name string) (any, bool) {
-	d.muSingletons.Lock()
-	defer d.muSingletons.Unlock()
+	d.muSingletons.RLock()
+	defer d.muSingletons.RUnlock()
 
 	if singleton, exists := d.singletons[name]; exists {
 		return singleton, true
@@ -232,13 +239,13 @@ func (d *DefaultContainer) Singleton(name string) (any, bool) {
 	return nil, false
 }
 
-// RemoveSingleton removes the singleton instance associated with the specified name.
+// RemoveSingleton removes the singleton associated with the specified name.
 func (d *DefaultContainer) RemoveSingleton(name string) error {
 	d.muSingletons.Lock()
 	defer d.muSingletons.Unlock()
 
 	if _, exists := d.singletons[name]; !exists {
-		return ErrInstanceNotFound
+		return fmt.Errorf("remove singleton %q: not found", name)
 	}
 
 	delete(d.singletons, name)
@@ -267,6 +274,7 @@ func (d *DefaultContainer) DestroySingletons() {
 }
 
 // destroySingleton recursively destroys a singleton and its dependents first.
+// Must be called while holding muSingletons lock.
 func (d *DefaultContainer) destroySingleton(name string, destroyed map[string]struct{}) {
 	if _, done := destroyed[name]; done {
 		return
@@ -293,6 +301,10 @@ func (d *DefaultContainer) destroySingleton(name string, destroyed map[string]st
 
 // CanResolve checks if a component with the given name is resolvable.
 func (d *DefaultContainer) CanResolve(name string) bool {
+	if name == "" {
+		return false
+	}
+
 	d.muSingletons.RLock()
 	defer d.muSingletons.RUnlock()
 
@@ -312,6 +324,10 @@ func (d *DefaultContainer) CanResolve(name string) bool {
 
 // CanResolveType checks if a component of the given type is resolvable.
 func (d *DefaultContainer) CanResolveType(typ reflect.Type) bool {
+	if typ == nil {
+		return false
+	}
+
 	d.muSingletons.RLock()
 	defer d.muSingletons.RUnlock()
 
@@ -335,8 +351,12 @@ func (d *DefaultContainer) CanResolveType(typ reflect.Type) bool {
 
 // Resolve retrieves a component instance by its name.
 func (d *DefaultContainer) Resolve(ctx context.Context, name string) (any, error) {
+	if ctx == nil {
+		return nil, errors.New("nil context")
+	}
+
 	if name == "" {
-		return nil, errors.New("empty name")
+		return nil, errors.New("empty instance name")
 	}
 
 	ctx = withCreationState(ctx)
@@ -348,83 +368,74 @@ func (d *DefaultContainer) Resolve(ctx context.Context, name string) (any, error
 
 	def, defExists := d.Definition(name)
 	if !defExists {
-		return nil, ErrDefinitionNotFound
+		return nil, fmt.Errorf("resolve %q: %w", name, ErrNotFound)
 	}
 
-	state := creationStateFromContext(ctx)
-
-	if def.IsSingleton() {
-		return d.createSingleton(ctx, def)
-	} else if def.IsPrototype() {
-		defer state.removeFromPreparation(name)
-		if err := state.putToPreparation(name); err != nil {
-			return nil, err
-		}
-
-		instance, err := d.createInstance(ctx, def)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return instance, nil
+	if def.IsSingleton() || def.IsPrototype() {
+		return d.createInstance(ctx, def)
 	}
 
-	scope, scopeExists := d.Scope(def.Scope())
+	scopeName := def.Scope()
+	scope, scopeExists := d.Scope(scopeName)
 	if !scopeExists {
-		return nil, ErrScopeNotFound
+		return nil, fmt.Errorf("resolve %q: scope %q not found", name, scopeName)
 	}
 
-	return scope.Resolve(ctx, name, func(ctx context.Context) (any, error) {
-		defer state.removeFromPreparation(name)
-		if err := state.putToPreparation(name); err != nil {
-			return nil, err
-		}
-
+	instance, err := scope.Resolve(ctx, name, func(ctx context.Context) (any, error) {
 		return d.createInstance(ctx, def)
 	})
+
+	if err != nil {
+		return nil, fmt.Errorf("resolve %q: scope %q: %w", name, scopeName, err)
+	}
+
+	return instance, nil
 }
 
 // ResolveType retrieves an instance of the specified type.
 func (d *DefaultContainer) ResolveType(ctx context.Context, typ reflect.Type) (any, error) {
+	if ctx == nil {
+		return nil, errors.New("nil context")
+	}
+
 	if typ == nil {
-		return nil, errors.New("nil type")
+		return nil, errors.New("nil instance type")
 	}
 
 	ctx = withCreationState(ctx)
 
 	resolvableCandidates := d.findResolvableCandidates(typ)
 	if len(resolvableCandidates) > 1 {
-		return nil, errors.New("multiple instance found")
+		return nil, fmt.Errorf("resolve type %s: %w", typ, ErrAmbiguousMatch)
 	} else if len(resolvableCandidates) == 1 {
 		return resolvableCandidates[0], nil
 	}
 
 	singletons := d.resolveSingletons(typ)
 	if len(singletons) > 1 {
-		return nil, errors.New("multiple singletons found")
+		return nil, fmt.Errorf("resolve type %s: %w", typ, ErrAmbiguousMatch)
 	} else if len(singletons) == 1 {
 		return singletons[0], nil
 	}
 
 	definitions := d.DefinitionsOf(typ)
 	if len(definitions) > 1 {
-		return nil, errors.New("multiple definitions found")
+		return nil, fmt.Errorf("resolve type %s: %w", typ, ErrAmbiguousMatch)
 	} else if len(definitions) == 1 {
 		return d.Resolve(ctx, definitions[0].Name())
 	}
 
-	return nil, ErrInstanceNotFound
+	return nil, fmt.Errorf("resolve type %s: %w", typ, ErrNotFound)
 }
 
 // ResolveAs retrieves a component by both name and expected type.
 func (d *DefaultContainer) ResolveAs(ctx context.Context, name string, typ reflect.Type) (any, error) {
 	if name == "" {
-		return nil, errors.New("empty name")
+		return nil, errors.New("empty instance name")
 	}
 
 	if typ == nil {
-		return nil, errors.New("nil type")
+		return nil, errors.New("nil instance type")
 	}
 
 	ctx = withCreationState(ctx)
@@ -436,7 +447,7 @@ func (d *DefaultContainer) ResolveAs(ctx context.Context, name string, typ refle
 
 	instanceType := reflect.TypeOf(instance)
 	if !convertibleTo(instanceType, typ) {
-		return nil, fmt.Errorf("component %q is not assignable to %s", name, typ)
+		return nil, fmt.Errorf("resolve %q: %s is not convertible to %s: %w", name, instanceType, typ, ErrTypeMismatch)
 	}
 
 	return instance, nil
@@ -445,7 +456,7 @@ func (d *DefaultContainer) ResolveAs(ctx context.Context, name string, typ refle
 // ResolveAll retrieves all instances assignable to the specified type.
 func (d *DefaultContainer) ResolveAll(ctx context.Context, typ reflect.Type) ([]any, error) {
 	if typ == nil {
-		return nil, errors.New("nil type")
+		return nil, errors.New("nil instance type")
 	}
 
 	ctx = withCreationState(ctx)
@@ -465,10 +476,10 @@ func (d *DefaultContainer) ResolveAll(ctx context.Context, typ reflect.Type) ([]
 	return instances, nil
 }
 
-// RegisterResolvable registers type with the corresponding value.
+// RegisterResolvable registers type with the corresponding instance.
 func (d *DefaultContainer) RegisterResolvable(typ reflect.Type, instance any) error {
 	if typ == nil {
-		return errors.New("nil type")
+		return errors.New("nil instance type")
 	}
 
 	if instance == nil {
@@ -485,7 +496,7 @@ func (d *DefaultContainer) RegisterResolvable(typ reflect.Type, instance any) er
 // RegisterScope adds a new scope with the specified name to the registry.
 func (d *DefaultContainer) RegisterScope(name string, scope Scope) error {
 	if strings.TrimSpace(name) == "" {
-		return ErrInvalidScopeName
+		return errors.New("empty scope name")
 	}
 
 	if scope == nil {
@@ -500,14 +511,18 @@ func (d *DefaultContainer) RegisterScope(name string, scope Scope) error {
 		return nil
 	}
 
-	return ErrScopeReplacementNotAllowed
+	return fmt.Errorf("register scope %q: reserved scope", name)
 }
 
 // Scope retrieves the scope associated with the given name.
 // Returns the scope and a boolean indicating its existence.
 func (d *DefaultContainer) Scope(name string) (Scope, bool) {
-	d.muScopes.Lock()
-	defer d.muScopes.Unlock()
+	if name == "" {
+		return nil, false
+	}
+
+	d.muScopes.RLock()
+	defer d.muScopes.RUnlock()
 
 	if scope, ok := d.scopes[name]; ok {
 		return scope, true
@@ -519,7 +534,7 @@ func (d *DefaultContainer) Scope(name string) (Scope, bool) {
 // UsePreProcessor registers a PreProcessor to be applied before initialization.
 func (d *DefaultContainer) UsePreProcessor(processor PreProcessor) error {
 	if processor == nil {
-		return errors.New("nil processor")
+		return errors.New("nil pre-processor")
 	}
 
 	d.muProcessors.Lock()
@@ -532,7 +547,7 @@ func (d *DefaultContainer) UsePreProcessor(processor PreProcessor) error {
 // UsePostProcessor registers a PostProcessor to be applied after initialization.
 func (d *DefaultContainer) UsePostProcessor(processor PostProcessor) error {
 	if processor == nil {
-		return errors.New("nil processor")
+		return errors.New("nil post-processor")
 	}
 
 	d.muProcessors.Lock()
@@ -556,45 +571,49 @@ func (d *DefaultContainer) registerSingleton(name string, instance any) error {
 
 // createInstance constructs a new instance of a component using its definition.
 func (d *DefaultContainer) createInstance(ctx context.Context, def *Definition) (any, error) {
+	name := def.Name()
+
+	state := creationStateFromContext(ctx)
+	if def.IsSingleton() {
+		state = d.singletonState
+	}
+
+	defer state.removeFromPreparation(name)
+	if err := state.putToPreparation(name); err != nil {
+		return nil, err
+	}
+
 	constructor := def.Constructor()
 
 	args, err := d.resolveArguments(ctx, constructor.Args())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create %q (%s): %w", name, def.Type(), err)
 	}
 
-	var instance any
+	var (
+		instance any
+	)
+
 	instance, err = constructor.Invoke(args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invoke constructor %q (%s): %w", name, def.Type(), err)
 	}
 
 	instance, err = d.initialize(ctx, instance)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("initialize %q (%s): %w", name, def.Type(), err)
 	}
 
-	return instance, nil
-}
+	if def.IsSingleton() {
+		d.muSingletons.Lock()
+		defer d.muSingletons.Unlock()
+		err = d.registerSingleton(name, instance)
 
-// createSingleton constructs a singleton instance and registers it in the container.
-// It also handles circular dependency protection via preparation state.
-func (d *DefaultContainer) createSingleton(ctx context.Context, def *Definition) (any, error) {
-	name := def.Name()
+		if err != nil {
+			return nil, err
+		}
 
-	defer d.singletonState.removeFromPreparation(name)
-	if err := d.singletonState.putToPreparation(name); err != nil {
-		return nil, err
-	}
-
-	instance, err := d.createInstance(ctx, def)
-	if err != nil {
-		return nil, err
-	}
-
-	err = d.RegisterSingleton(name, instance)
-	if err != nil {
-		return nil, err
+		d.registerDependencies(name, constructor.Args())
 	}
 
 	return instance, nil
@@ -604,13 +623,13 @@ func (d *DefaultContainer) createSingleton(ctx context.Context, def *Definition)
 func (d *DefaultContainer) resolveArguments(ctx context.Context, args []Arg) ([]any, error) {
 	resolvedArgs := make([]any, 0, len(args))
 
-	for _, arg := range args {
+	for idx, arg := range args {
 
 		if arg.Type().Kind() == reflect.Slice {
 			elemType := arg.Type().Elem()
 			instances, err := d.ResolveAll(ctx, elemType)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("unsatisfied dependency for argument %d (%s): %w", idx, arg.Type(), err)
 			}
 
 			sliceVal := reflect.MakeSlice(arg.Type(), len(instances), len(instances))
@@ -634,7 +653,11 @@ func (d *DefaultContainer) resolveArguments(ctx context.Context, args []Arg) ([]
 		}
 
 		if err != nil {
-			return nil, err
+			if arg.Name() != "" {
+				return nil, fmt.Errorf("unsatisfied dependency for argument %d %q (%s): %w", idx, arg.Name(), arg.Type(), err)
+			}
+
+			return nil, fmt.Errorf("unsatisfied dependency for argument %d (%s): %w", idx, arg.Type(), err)
 		}
 
 		resolvedArgs = append(resolvedArgs, instance)
@@ -674,23 +697,60 @@ func (d *DefaultContainer) resolveSingletons(typ reflect.Type) []any {
 	return singletons
 }
 
+// registerDependencies registers the dependencies of a component based on its constructor arguments.
+func (d *DefaultContainer) registerDependencies(name string, args []Arg) {
+	for _, arg := range args {
+		if arg.Type().Kind() == reflect.Slice {
+			for _, depDef := range d.DefinitionsOf(arg.Type().Elem()) {
+				d.registerDependency(name, depDef.Name())
+			}
+		} else if arg.Name() != "" {
+			d.registerDependency(name, arg.Name())
+		} else {
+			if defs := d.DefinitionsOf(arg.Type()); len(defs) == 1 {
+				d.registerDependency(name, defs[0].Name())
+			}
+		}
+	}
+}
+
+// registerDependency registers a dependency relationship between a component and its dependency.
+func (d *DefaultContainer) registerDependency(name, dependency string) {
+	if d.dependents[dependency] == nil {
+		d.dependents[dependency] = make(map[string]struct{})
+	}
+
+	d.dependents[dependency][name] = struct{}{}
+
+	if d.dependencies[name] == nil {
+		d.dependencies[name] = make(map[string]struct{})
+	}
+
+	d.dependencies[name][dependency] = struct{}{}
+}
+
 // initialize runs pre-processors, the Init method (if defined), and post-processors
 // on the given instance, and it returns the fully initialized instance.
 func (d *DefaultContainer) initialize(ctx context.Context, instance any) (any, error) {
 	result, err := d.applyPreProcessors(ctx, instance)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("apply pre-processors: %w", err)
 	}
 
-	if initializer, ok := instance.(Initializer); ok {
+	if initializer, ok := result.(Initializer); ok {
 		err = initializer.Init(ctx)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invoke init: %w", err)
 		}
 	}
 
-	return d.applyPostProcessors(ctx, result)
+	result, err = d.applyPostProcessors(ctx, result)
+	if err != nil {
+		return nil, fmt.Errorf("apply post-processors: %w", err)
+	}
+
+	return result, nil
 }
 
 // applyPreProcessors executes all registered PreProcessor hooks on the instance.
@@ -703,11 +763,11 @@ func (d *DefaultContainer) applyPreProcessors(ctx context.Context, instance any)
 		result, err := processor.ProcessBeforeInit(ctx, instance)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("pre-processor (%T): %w", processor, err)
 		}
 
 		if result == nil {
-			return nil, errors.New("nil processor result")
+			return nil, fmt.Errorf("pre-processor (%T) returned nil", processor)
 		}
 
 		instance = result
@@ -726,11 +786,11 @@ func (d *DefaultContainer) applyPostProcessors(ctx context.Context, instance any
 		result, err := processor.ProcessAfterInit(ctx, instance)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("post-processor (%T): %w", processor, err)
 		}
 
 		if result == nil {
-			return nil, errors.New("nil processor result")
+			return nil, fmt.Errorf("post-processor (%T) returned nil", processor)
 		}
 
 		instance = result

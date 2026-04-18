@@ -84,7 +84,7 @@ func TestCreationState_PutToPreparation(t *testing.T) {
 				state.currentlyInCreation["anyInstanceName"] = struct{}{}
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("instance is in preparation, maybe it has got circular dependency cycle"),
+			wantErr:      errors.New("circular dependency detected for \"anyInstanceName\""),
 		},
 		{
 			name:         "no circular dependency cycle",
