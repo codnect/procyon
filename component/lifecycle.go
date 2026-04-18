@@ -38,10 +38,10 @@ type PostProcessor interface {
 	ProcessAfterInit(ctx context.Context, instance any) (any, error)
 }
 
-// Finalizer can be implemented by components that need to release resources or clean up during shutdown.
-type Finalizer interface {
-	// Finalize is called during application shutdown for cleanup purposes.
-	Finalize() error
+// Disposable can be implemented by components that need to release resources or clean up during shutdown.
+type Disposable interface {
+	// Dispose is called during application shutdown for cleanup purposes.
+	Dispose() error
 }
 
 // LifecycleManager manages the registration of lifecycle hooks such as pre/post processors.

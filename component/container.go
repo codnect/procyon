@@ -63,8 +63,11 @@ type DefaultContainer struct {
 	muDefinitions sync.RWMutex
 
 	singletons            map[string]any
+	singletonOrder        []string
 	singletonState        *creationState
 	typesOfSingletons     map[string]reflect.Type
+	dependents            map[string]map[string]struct{}
+	dependencies          map[string]map[string]struct{}
 	muSingletons          sync.RWMutex
 	resolvableInstances   map[reflect.Type]any
 	muResolvableInstances sync.RWMutex
@@ -84,8 +87,11 @@ func NewDefaultContainer() *DefaultContainer {
 		muDefinitions: sync.RWMutex{},
 
 		singletons:        make(map[string]any),
+		singletonOrder:    make([]string, 0),
 		singletonState:    newCreationState(),
 		typesOfSingletons: make(map[string]reflect.Type),
+		dependents:        make(map[string]map[string]struct{}),
+		dependencies:      make(map[string]map[string]struct{}),
 		muSingletons:      sync.RWMutex{},
 
 		scopes:   make(map[string]Scope),
@@ -201,16 +207,7 @@ func (d *DefaultContainer) RegisterSingleton(name string, instance any) error {
 		return errors.New("nil instance")
 	}
 
-	d.muSingletons.Lock()
-	defer d.muSingletons.Unlock()
-
-	if _, exists := d.singletons[name]; exists {
-		return ErrInstanceAlreadyExists
-	}
-
-	d.singletons[name] = instance
-	d.typesOfSingletons[name] = reflect.TypeOf(instance)
-	return nil
+	return d.registerSingleton(name, instance)
 }
 
 // ContainsSingleton checks whether a singleton with the specified name exists.
@@ -248,6 +245,50 @@ func (d *DefaultContainer) RemoveSingleton(name string) error {
 	delete(d.typesOfSingletons, name)
 
 	return nil
+}
+
+// DestroySingletons destroys all registered singletons in reverse creation order.
+// For each singleton, its dependents are recursively destroyed first.
+func (d *DefaultContainer) DestroySingletons() {
+	d.muSingletons.Lock()
+	defer d.muSingletons.Unlock()
+
+	destroyed := make(map[string]struct{}, len(d.singletonOrder))
+
+	for i := len(d.singletonOrder) - 1; i >= 0; i-- {
+		d.destroySingleton(d.singletonOrder[i], destroyed)
+	}
+
+	clear(d.singletons)
+	clear(d.typesOfSingletons)
+	clear(d.dependents)
+	clear(d.dependencies)
+	d.singletonOrder = d.singletonOrder[:0]
+}
+
+// destroySingleton recursively destroys a singleton and its dependents first.
+func (d *DefaultContainer) destroySingleton(name string, destroyed map[string]struct{}) {
+	if _, done := destroyed[name]; done {
+		return
+	}
+
+	// destroy dependents first (components that depend on this one)
+	for dependent := range d.dependents[name] {
+		d.destroySingleton(dependent, destroyed)
+	}
+
+	destroyed[name] = struct{}{}
+
+	singleton, exists := d.singletons[name]
+	if !exists {
+		return
+	}
+
+	if disposable, ok := singleton.(Disposable); ok {
+		if err := disposable.Dispose(); err != nil {
+			log.Warn("Failed to dispose singleton '{}'", name, err)
+		}
+	}
 }
 
 // CanResolve checks if a component with the given name is resolvable.
@@ -498,6 +539,18 @@ func (d *DefaultContainer) UsePostProcessor(processor PostProcessor) error {
 	defer d.muProcessors.Unlock()
 
 	d.postProcessors = append(d.postProcessors, processor)
+	return nil
+}
+
+// registerSingleton registers a singleton instance with the given name.
+func (d *DefaultContainer) registerSingleton(name string, instance any) error {
+	if _, dup := d.singletons[name]; dup {
+		return fmt.Errorf("register singleton %q: duplicate instance", name)
+	}
+
+	d.singletons[name] = instance
+	d.singletonOrder = append(d.singletonOrder, name)
+	d.typesOfSingletons[name] = reflect.TypeOf(instance)
 	return nil
 }
 
