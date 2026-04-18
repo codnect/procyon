@@ -16,6 +16,7 @@ package component
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -52,17 +53,23 @@ func NewConditionalLoader(container Container, components []*Component) *Conditi
 // only if all conditions are satisfied. Components that fail condition checks are skipped.
 // Returns an error if any eligible component fails to register.
 func (l *ConditionalLoader) Load(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("nil context")
+	}
+
 	skipped := make([]*Component, 0)
 
 	for _, comp := range l.components {
+		def := comp.Definition()
+
 		if !l.evaluator.evaluate(ctx, comp.Conditions()) {
 			skipped = append(skipped, comp)
+			log.Debug("skipping component %s due to unsatisfied conditions", def.Name())
 			continue
 		}
 
-		def := comp.definition
 		if err := l.container.RegisterDefinition(def); err != nil {
-			return fmt.Errorf("register component %q: %w", def.Name(), err)
+			return fmt.Errorf("load component %q: %w", def.Name(), err)
 		}
 	}
 

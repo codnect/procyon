@@ -19,13 +19,7 @@ import (
 )
 
 var (
-	ErrNotFound                    = errors.New("not found")
-	ErrAlreadyRegistered           = errors.New("already registered")
-	ErrTypeMismatch                = errors.New("type mismatch")
-	ErrDefinitionNotFound          = errors.New("definition not found")
-	ErrDefinitionAlreadyRegistered = errors.New("definition already registered")
-	ErrScopeNotFound               = errors.New("scope not found")
-	ErrScopeReplacementNotAllowed  = errors.New("cannot replace singleton or prototype scope")
-	ErrMultipleMatches             = errors.New("multiple components found")
-	ErrCircularDependency          = errors.New("circular dependency detected during creation")
+	ErrNotFound       = errors.New("not found")
+	ErrTypeMismatch   = errors.New("type mismatch")
+	ErrAmbiguousMatch = errors.New("ambiguous match")
 )

@@ -77,6 +77,10 @@ func (r *Registration) Conditional(cond Condition) *Registration {
 // Register registers a new component using the given constructor function and optional definition options.
 // It panics if the component name already exists or if definition creation fails.
 func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
+	if fn == nil {
+		panic("component: nil constructor function")
+	}
+
 	muComponents.Lock()
 	defer muComponents.Unlock()
 
@@ -87,7 +91,7 @@ func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
 
 	name := def.Name()
 
-	if _, exists := components[name]; exists {
+	if _, dup := components[name]; dup {
 		panic(fmt.Sprintf("component: duplicate component name '%s'", name))
 	}
 
@@ -108,19 +112,19 @@ func Load[T any](name string, args ...any) (T, error) {
 	var zeroVal T
 	component, exists := components[name]
 	if !exists {
-		return zeroVal, fmt.Errorf("%q: %w", name, ErrNotFound)
+		return zeroVal, fmt.Errorf("load component %q: %w", name, ErrNotFound)
 	}
 
 	targetType := reflect.TypeFor[T]()
 	definition := component.Definition()
 	sourceType := definition.Type()
 	if !convertibleTo(sourceType, targetType) {
-		return zeroVal, fmt.Errorf("%q: %w", name, ErrTypeMismatch)
+		return zeroVal, fmt.Errorf("load component %q: %s is not convertible to %s: %w", name, sourceType, targetType, ErrTypeMismatch)
 	}
 
 	out, err := definition.Constructor().Invoke(args...)
 	if err != nil {
-		return zeroVal, err
+		return zeroVal, fmt.Errorf("load component %q: %w", name, err)
 	}
 
 	return out.(T), nil
