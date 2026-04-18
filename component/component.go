@@ -77,18 +77,22 @@ func (r *Registration) Conditional(cond Condition) *Registration {
 // Register registers a new component using the given constructor function and optional definition options.
 // It panics if the component name already exists or if definition creation fails.
 func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
+	if fn == nil {
+		panic("component: nil constructor function")
+	}
+
 	muComponents.Lock()
 	defer muComponents.Unlock()
 
 	def, err := MakeDefinition(fn, opts...)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("component: %s", err))
 	}
 
 	name := def.Name()
 
-	if _, exists := components[name]; exists {
-		panic(fmt.Errorf("component with name '%s' already exists", name))
+	if _, dup := components[name]; dup {
+		panic(fmt.Sprintf("component: duplicate component name '%s'", name))
 	}
 
 	component := createComponent(def)
@@ -108,19 +112,19 @@ func Load[T any](name string, args ...any) (T, error) {
 	var zeroVal T
 	component, exists := components[name]
 	if !exists {
-		return zeroVal, fmt.Errorf("component with name %q does not exists", name)
+		return zeroVal, fmt.Errorf("load component %q: %w", name, ErrNotFound)
 	}
 
 	targetType := reflect.TypeFor[T]()
 	definition := component.Definition()
 	sourceType := definition.Type()
 	if !convertibleTo(sourceType, targetType) {
-		return zeroVal, fmt.Errorf("mismatched type for component with name %q", name)
+		return zeroVal, fmt.Errorf("load component %q: %s is not convertible to %s: %w", name, sourceType, targetType, ErrTypeMismatch)
 	}
 
 	out, err := definition.Constructor().Invoke(args...)
 	if err != nil {
-		return zeroVal, err
+		return zeroVal, fmt.Errorf("load component %q: %w", name, err)
 	}
 
 	return out.(T), nil

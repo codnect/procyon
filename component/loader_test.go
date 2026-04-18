@@ -90,6 +90,7 @@ func TestConditionalLoader_Load(t *testing.T) {
 	}{
 		{
 			name:      "load component",
+			ctx:       context.Background(),
 			container: NewDefaultContainer(),
 			components: []*Component{
 				createComponent(anyComponentDef),
@@ -112,12 +113,13 @@ func TestConditionalLoader_Load(t *testing.T) {
 		},
 		{
 			name:      "already exists",
+			ctx:       context.Background(),
 			container: NewDefaultContainer(),
 			components: []*Component{
 				createComponent(anyComponentDef),
 				createComponent(anyComponentDef),
 			},
-			wantErr: fmt.Errorf("failed to register component \"anyComponent\": %s", ErrDefinitionAlreadyExists),
+			wantErr: fmt.Errorf("load component \"anyComponent\": register definition \"anyComponent\": duplicate definition"),
 		},
 	}
 

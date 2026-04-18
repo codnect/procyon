@@ -87,11 +87,12 @@ func (a *AnyComponentWithInitializer) Init(ctx context.Context) error {
 
 func TestRegister(t *testing.T) {
 	testCases := []struct {
-		name           string
-		preCondition   func()
-		constructorFn  ConstructorFunc
-		opts           []DefinitionOption
-		conditions     []Condition
+		name          string
+		preCondition  func()
+		constructorFn ConstructorFunc
+		opts          []DefinitionOption
+		conditions    []Condition
+
 		wantName       string
 		wantScope      string
 		wantType       reflect.Type
@@ -99,9 +100,9 @@ func TestRegister(t *testing.T) {
 		wantPanic      error
 	}{
 		{
-			name:          "nil constructor",
+			name:          "nil constructor function",
 			constructorFn: nil,
-			wantPanic:     errors.New("nil constructor"),
+			wantPanic:     errors.New("component: nil constructor function"),
 		},
 		{
 			name: "already exists",
@@ -109,7 +110,7 @@ func TestRegister(t *testing.T) {
 				components["anyComponent"] = &Component{}
 			},
 			constructorFn: NewAnyComponent,
-			wantPanic:     errors.New("component with name 'anyComponent' already exists"),
+			wantPanic:     errors.New("component: duplicate component name 'anyComponent'"),
 		},
 		{
 			name:          "without options",
@@ -175,7 +176,7 @@ func TestRegister(t *testing.T) {
 
 			// when
 			if tc.wantPanic != nil {
-				require.PanicsWithError(t, tc.wantPanic.Error(), func() {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
 					Register(tc.constructorFn, tc.opts...)
 				})
 				return

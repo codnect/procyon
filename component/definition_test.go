@@ -38,14 +38,14 @@ func TestMakeDefinition(t *testing.T) {
 		{
 			name:          "nil constructor",
 			constructorFn: nil,
-			wantErr:       errors.New("nil constructor"),
+			wantErr:       errors.New("nil constructor function"),
 		},
 		{
 			name: "invalid out type",
 			constructorFn: func() string {
 				return ""
 			},
-			wantErr: errors.New("invalid constructor output: expected struct, pointer, or interface; got string"),
+			wantErr: errors.New("constructor must return a struct, pointer to struct, or interface, got string"),
 		},
 		{
 			name:          "without options",
@@ -116,7 +116,7 @@ func TestMakeDefinition(t *testing.T) {
 			wantName:  "anotherComponent",
 			wantScope: SingletonScope,
 			wantType:  reflect.TypeFor[*AnotherComponent](),
-			wantErr:   errors.New("no constructor input of type string"),
+			wantErr:   errors.New("constructor has no parameter of type string"),
 		},
 	}
 	for _, tc := range testCases {

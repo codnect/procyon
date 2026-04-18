@@ -96,6 +96,10 @@ func (a *AnyContainer) RemoveSingleton(name string) error {
 	return result.Error(0)
 }
 
+func (a *AnyContainer) DestroySingletons() {
+	a.Called()
+}
+
 func (a *AnyContainer) CanResolve(name string) bool {
 	result := a.Called(name)
 	return result.Bool(0)
@@ -232,7 +236,7 @@ func TestDefaultContainer_RegisterDefinition(t *testing.T) {
 			definition: &Definition{
 				name: "anyDefinitionName",
 			},
-			wantErr: ErrDefinitionAlreadyExists,
+			wantErr: errors.New("register definition \"anyDefinitionName\": duplicate definition"),
 		},
 		{
 			name: "valid definition",
@@ -278,7 +282,7 @@ func TestDefaultContainer_UnregisterDefinition(t *testing.T) {
 		{
 			name:           "no definition",
 			definitionName: "anyDefinitionName",
-			wantErr:        ErrDefinitionNotFound,
+			wantErr:        errors.New("unregister definition \"anyDefinitionName\": definition not found"),
 		},
 		{
 			name: "valid definition",
@@ -531,7 +535,7 @@ func TestDefaultContainer_RegisterSingleton(t *testing.T) {
 		{
 			name:         "empty name",
 			instanceName: "",
-			wantErr:      errors.New("empty name"),
+			wantErr:      errors.New("empty instance name"),
 		},
 		{
 			name:         "nil instance",
@@ -546,7 +550,7 @@ func TestDefaultContainer_RegisterSingleton(t *testing.T) {
 			},
 			instanceName: "anyInstanceName",
 			instance:     AnyComponent{},
-			wantErr:      ErrInstanceAlreadyExists,
+			wantErr:      errors.New("register singleton \"anyInstanceName\": duplicate instance"),
 		},
 		{
 			name:         "valid singleton",
@@ -679,7 +683,7 @@ func TestDefaultContainer_RemoveSingleton(t *testing.T) {
 		{
 			name:          "no singleton",
 			singletonName: "anySingletonName",
-			wantErr:       ErrInstanceNotFound,
+			wantErr:       errors.New("remove singleton \"anySingletonName\": not found"),
 		},
 		{
 			name: "valid singleton",
@@ -830,12 +834,20 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		wantTyp reflect.Type
 	}{
 		{
+			name:    "nil context",
+			ctx:     nil,
+			wantErr: errors.New("nil context"),
+			wantTyp: nil,
+		},
+		{
+			ctx:          context.Background(),
 			name:         "empty name",
 			instanceName: "",
-			wantErr:      errors.New("empty name"),
+			wantErr:      errors.New("empty instance name"),
 		},
 		{
 			name: "resolve singleton already in container",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				_ = container.RegisterSingleton("anyInstanceName", AnyComponent{})
 			},
@@ -844,6 +856,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		},
 		{
 			name: "resolve from singleton definition",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -853,12 +866,14 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		},
 		{
 			name:         "no singleton/definition",
+			ctx:          context.Background(),
 			instanceName: "anyInstanceName",
 			wantTyp:      reflect.TypeFor[*AnyComponent](),
-			wantErr:      ErrDefinitionNotFound,
+			wantErr:      errors.New("resolve \"anyInstanceName\": not found"),
 		},
 		{
 			name: "resolve from prototype definition",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"), WithScope(PrototypeScope))
 				_ = container.RegisterDefinition(def)
@@ -868,15 +883,17 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		},
 		{
 			name: "no scope",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"), WithScope("anyScope"))
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrScopeNotFound,
+			wantErr:      errors.New("resolve \"anyInstanceName\": scope \"anyScope\" not found"),
 		},
 		{
 			name: "resolve from custom scope",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				scope := &AnyScope{
 					useFactory: true,
@@ -891,6 +908,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		},
 		{
 			name: "resolve singleton with dependencies",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnotherComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -903,15 +921,17 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		},
 		{
 			name: "cannot resolve singleton with dependencies",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnotherComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrInstanceNotFound,
+			wantErr:      errors.New("create \"anyInstanceName\" (*component.AnotherComponent): unsatisfied dependency for argument 0 (component.DependentComponent): resolve type component.DependentComponent: not found"),
 		},
 		{
 			name: "resolve singleton with named dependencies",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnotherComponent, WithName("anyInstanceName"),
 					WithQualifierFor[DependentComponent]("anyDependentName"))
@@ -925,6 +945,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		},
 		{
 			name: "cannot resolve singleton with named dependencies",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnotherComponent, WithName("anyInstanceName"),
 					WithQualifierFor[DependentComponent]("anyDependentName"))
@@ -932,10 +953,11 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrDefinitionNotFound,
+			wantErr:      errors.New("create \"anyInstanceName\" (*component.AnotherComponent): unsatisfied dependency for argument 0 \"anyDependentName\" (component.DependentComponent): resolve \"anyDependentName\": not found"),
 		},
 		{
 			name: "resolve singleton with slice dependencies",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnySliceDependentComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -954,6 +976,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 		},
 		{
 			name: "cannot resolve singleton with slice dependencies",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnySliceDependentComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -965,7 +988,7 @@ func TestDefaultContainer_Resolve(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      ErrInstanceNotFound,
+			wantErr:      errors.New("create \"anyInstanceName\" (*component.AnySliceDependentComponent): unsatisfied dependency for argument 0 ([]component.AnyInterface): create \"anotherComponent\" (*component.AnotherComponent): unsatisfied dependency for argument 0 (component.DependentComponent): resolve type component.DependentComponent: not found"),
 		},
 	}
 
@@ -1005,20 +1028,29 @@ func TestDefaultContainer_ResolveType(t *testing.T) {
 		wantTyp reflect.Type
 	}{
 		{
+			name:    "nil context",
+			ctx:     nil,
+			wantErr: errors.New("nil context"),
+			wantTyp: nil,
+		},
+		{
 			name:    "nil type",
-			wantErr: errors.New("nil type"),
+			ctx:     context.Background(),
+			wantErr: errors.New("nil instance type"),
 		},
 		{
 			name: "multiple singletons",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				_ = container.RegisterSingleton("anyInstanceName", AnyComponent{})
 				_ = container.RegisterSingleton("anotherInstanceName", AnyComponent{})
 			},
 			instanceType: reflect.TypeFor[AnyComponent](),
-			wantErr:      errors.New("multiple singletons found"),
+			wantErr:      errors.New("resolve type component.AnyComponent: ambiguous match"),
 		},
 		{
 			name: "multi definitions",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -1027,12 +1059,13 @@ func TestDefaultContainer_ResolveType(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceType: reflect.TypeFor[*AnyComponent](),
-			wantErr:      errors.New("multiple definitions found"),
+			wantErr:      errors.New("resolve type *component.AnyComponent: ambiguous match"),
 		},
 		{
 			name:         "no singleton/definition",
+			ctx:          context.Background(),
 			instanceType: reflect.TypeFor[AnyComponent](),
-			wantErr:      ErrInstanceNotFound,
+			wantErr:      errors.New("resolve type component.AnyComponent: not found"),
 		},
 	}
 
@@ -1073,12 +1106,12 @@ func TestDefaultContainer_ResolveAs(t *testing.T) {
 	}{
 		{
 			name:         "empty name",
-			wantErr:      errors.New("empty name"),
+			wantErr:      errors.New("empty instance name"),
 			instanceName: "",
 		},
 		{
 			name:         "nil type",
-			wantErr:      errors.New("nil type"),
+			wantErr:      errors.New("nil instance type"),
 			instanceName: "anyInstanceName",
 			instanceType: nil,
 		},
@@ -1098,7 +1131,7 @@ func TestDefaultContainer_ResolveAs(t *testing.T) {
 			},
 			instanceName: "anyInstanceName",
 			instanceType: reflect.TypeFor[AnotherComponent](),
-			wantErr:      errors.New("component \"anyInstanceName\" is not assignable to component.AnotherComponent"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": component.AnyComponent is not convertible to component.AnotherComponent: type mismatch"),
 		},
 	}
 
@@ -1145,10 +1178,10 @@ func TestDefaultContainer_RegisterResolvable(t *testing.T) {
 		{
 			name:    "nil type",
 			typ:     nil,
-			wantErr: errors.New("nil type"),
+			wantErr: errors.New("nil instance type"),
 		},
 		{
-			name:    "nil instance",
+			name:    "nil value",
 			typ:     rAnyType,
 			wantErr: errors.New("nil instance"),
 		},
@@ -1198,8 +1231,8 @@ func TestDefaultContainer_RegisterScope(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name:    "invalid scope name",
-			wantErr: ErrInvalidScopeName,
+			name:    "empty scope name",
+			wantErr: errors.New("empty scope name"),
 		},
 		{
 			name:      "nil scope",
@@ -1211,13 +1244,13 @@ func TestDefaultContainer_RegisterScope(t *testing.T) {
 			name:      "singleton scope replacement not allowed",
 			scopeName: SingletonScope,
 			scope:     &AnyScope{},
-			wantErr:   ErrScopeReplacementNotAllowed,
+			wantErr:   errors.New("register scope \"singleton\": reserved scope"),
 		},
 		{
 			name:      "prototype scope replacement not allowed",
 			scopeName: PrototypeScope,
 			scope:     &AnyScope{},
-			wantErr:   ErrScopeReplacementNotAllowed,
+			wantErr:   errors.New("register scope \"prototype\": reserved scope"),
 		},
 		{
 			name:      "valid scope",
@@ -1303,7 +1336,7 @@ func TestDefaultContainer_UsePreProcessor(t *testing.T) {
 	}{
 		{
 			name:    "nil pre processor",
-			wantErr: errors.New("nil processor"),
+			wantErr: errors.New("nil pre-processor"),
 			wantLen: 0,
 		},
 		{
@@ -1346,7 +1379,7 @@ func TestDefaultContainer_UsePostProcessor(t *testing.T) {
 	}{
 		{
 			name:    "nil pre processor",
-			wantErr: errors.New("nil processor"),
+			wantErr: errors.New("nil post-processor"),
 			wantLen: 0,
 		},
 		{
@@ -1392,6 +1425,7 @@ func TestDefaultContainer_Initialize(t *testing.T) {
 	}{
 		{
 			name: "initialize error",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponentWithInitializer, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -1401,10 +1435,11 @@ func TestDefaultContainer_Initialize(t *testing.T) {
 				mockObj.On("Init", mock.AnythingOfType("*context.valueCtx")).Return(errors.New("init error"))
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("init error"),
+			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyComponentWithInitializer): invoke init: init error"),
 		},
 		{
 			name: "no initialize error",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponentWithInitializer, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -1418,6 +1453,7 @@ func TestDefaultContainer_Initialize(t *testing.T) {
 		},
 		{
 			name: "pre processor error",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -1428,10 +1464,11 @@ func TestDefaultContainer_Initialize(t *testing.T) {
 					Return(nil, errors.New("pre processor error"))
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("pre processor error"),
+			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyComponent): apply pre-processors: pre-processor (*component.AnyPreProcessor): pre processor error"),
 		},
 		{
 			name: "apply pre processor",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -1446,6 +1483,7 @@ func TestDefaultContainer_Initialize(t *testing.T) {
 		},
 		{
 			name: "post processor error",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
@@ -1456,10 +1494,11 @@ func TestDefaultContainer_Initialize(t *testing.T) {
 					Return(nil, errors.New("post processor error"))
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("post processor error"),
+			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyComponent): apply post-processors: post-processor (*component.AnyPostProcessor): post processor error"),
 		},
 		{
 			name: "apply post processor",
+			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)

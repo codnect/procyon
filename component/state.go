@@ -16,6 +16,7 @@ package component
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -68,7 +69,7 @@ func (s *creationState) putToPreparation(name string) error {
 	defer s.mu.Unlock()
 
 	if _, ok := s.currentlyInCreation[name]; ok {
-		return ErrInstanceInPreparation
+		return fmt.Errorf("circular dependency detected for %q", name)
 	}
 
 	s.currentlyInCreation[name] = struct{}{}

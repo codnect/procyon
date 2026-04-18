@@ -126,7 +126,7 @@ func validateOutType(outType reflect.Type) error {
 		return nil
 	}
 
-	return fmt.Errorf("invalid constructor output: expected struct, pointer, or interface; got %s", kind)
+	return fmt.Errorf("constructor must return a struct, pointer to struct, or interface, got %v", outType)
 }
 
 // applyDefinitionOptions applies the options to the definition
@@ -188,7 +188,7 @@ func WithQualifierFor[T any](name string) DefinitionOption {
 		}
 
 		if !exists {
-			return fmt.Errorf("no constructor input of type %s", typ.Name())
+			return fmt.Errorf("constructor has no parameter of type %v", typ)
 		}
 
 		return nil
