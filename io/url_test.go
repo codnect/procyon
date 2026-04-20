@@ -18,12 +18,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -157,7 +154,7 @@ func TestURLResource_Reader(t *testing.T) {
 		{
 			name:    "resource does not exists",
 			url:     fmt.Sprintf("%s/resources/unknown.yaml", testServer.URL),
-			wantErr: errors.New("resource does not exist"),
+			wantErr: fmt.Errorf("read url resource \"%s/resources/unknown.yaml\": unexpected status code 404", testServer.URL),
 		},
 		{
 			name:     "valid url resource",
@@ -165,25 +162,9 @@ func TestURLResource_Reader(t *testing.T) {
 			wantData: []byte("anyData"),
 		},
 		{
-			name: "no host",
-			url:  "http://localhost:8080/resources/procyon.yaml",
-			wantErr: &url.Error{
-				Op:  "Get",
-				URL: "http://localhost:8080/resources/procyon.yaml",
-				Err: &net.OpError{
-					Op:     "dial",
-					Net:    "tcp",
-					Source: nil,
-					Addr: &net.TCPAddr{
-						IP:   net.ParseIP("127.0.0.1"),
-						Port: 8080,
-					},
-					Err: &os.SyscallError{
-						Syscall: "connect",
-						Err:     syscall.ECONNREFUSED,
-					},
-				},
-			},
+			name:    "no host",
+			url:     "http://localhost:8080/resources/procyon.yaml",
+			wantErr: fmt.Errorf("read url resource \"http://localhost:8080/resources/procyon.yaml\": Get \"http://localhost:8080/resources/procyon.yaml\": dial tcp 127.0.0.1:8080: connect: connection refused"),
 		},
 	}
 
