@@ -210,7 +210,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/",
-			wantErr:  errors.New("resolve error"),
+			wantErr:  errors.New("load config for default profile: resolve error"),
 		},
 		{
 			name: "directory: resolve error with profile",
@@ -224,7 +224,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/",
-			wantErr:  errors.New("resolve error"),
+			wantErr:  errors.New("load config for profile \"dev\": resolve error"),
 			profiles: []string{"dev"},
 		},
 		{
@@ -281,7 +281,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/",
-			wantErr:  errors.New("load error"),
+			wantErr:  errors.New("load config for default profile: load yaml property source \"resources/procyon.yaml\": load error"),
 		},
 		{
 			name: "directory: load error with profile",
@@ -306,7 +306,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 			},
 			location: "resources/",
 			profiles: []string{"dev"},
-			wantErr:  errors.New("load error"),
+			wantErr:  errors.New("load config for profile \"dev\": load yaml property source \"resources/procyon-dev.yaml\": load error"),
 		},
 		{
 			name: "directory: load resource",
@@ -349,7 +349,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/procyon.yaml",
-			wantErr:  errors.New("resolve error"),
+			wantErr:  errors.New("load config for default profile: resolve error"),
 		},
 		{
 			name: "file: resolve error with default profile",
@@ -363,7 +363,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/procyon.yaml",
-			wantErr:  errors.New("resolve error"),
+			wantErr:  errors.New("load config for profile \"dev\": resolve error"),
 			profiles: []string{"dev"},
 		},
 		{
@@ -411,7 +411,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 				NewYamlPropertySourceLoader(),
 			},
 			location: "resources/procyon.yaml",
-			wantErr:  errors.New("load error"),
+			wantErr:  errors.New("load config for default profile: load yaml property source \"resources/procyon.yaml\": load error"),
 		},
 		{
 			name: "file: load error for with profile",
@@ -430,7 +430,7 @@ func TestStandardDataLoader_Load(t *testing.T) {
 			},
 			location: "resources/procyon.yaml",
 			profiles: []string{"dev"},
-			wantErr:  errors.New("load error"),
+			wantErr:  errors.New("load config for profile \"dev\": load yaml property source \"resources/procyon.yaml\": load error"),
 		},
 		{
 			name: "file: load resource",

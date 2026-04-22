@@ -62,10 +62,15 @@ func (b *DefaultPropertyBinder) Bind(name string, target any) error {
 
 	targetVal := reflect.ValueOf(target)
 	if targetVal.Kind() != reflect.Ptr || targetVal.IsNil() {
-		return errors.New("target must be a non-nil pointer")
+		return fmt.Errorf("bind %q: non-nil pointer required", name)
 	}
 
-	return b.bindValue(name, targetVal.Elem())
+	err := b.bindValue(name, targetVal.Elem())
+	if err != nil {
+		return fmt.Errorf("bind property %q to %s: %w", name, targetVal.Elem().Type(), err)
+	}
+
+	return nil
 }
 
 // findProperty method searches for the property with the given name in the property sources.
@@ -99,7 +104,7 @@ func (b *DefaultPropertyBinder) bindValue(name string, targetVal reflect.Value) 
 func (b *DefaultPropertyBinder) bindAny(name string, targetVal reflect.Value) error {
 	propVal, ok := b.findProperty(name)
 	if !ok {
-		return ErrNoPropertyFound
+		return ErrPropertyNotFound
 	}
 
 	targetVal.Set(reflect.ValueOf(propVal))
@@ -110,7 +115,7 @@ func (b *DefaultPropertyBinder) bindAny(name string, targetVal reflect.Value) er
 func (b *DefaultPropertyBinder) bindScalar(name string, target reflect.Value) error {
 	val, ok := b.findProperty(name)
 	if !ok {
-		return ErrNoPropertyFound
+		return ErrPropertyNotFound
 	}
 
 	return b.setScalar(target, val)
@@ -131,22 +136,22 @@ func (b *DefaultPropertyBinder) bindSlice(name string, targetVal reflect.Value) 
 
 	for i := 0; i < math.MaxInt64; i++ {
 		indexedName := fmt.Sprintf("%s[%d]", name, i)
-		elemVal := reflect.New(elemType)
+		elemVal := reflect.New(elemType).Elem()
 
-		err := b.Bind(indexedName, elemVal.Interface())
+		err := b.bindValue(indexedName, elemVal)
 		if err != nil {
-			if errors.Is(err, ErrNoPropertyFound) {
+			if errors.Is(err, ErrPropertyNotFound) {
 				break
 			}
 
-			return fmt.Errorf("cannot append property %q to slice []%s: %w", name, elemType, err)
+			return err
 		}
 
-		targetVal.Set(reflect.Append(targetVal, elemVal.Elem()))
+		targetVal.Set(reflect.Append(targetVal, elemVal))
 	}
 
 	if targetVal.Len() == 0 {
-		return ErrNoPropertyFound
+		return ErrPropertyNotFound
 	}
 
 	return nil
@@ -176,7 +181,7 @@ func (b *DefaultPropertyBinder) bindMap(name string, target reflect.Value) error
 		val := reflect.New(valType)
 		err := b.Bind(name+"."+subKey, val.Interface())
 		if err != nil {
-			return fmt.Errorf("cannot bind map property %q: %w", name, err)
+			return err
 		}
 
 		key := reflect.ValueOf(subKey)
@@ -206,24 +211,24 @@ func (b *DefaultPropertyBinder) bindStruct(name string, targetVal reflect.Value)
 
 		err := tag.Parse(tags, propTag)
 		if err != nil {
-			return fmt.Errorf("failed to parse tags for field %s: %w", field.Name, err)
+			return fmt.Errorf("struct field %q: parse tag '%s': %w", field.Name, tags, err)
 		}
 
 		propName := fmt.Sprintf("%s.%s", name, propTag.Name)
 
 		err = b.bindValue(propName, fieldVal)
 
-		if errors.Is(err, ErrNoPropertyFound) {
+		if errors.Is(err, ErrPropertyNotFound) {
 			if propTag.Default != nil {
 				err = b.setValue(fieldVal, propTag.Default)
 				if err != nil {
-					return fmt.Errorf("failed to set default value for property %q: %w", propName, err)
+					return fmt.Errorf("struct field %q: property %q to %s: default value %q: %w", field.Name, propName, field.Type, propTag.Default, err)
 				}
 			} else if !propTag.Optional {
-				return fmt.Errorf("missing required property: %q", propName)
+				return fmt.Errorf("struct field %q: property %q to %s: required", field.Name, propName, field.Type)
 			}
 		} else if err != nil {
-			return fmt.Errorf("failed to bind property %q: %w", propName, err)
+			return fmt.Errorf("struct field %q: property %q to %s: %w", field.Name, propName, field.Type, err)
 		}
 
 		switch field.Type.Kind() {
@@ -231,7 +236,7 @@ func (b *DefaultPropertyBinder) bindStruct(name string, targetVal reflect.Value)
 			if fieldVal.Len() == 0 && propTag.Default != nil {
 				err = b.setValue(fieldVal, propTag.Default)
 				if err != nil {
-					return fmt.Errorf("failed to set default value for property %q: %w", propName, err)
+					return fmt.Errorf("struct field %q: property %q to %s: default value %q: %w", field.Name, propName, field.Type, propTag.Default, err)
 				}
 			}
 		default:
@@ -295,7 +300,7 @@ func (b *DefaultPropertyBinder) setScalar(target reflect.Value, val any) error {
 	case reflect.String:
 		target.SetString(fmt.Sprint(val))
 	default:
-		return fmt.Errorf("unsupported target type: %s", target.Kind())
+		return fmt.Errorf("value \"%v\": unsupported target type", val)
 	}
 
 	return nil
@@ -312,7 +317,7 @@ func (b *DefaultPropertyBinder) copySlice(target reflect.Value, source reflect.V
 			elem := reflect.New(elemType).Elem()
 
 			if err := b.setValue(elem, p); err != nil {
-				return fmt.Errorf("cannot append element %q to slice []%s: %w", p, elemType, err)
+				return fmt.Errorf("string value %q: %w", source.String(), err)
 			}
 
 			out = reflect.Append(out, elem)
@@ -334,7 +339,7 @@ func (b *DefaultPropertyBinder) copySlice(target reflect.Value, source reflect.V
 		elem := reflect.New(elemType).Elem()
 
 		if err := b.setValue(elem, sv.Interface()); err != nil {
-			return fmt.Errorf("cannot append element %q to slice []%s: %w", sv, elemType, err)
+			return err
 		}
 
 		out = reflect.Append(out, elem)
@@ -363,12 +368,12 @@ func (b *DefaultPropertyBinder) copyMap(target reflect.Value, source reflect.Val
 
 		k := reflect.New(keyType).Elem()
 		if err := b.setValue(k, key.Interface()); err != nil {
-			return fmt.Errorf("cannot convert map key (%s) to %s: %w", key.Type(), keyType, err)
+			return err
 		}
 
 		v := reflect.New(valType).Elem()
 		if err := b.setValue(v, val.Interface()); err != nil {
-			return fmt.Errorf("cannot convert map value (%s) to %s: %w", val.Type(), valType, err)
+			return err
 		}
 
 		target.SetMapIndex(k, v)
@@ -413,13 +418,13 @@ func toUint64(val any, bits int) (uint64, error) {
 	case int, int8, int16, int32, int64:
 		i := reflect.ValueOf(v).Int()
 		if i < 0 {
-			return 0, fmt.Errorf("cannot convert negative integer %d to uint", i)
+			return 0, fmt.Errorf("negative value %d", i)
 		}
 		return uint64(i), nil
 	case float32, float64:
 		f := reflect.ValueOf(v).Float()
 		if f < 0 {
-			return 0, fmt.Errorf("cannot convert negative float %f to uint", f)
+			return 0, fmt.Errorf("negative value %f", f)
 		}
 		return uint64(f), nil
 	case string:
