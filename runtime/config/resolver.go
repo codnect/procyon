@@ -15,7 +15,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -81,7 +80,12 @@ func (r *DefaultPropertyResolver) Expand(s string) string {
 // ExpandStrict resolves placeholders in the given text.
 // If a placeholder cannot be resolved, it returns an error.
 func (r *DefaultPropertyResolver) ExpandStrict(s string) (string, error) {
-	return r.expand(s, false)
+	result, err := r.expand(s, false)
+	if err != nil {
+		return "", fmt.Errorf("expand %q: %w", s, err)
+	}
+
+	return result, nil
 }
 
 // expand resolves placeholders in the given text.
@@ -101,7 +105,7 @@ func (r *DefaultPropertyResolver) expand(s string, continueOnError bool) (string
 
 			if name == "" && w > 0 {
 				if !continueOnError {
-					return "", errors.New("wrong placeholder format")
+					return "", fmt.Errorf("invalid placeholder at index %d", j)
 				}
 
 				buf = append(buf, s[j:j+w+1]...)
@@ -112,10 +116,10 @@ func (r *DefaultPropertyResolver) expand(s string, continueOnError bool) (string
 
 				if !ok {
 					if !continueOnError {
-						return "", fmt.Errorf("cannot resolve placeholder '${%s}'", name)
-					} else {
-						buf = append(buf, s[j:j+w+1]...)
+						return "", fmt.Errorf("unresolved placeholder ${%s}", name)
 					}
+
+					buf = append(buf, s[j:j+w+1]...)
 				} else {
 					buf = append(buf, fmt.Sprint(value)...)
 				}

@@ -53,7 +53,7 @@ type ServiceConfig struct {
 
 type ServiceConfigWithInvalidMapDefault struct {
 	Name   string         `property:"name"`
-	Limits map[string]int `property:"labels,default={'cpu': 'high'}"`
+	Limits map[string]int `property:"limits,default={'cpu': 'high'}"`
 }
 
 type ServiceConfigWithInvalidSliceDefault struct {
@@ -133,7 +133,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:    "app.name",
 			targetValue: "notAPointer",
-			wantErr:     errors.New("target must be a non-nil pointer"),
+			wantErr:     errors.New("bind \"app.name\": non-nil pointer required"),
 		},
 		{
 			name: "empty property name",
@@ -160,7 +160,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "app.version",
 			targetType: reflect.TypeFor[any](),
-			wantErr:    ErrNoPropertyFound,
+			wantErr:    errors.New("bind property \"app.version\" to interface {}: property not found"),
 		},
 		{
 			name: "string property",
@@ -196,7 +196,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "app.debug",
 			targetType: reflect.TypeFor[bool](),
-			wantErr:    errors.New("strconv.ParseBool: parsing \"8080\": invalid syntax"),
+			wantErr:    errors.New("bind property \"app.debug\" to bool: strconv.ParseBool: parsing \"8080\": invalid syntax"),
 		},
 		{
 			name: "int property from int source",
@@ -313,7 +313,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "weather.temperature",
 			targetType: reflect.TypeFor[int](),
-			wantErr:    fmt.Errorf("strconv.ParseInt: parsing \"false\": invalid syntax"),
+			wantErr:    fmt.Errorf("bind property \"weather.temperature\" to int: strconv.ParseInt: parsing \"false\": invalid syntax"),
 		},
 		{
 			name: "uint property from uint source",
@@ -430,7 +430,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "app.port",
 			targetType: reflect.TypeFor[uint](),
-			wantErr:    errors.New("cannot convert negative integer -8080 to uint"),
+			wantErr:    errors.New("bind property \"app.port\" to uint: negative value -8080"),
 		},
 		{
 			name: "uint property from negative float source",
@@ -439,7 +439,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "app.port",
 			targetType: reflect.TypeFor[uint](),
-			wantErr:    errors.New("cannot convert negative float -8080.000000 to uint"),
+			wantErr:    errors.New("bind property \"app.port\" to uint: negative value -8080.000000"),
 		},
 		{
 			name: "invalid uint property",
@@ -448,7 +448,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "weather.temperature",
 			targetType: reflect.TypeFor[uint](),
-			wantErr:    fmt.Errorf("strconv.ParseUint: parsing \"false\": invalid syntax"),
+			wantErr:    fmt.Errorf("bind property \"weather.temperature\" to uint: strconv.ParseUint: parsing \"false\": invalid syntax"),
 		},
 		{
 			name: "float32 property from float source",
@@ -565,7 +565,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "weather.temperature",
 			targetType: reflect.TypeFor[float32](),
-			wantErr:    fmt.Errorf("strconv.ParseFloat: parsing \"false\": invalid syntax"),
+			wantErr:    fmt.Errorf("bind property \"weather.temperature\" to float32: strconv.ParseFloat: parsing \"false\": invalid syntax"),
 		},
 		{
 			name: "float64 property from float source",
@@ -640,7 +640,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "ports",
 			targetType: reflect.TypeFor[[]int](),
-			wantErr:    errors.New("cannot append element \"true\" to slice []int: strconv.ParseInt: parsing \"true\": invalid syntax"),
+			wantErr:    errors.New("bind property \"ports\" to []int: string value \"true, false\": strconv.ParseInt: parsing \"true\": invalid syntax"),
 		},
 		{
 			name: "invalid slice source",
@@ -649,16 +649,16 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "ports",
 			targetType: reflect.TypeFor[[]int](),
-			wantErr:    errors.New("cannot append property \"ports\" to slice []int: strconv.ParseInt: parsing \"true\": invalid syntax"),
+			wantErr:    errors.New("bind property \"ports\" to []int: strconv.ParseInt: parsing \"true\": invalid syntax"),
 		},
 		{
 			name: "invalid map source",
 			propSource: NewMapPropertySource("anyMapSource", map[string]any{
-				"ports": map[string]any{"first": true, "second": false},
+				"ports": map[string]any{"first": true},
 			}),
 			propName:   "ports",
 			targetType: reflect.TypeFor[map[string]int](),
-			wantErr:    errors.New("cannot bind map property \"ports\": strconv.ParseInt: parsing \"true\": invalid syntax"),
+			wantErr:    errors.New("bind property \"ports\" to map[string]int: bind property \"ports.first\" to int: strconv.ParseInt: parsing \"true\": invalid syntax"),
 		},
 		{
 			name: "no values for map property",
@@ -735,7 +735,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "database",
 			targetType: reflect.TypeFor[DatabaseConfig](),
-			wantErr:    errors.New("missing required property: \"database.password\""),
+			wantErr:    errors.New("bind property \"database\" to config.DatabaseConfig: struct field \"Password\": property \"database.password\" to string: required"),
 		},
 		{
 			name: "default value for struct",
@@ -765,7 +765,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "database",
 			targetType: reflect.TypeFor[DatabaseConfig](),
-			wantErr:    errors.New("failed to bind property \"database.timeout\": strconv.ParseFloat: parsing \"true\": invalid syntax"),
+			wantErr:    errors.New("bind property \"database\" to config.DatabaseConfig: struct field \"Timeout\": property \"database.timeout\" to float64: strconv.ParseFloat: parsing \"true\": invalid syntax"),
 		},
 		{
 			name: "unsupported target type",
@@ -774,7 +774,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "app.name",
 			targetType: reflect.TypeFor[chan int](),
-			wantErr:    errors.New("unsupported target type: chan"),
+			wantErr:    errors.New("bind property \"app.name\" to chan int: value \"Procyon\": unsupported target type"),
 		},
 		{
 			name: "struct property with map field",
@@ -814,7 +814,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "service",
 			targetType: reflect.TypeFor[ServiceConfigWithInvalidMapDefault](),
-			wantErr:    errors.New("failed to set default value for property \"service.labels\": cannot convert map value (string) to int: strconv.ParseInt: parsing \"high\": invalid syntax"),
+			wantErr:    errors.New("bind property \"service\" to config.ServiceConfigWithInvalidMapDefault: struct field \"Limits\": property \"service.limits\" to map[string]int: default value map[\"cpu\":\"high\"]: strconv.ParseInt: parsing \"high\": invalid syntax"),
 		},
 		{
 			name: "struct property with invalid property tag",
@@ -823,14 +823,14 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "config",
 			targetType: reflect.TypeFor[ConfigWithInvalidPropertyTag](),
-			wantErr:    errors.New("failed to parse tags for field Labels: tag: failed to parse 'property' options \"labels,default={env:'prod',team:'platform'}\": failed to set option \"default\": invalid key: must start with '"),
+			wantErr:    errors.New("bind property \"config\" to config.ConfigWithInvalidPropertyTag: struct field \"Labels\": parse tag 'property:\"labels,default={env:'prod',team:'platform'}\"': tag: failed to parse 'property' options \"labels,default={env:'prod',team:'platform'}\": failed to set option \"default\": invalid key: must start with '"),
 		},
 		{
 			name:       "struct property with invalid default value",
 			propSource: NewMapPropertySource("anyMapSource", map[string]any{}),
 			propName:   "config",
 			targetType: reflect.TypeFor[ConfigWithInvalidDefaultValue](),
-			wantErr:    errors.New("failed to set default value for property \"config.timeout\": strconv.ParseInt: parsing \"thirty\": invalid syntax"),
+			wantErr:    errors.New("bind property \"config\" to config.ConfigWithInvalidDefaultValue: struct field \"Timeout\": property \"config.timeout\" to int: default value \"thirty\": strconv.ParseInt: parsing \"thirty\": invalid syntax"),
 		},
 		{
 			name: "struct property with invalid default slice value",
@@ -839,7 +839,7 @@ func TestDefaultBinder_Bind(t *testing.T) {
 			}),
 			propName:   "service",
 			targetType: reflect.TypeFor[ServiceConfigWithInvalidSliceDefault](),
-			wantErr:    errors.New("failed to set default value for property \"service.ports\": cannot append element \"notAnInt\" to slice []int: strconv.ParseInt: parsing \"notAnInt\": invalid syntax"),
+			wantErr:    errors.New("bind property \"service\" to config.ServiceConfigWithInvalidSliceDefault: struct field \"Ports\": property \"service.ports\" to []int: default value [\"8080\" \"9090\" \"notAnInt\"]: strconv.ParseInt: parsing \"notAnInt\": invalid syntax"),
 		},
 	}
 
