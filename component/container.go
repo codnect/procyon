@@ -48,9 +48,8 @@ type Container interface {
 	LifecycleManager
 }
 
-// ContainerCapable is an interface that indicates the ability to provide
-// access to Container.
-type ContainerCapable interface {
+// ContainerHolder is an interface that provides access to a Container.
+type ContainerHolder interface {
 	// Container returns the associated Container.
 	Container() Container
 }
