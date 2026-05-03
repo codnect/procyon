@@ -19,7 +19,10 @@ import (
 )
 
 var (
-	ErrNotFound       = errors.New("not found")
-	ErrTypeMismatch   = errors.New("type mismatch")
+	// ErrNotFound is returned when no matching component or instance is found.
+	ErrNotFound = errors.New("not found")
+	// ErrTypeMismatch is returned when a resolved instance cannot be assigned or converted to the requested type.
+	ErrTypeMismatch = errors.New("type mismatch")
+	// ErrAmbiguousMatch is returned when multiple candidates match and a single result cannot be determined.
 	ErrAmbiguousMatch = errors.New("ambiguous match")
 )

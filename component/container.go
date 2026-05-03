@@ -48,9 +48,8 @@ type Container interface {
 	LifecycleManager
 }
 
-// ContainerCapable is an interface that indicates the ability to provide
-// access to Container.
-type ContainerCapable interface {
+// ContainerHolder is an interface that provides access to a Container.
+type ContainerHolder interface {
 	// Container returns the associated Container.
 	Container() Container
 }
@@ -59,6 +58,7 @@ type ContainerCapable interface {
 // It manages component definitions, singleton instances, custom scopes,
 // and lifecycle processing.
 type DefaultContainer struct {
+	parent        Container
 	definitions   map[string]*Definition
 	muDefinitions sync.RWMutex
 
@@ -81,8 +81,8 @@ type DefaultContainer struct {
 }
 
 // NewDefaultContainer creates a DefaultContainer.
-func NewDefaultContainer() *DefaultContainer {
-	return &DefaultContainer{
+func NewDefaultContainer(parent ...Container) *DefaultContainer {
+	container := &DefaultContainer{
 		definitions:   make(map[string]*Definition),
 		muDefinitions: sync.RWMutex{},
 
@@ -104,6 +104,12 @@ func NewDefaultContainer() *DefaultContainer {
 		postProcessors: []PostProcessor{},
 		muProcessors:   sync.RWMutex{},
 	}
+
+	if len(parent) > 0 {
+		container.parent = parent[0]
+	}
+
+	return container
 }
 
 // RegisterDefinition registers a new component definition.
@@ -152,6 +158,10 @@ func (d *DefaultContainer) Definition(name string) (*Definition, bool) {
 		return def, true
 	}
 
+	if d.parent != nil {
+		return d.parent.Definition(name)
+	}
+
 	return nil, false
 }
 
@@ -164,22 +174,35 @@ func (d *DefaultContainer) ContainsDefinition(name string) bool {
 		return true
 	}
 
+	if d.parent != nil {
+		return d.parent.ContainsDefinition(name)
+	}
+
 	return false
 }
 
-// Definitions return a slice of all registered component definitions.
+// Definitions return a slice of all registered component definitions, including parent definitions.
 func (d *DefaultContainer) Definitions() []*Definition {
 	d.muDefinitions.RLock()
 	defer d.muDefinitions.RUnlock()
 
-	if len(d.definitions) == 0 {
-		return make([]*Definition, 0)
+	result := make(map[string]*Definition)
+
+	if d.parent != nil {
+		for _, def := range d.parent.Definitions() {
+			result[def.Name()] = def
+		}
 	}
 
-	return slices.Collect(maps.Values(d.definitions))
+	for name, def := range d.definitions {
+		result[name] = def
+	}
+
+	return slices.Collect(maps.Values(result))
 }
 
-// DefinitionsOf returns a slice of component definitions that are assignable to the specified type.
+// DefinitionsOf returns a slice of component definitions that are assignable to the specified type,
+// including those from the parent container.
 func (d *DefaultContainer) DefinitionsOf(typ reflect.Type) []*Definition {
 	if typ == nil {
 		panic("nil definition type")
@@ -188,12 +211,21 @@ func (d *DefaultContainer) DefinitionsOf(typ reflect.Type) []*Definition {
 	d.muDefinitions.RLock()
 	defer d.muDefinitions.RUnlock()
 
+	seen := make(map[string]struct{})
 	matches := make([]*Definition, 0)
 
 	for _, def := range d.definitions {
-		sourceType := def.Type()
-		if convertibleTo(sourceType, typ) {
+		if convertibleTo(def.Type(), typ) {
 			matches = append(matches, def)
+			seen[def.Name()] = struct{}{}
+		}
+	}
+
+	if d.parent != nil {
+		for _, def := range d.parent.DefinitionsOf(typ) {
+			if _, exists := seen[def.Name()]; !exists {
+				matches = append(matches, def)
+			}
 		}
 	}
 
@@ -306,17 +338,23 @@ func (d *DefaultContainer) CanResolve(name string) bool {
 	}
 
 	d.muSingletons.RLock()
-	defer d.muSingletons.RUnlock()
+	_, hasSingleton := d.singletons[name]
+	d.muSingletons.RUnlock()
 
-	if _, exists := d.singletons[name]; exists {
+	if hasSingleton {
 		return true
 	}
 
 	d.muDefinitions.RLock()
-	defer d.muDefinitions.RUnlock()
+	_, hasDef := d.definitions[name]
+	d.muDefinitions.RUnlock()
 
-	if _, exists := d.definitions[name]; exists {
+	if hasDef {
 		return true
+	}
+
+	if d.parent != nil {
+		return d.parent.CanResolve(name)
 	}
 
 	return false
@@ -329,21 +367,25 @@ func (d *DefaultContainer) CanResolveType(typ reflect.Type) bool {
 	}
 
 	d.muSingletons.RLock()
-	defer d.muSingletons.RUnlock()
-
 	for _, singletonTyp := range d.typesOfSingletons {
 		if convertibleTo(singletonTyp, typ) {
+			d.muSingletons.RUnlock()
 			return true
 		}
 	}
+	d.muSingletons.RUnlock()
 
 	d.muDefinitions.RLock()
-	defer d.muDefinitions.RUnlock()
-
 	for _, def := range d.definitions {
 		if convertibleTo(def.Type(), typ) {
+			d.muDefinitions.RUnlock()
 			return true
 		}
+	}
+	d.muDefinitions.RUnlock()
+
+	if d.parent != nil {
+		return d.parent.CanResolveType(typ)
 	}
 
 	return false
@@ -364,6 +406,15 @@ func (d *DefaultContainer) Resolve(ctx context.Context, name string) (any, error
 	candidate, ok := d.Singleton(name)
 	if ok {
 		return candidate, nil
+	}
+
+	// Check if this name has a local definition to handle; if not, delegate entirely to parent.
+	d.muDefinitions.RLock()
+	_, hasLocalDef := d.definitions[name]
+	d.muDefinitions.RUnlock()
+
+	if !hasLocalDef && d.parent != nil {
+		return d.parent.Resolve(ctx, name)
 	}
 
 	def, defExists := d.Definition(name)
@@ -425,6 +476,10 @@ func (d *DefaultContainer) ResolveType(ctx context.Context, typ reflect.Type) (a
 		return d.Resolve(ctx, definitions[0].Name())
 	}
 
+	if d.parent != nil {
+		return d.parent.ResolveType(ctx, typ)
+	}
+
 	return nil, fmt.Errorf("resolve type %s: %w", typ, ErrNotFound)
 }
 
@@ -463,14 +518,43 @@ func (d *DefaultContainer) ResolveAll(ctx context.Context, typ reflect.Type) ([]
 
 	instances := d.findResolvableCandidates(typ)
 
-	for _, def := range d.DefinitionsOf(typ) {
-		instance, err := d.Resolve(ctx, def.Name())
+	seen := make(map[string]struct{})
 
+	for name, singletonType := range d.typesOfSingletons {
+		if convertibleTo(singletonType, typ) {
+			seen[name] = struct{}{}
+			instances = append(instances, d.singletons[name])
+		}
+	}
+
+	for _, def := range d.DefinitionsOf(typ) {
+		seen[def.Name()] = struct{}{}
+		instance, err := d.Resolve(ctx, def.Name())
 		if err != nil {
 			return nil, err
 		}
-
 		instances = append(instances, instance)
+	}
+
+	if d.parent != nil {
+		parentInstances, err := d.parent.ResolveAll(ctx, typ)
+		if err != nil {
+			return nil, err
+		}
+		// parent'tan gelen instance'lar arasında child'da zaten çözülenler varsa atla
+		for _, inst := range parentInstances {
+			instType := reflect.TypeOf(inst)
+			alreadySeen := false
+			for name := range seen {
+				if singletonType, ok := d.typesOfSingletons[name]; ok && convertibleTo(singletonType, instType) {
+					alreadySeen = true
+					break
+				}
+			}
+			if !alreadySeen {
+				instances = append(instances, inst)
+			}
+		}
 	}
 
 	return instances, nil

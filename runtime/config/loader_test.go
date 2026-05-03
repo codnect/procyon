@@ -136,7 +136,7 @@ func TestYamlPropertySourceLoader_Load(t *testing.T) {
 					contents: "version 2.1\njobs:\n  image: 'nginx:latest'",
 				},
 			},
-			wantErr: errors.New("yaml: line 2: mapping values are not allowed in this context"),
+			wantErr: errors.New("load yaml property source \"anySourceName\": yaml: line 2: mapping values are not allowed in this context"),
 		},
 		{
 			name:       "reader error",
@@ -145,7 +145,7 @@ func TestYamlPropertySourceLoader_Load(t *testing.T) {
 			resource: &AnyResource{
 				err: errors.New("reader error"),
 			},
-			wantErr: errors.New("reader error"),
+			wantErr: errors.New("load yaml property source \"anySourceName\": reader error"),
 		},
 		{
 			name:       "read error",
@@ -156,7 +156,7 @@ func TestYamlPropertySourceLoader_Load(t *testing.T) {
 					readErr: errors.New("read error"),
 				},
 			},
-			wantErr: errors.New("read error"),
+			wantErr: errors.New("load yaml property source \"anySourceName\": read error"),
 		},
 		{
 			name:       "valid yaml",

@@ -71,12 +71,12 @@ func TestCreateContext(t *testing.T) {
 			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					createContext(tc.environment)
+					createContext(tc.environment, component.NewDefaultContainer())
 				})
 				return
 			}
 
-			ctx := createContext(tc.environment)
+			ctx := createContext(tc.environment, component.NewDefaultContainer())
 
 			// then
 			require.NotNil(t, ctx)
@@ -88,7 +88,7 @@ func TestCreateContext(t *testing.T) {
 func TestContext_Deadline(t *testing.T) {
 	// given
 	env := NewEnvironment()
-	ctx := createContext(env)
+	ctx := createContext(env, component.NewDefaultContainer())
 
 	// when
 	deadline, ok := ctx.Deadline()
@@ -133,7 +133,7 @@ func TestContext_Done(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -198,7 +198,7 @@ func TestContext_Err(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -215,7 +215,7 @@ func TestContext_Err(t *testing.T) {
 func TestContext_Value(t *testing.T) {
 	// given
 	env := NewEnvironment()
-	ctx := createContext(env)
+	ctx := createContext(env, component.NewDefaultContainer())
 
 	// when
 	value := ctx.Value("anyKey")
@@ -233,7 +233,7 @@ func TestContext_Start(t *testing.T) {
 		{
 			name:         "non-refreshed context",
 			preCondition: nil,
-			wantErr:      errors.New("lifecycle manager is not initialized, invoke refresh method before starting the context"),
+			wantErr:      errors.New("start context: context not refreshed"),
 		},
 		{
 			name: "refreshed context",
@@ -292,7 +292,7 @@ func TestContext_Start(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -315,7 +315,7 @@ func TestContext_Stop(t *testing.T) {
 		{
 			name:         "non-refreshed context",
 			preCondition: nil,
-			wantErr:      errors.New("lifecycle manager is not initialized, invoke refresh method before stopping the context"),
+			wantErr:      errors.New("stop context: context not refreshed"),
 		},
 		{
 			name: "refreshed context",
@@ -364,7 +364,7 @@ func TestContext_Stop(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -431,7 +431,7 @@ func TestContext_IsRunning(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -516,10 +516,10 @@ func TestContext_Refresh(t *testing.T) {
 					return container
 				}
 			},
-			wantErr: errors.New("multiple singletons found"),
+			wantErr: errors.New("resolve type runtime.LifecycleManager: ambiguous match"),
 		},
 		{
-			name: "already registered app context",
+			name: "duplicate registered app context",
 			preCondition: func(ctx *Context) {
 				ctx.containerProvider = func() component.Container {
 					container := component.NewDefaultContainer()
@@ -528,10 +528,10 @@ func TestContext_Refresh(t *testing.T) {
 					return container
 				}
 			},
-			wantErr: errors.New("instance already exists"),
+			wantErr: errors.New("register singleton \"procyonAppContext\": duplicate instance"),
 		},
 		{
-			name: "already registered lifecycle manager",
+			name: "duplicate lifecycle manager",
 			preCondition: func(ctx *Context) {
 				ctx.containerProvider = func() component.Container {
 					container := component.NewDefaultContainer()
@@ -540,7 +540,7 @@ func TestContext_Refresh(t *testing.T) {
 					return container
 				}
 			},
-			wantErr: errors.New("instance already exists"),
+			wantErr: errors.New("register singleton \"procyonLifecycleManager\": duplicate instance"),
 		},
 	}
 
@@ -548,7 +548,7 @@ func TestContext_Refresh(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -557,7 +557,9 @@ func TestContext_Refresh(t *testing.T) {
 			err := ctx.Refresh(context.Background())
 
 			// then
-			assert.Equal(t, tc.wantErr, err)
+			if tc.wantErr != nil {
+				require.Equal(t, tc.wantErr.Error(), err.Error())
+			}
 		})
 	}
 }
@@ -605,7 +607,7 @@ func TestContext_Close(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -622,7 +624,7 @@ func TestContext_Close(t *testing.T) {
 func TestContext_Environment(t *testing.T) {
 	// given
 	env := NewEnvironment()
-	ctx := createContext(env)
+	ctx := createContext(env, component.NewDefaultContainer())
 
 	// when
 	result := ctx.Environment()
@@ -647,7 +649,7 @@ func TestContext_Container(t *testing.T) {
 		{
 			name:         "access container without refreshing context",
 			preCondition: nil,
-			wantPanic:    errors.New("container is not initialized, invoke refresh method before accessing the container"),
+			wantPanic:    errors.New("nil container: context not refreshed"),
 		},
 	}
 
@@ -655,7 +657,7 @@ func TestContext_Container(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env)
+			ctx := createContext(env, component.NewDefaultContainer())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}

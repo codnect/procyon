@@ -37,7 +37,7 @@ func TestDefaultResourceResolver_Resolve(t *testing.T) {
 		{
 			name:     "invalid url",
 			location: "http://local host:8080/resources/procyon.yaml",
-			wantErr:  errors.New("parse \"http://local host:8080/resources/procyon.yaml\": invalid character \" \" in host name"),
+			wantErr:  errors.New("resolve resource \"http://local host:8080/resources/procyon.yaml\": parse \"http://local host:8080/resources/procyon.yaml\": invalid character \" \" in host name"),
 		},
 		{
 			name:         "path without scheme",
@@ -62,6 +62,17 @@ func TestDefaultResourceResolver_Resolve(t *testing.T) {
 			location:     "http://localhost:8080/resources/procyon.yaml",
 			wantName:     "procyon.yaml",
 			wantLocation: "http://localhost:8080/resources/procyon.yaml",
+		},
+		{
+			name:         "path with https scheme",
+			location:     "https://localhost:8080/resources/procyon.yaml",
+			wantName:     "procyon.yaml",
+			wantLocation: "https://localhost:8080/resources/procyon.yaml",
+		},
+		{
+			name:     "unsupported scheme",
+			location: "ftp://localhost:8080/resources/procyon.yaml",
+			wantErr:  errors.New("resolve resource \"ftp://localhost:8080/resources/procyon.yaml\": unsupported scheme \"ftp\""),
 		},
 	}
 

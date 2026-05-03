@@ -57,7 +57,7 @@ func (d *defaultLifecycleManager) Startup(ctx context.Context) error {
 
 	for objectName, lifecycle := range d.lifecycleObjects {
 		if err := lifecycle.Start(ctx); err != nil {
-			return fmt.Errorf("failed to start lifecycle component: %s", objectName)
+			return fmt.Errorf("start lifecycle component %q: %w", objectName, err)
 		}
 
 		log.Debug("Started lifecycle component '{}'", objectName)

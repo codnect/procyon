@@ -66,7 +66,7 @@ func TestBannerPrinter_PrintBanner(t *testing.T) {
 			preCondition: func(writer *AnyWriter) {
 				writer.On("Write", mock.Anything).Return(0, errors.New("write error"))
 			},
-			wantErr:    errors.New("write error"),
+			wantErr:    errors.New("print banner: write error"),
 			wantOutput: "",
 		},
 		{
@@ -79,7 +79,7 @@ func TestBannerPrinter_PrintBanner(t *testing.T) {
 				writer.On("Write", []byte(fmt.Sprintf(versionFormat, "(", Version))).
 					Return(0, errors.New("write error"))
 			},
-			wantErr:    errors.New("write error"),
+			wantErr:    errors.New("print banner: write error"),
 			wantOutput: strings.Join(bannerText, ""),
 		},
 	}

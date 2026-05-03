@@ -16,6 +16,7 @@ package io
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -24,6 +25,10 @@ import (
 const (
 	// FileScheme represents the "file" scheme.
 	FileScheme = "file"
+	// HttpScheme represents the "http" scheme.
+	HttpScheme = "http"
+	// HttpsScheme represents the "https" scheme.
+	HttpsScheme = "https"
 )
 
 // ResourceResolver is an interface for resolving resources from location strings.
@@ -45,7 +50,7 @@ func NewDefaultResourceResolver() *DefaultResourceResolver {
 func (r *DefaultResourceResolver) Resolve(_ context.Context, location string) (Resource, error) {
 	resourceUrl, err := url.Parse(location)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resolve resource %q: %w", location, err)
 	}
 
 	scheme := strings.ToLower(resourceUrl.Scheme)
@@ -53,8 +58,10 @@ func (r *DefaultResourceResolver) Resolve(_ context.Context, location string) (R
 	case "", FileScheme:
 		fileLoc := normalizeLocation(resourceUrl)
 		return NewFileResource(fileLoc), nil
-	default:
+	case HttpScheme, HttpsScheme:
 		return NewURLResource(resourceUrl), nil
+	default:
+		return nil, fmt.Errorf("resolve resource %q: unsupported scheme %q", location, scheme)
 	}
 }
 

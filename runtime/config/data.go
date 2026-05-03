@@ -114,7 +114,10 @@ func (r *StandardDataLoader) Load(ctx context.Context, location string, profiles
 
 		loadedData, err := r.loadData(ctx, profile, locations)
 		if err != nil {
-			return nil, err
+			if profile == "" {
+				return nil, fmt.Errorf("load config for default profile: %w", err)
+			}
+			return nil, fmt.Errorf("load config for profile %q: %w", profile, err)
 		}
 
 		data = append(data, loadedData...)

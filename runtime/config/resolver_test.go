@@ -265,7 +265,7 @@ func TestDefaultPropertyResolver_ExpandStrict(t *testing.T) {
 			},
 			text:       "Server running on ${host}:${port} with profile ${environment}",
 			wantResult: "Server running on ${host}:${port} with profile ${environment}",
-			wantErr:    errors.New("cannot resolve placeholder '${host}'"),
+			wantErr:    errors.New("expand \"Server running on ${host}:${port} with profile ${environment}\": unresolved placeholder ${host}"),
 		},
 		{
 			name: "empty placeholder",
@@ -274,7 +274,7 @@ func TestDefaultPropertyResolver_ExpandStrict(t *testing.T) {
 			},
 			text:       "Server running on ${}",
 			wantResult: "Server running on ${}",
-			wantErr:    errors.New("wrong placeholder format"),
+			wantErr:    errors.New("expand \"Server running on ${}\": invalid placeholder at index 18"),
 		},
 		{
 			name: "unterminated placeholder",
@@ -283,7 +283,7 @@ func TestDefaultPropertyResolver_ExpandStrict(t *testing.T) {
 			},
 			text:       "Server running on ${",
 			wantResult: "Server running on ${",
-			wantErr:    errors.New("wrong placeholder format"),
+			wantErr:    errors.New("expand \"Server running on ${\": invalid placeholder at index 18"),
 		},
 		{
 			name: "num without curly braces",
@@ -325,7 +325,7 @@ func TestDefaultPropertyResolver_ExpandStrict(t *testing.T) {
 			},
 			text:       "Server running on ${host}:${port} with profile ${environment}",
 			wantResult: "Server running on 127.0.0.1:${port} with profile dev",
-			wantErr:    errors.New("cannot resolve placeholder '${port}'"),
+			wantErr:    errors.New("expand \"Server running on ${host}:${port} with profile ${environment}\": unresolved placeholder ${port}"),
 		},
 		{
 			name: "all placeholders resolved",

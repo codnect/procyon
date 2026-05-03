@@ -34,8 +34,12 @@ type Application struct {
 	bannerPrinter    runtime.BannerPrinter
 	resourceResolver io.ResourceResolver
 
-	runtimeCtx runtime.Context
-	env        runtime.Environment
+	startupContainer component.Container
+	runtimeCtx       runtime.Context
+	env              runtime.Environment
+
+	resolveEnvCustomizers  func() ([]runtime.EnvironmentCustomizer, error)
+	resolveCtxInitializers func() ([]runtime.ContextInitializer, error)
 }
 
 // New creates a new instance of the application with default banner printer and resource resolver.
@@ -43,6 +47,10 @@ func New() *Application {
 	return &Application{
 		bannerPrinter:    NewBannerPrinter(),
 		resourceResolver: io.NewDefaultResourceResolver(),
+		startupContainer: component.NewDefaultContainer(),
+
+		resolveEnvCustomizers:  resolveEnvCustomizers,
+		resolveCtxInitializers: resolveCtxInitializers,
 	}
 }
 
@@ -70,7 +78,10 @@ func (a *Application) Run(args ...string) error {
 		return err
 	}
 
-	a.env, err = prepareEnvironment(rArgs, a)
+	a.env, err = a.prepareEnvironment(rArgs)
+	if err != nil {
+		return err
+	}
 
 	err = a.bannerPrinter.Print(a.env, os.Stdout)
 	if err != nil {
@@ -80,7 +91,7 @@ func (a *Application) Run(args ...string) error {
 	signalCtx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stopSignals()
 
-	a.runtimeCtx, err = prepareRuntimeContext(a.env, rArgs)
+	a.runtimeCtx, err = a.prepareRuntimeContext(rArgs)
 	if err != nil {
 		return err
 	}
@@ -95,12 +106,12 @@ func (a *Application) Run(args ...string) error {
 	timeTakenToStartup := time.Now().Sub(startTime)
 	log.Info("Started application in {} seconds", timeTakenToStartup.Seconds())
 
-	err = invokeCmdLineRunners(a.runtimeCtx, a.runtimeCtx.Container(), rArgs)
+	err = a.invokeCmdLineRunners(rArgs)
 	if err != nil {
 		return err
 	}
 
-	if isServerApplication() {
+	if a.isServerApplication() {
 		<-signalCtx.Done()
 	}
 
@@ -114,14 +125,14 @@ func (a *Application) Run(args ...string) error {
 
 // invokeCmdLineRunners retrieves all CommandLineRunner components from the application context and executes
 // them with the provided command-line arguments.
-func invokeCmdLineRunners(ctx runtime.Context, container component.Container, args *runtime.Args) error {
-	runners, err := component.ResolveAll[runtime.CommandLineRunner](ctx, container)
+func (a *Application) invokeCmdLineRunners(args *runtime.Args) error {
+	runners, err := component.ResolveAll[runtime.CommandLineRunner](a.runtimeCtx, a.runtimeCtx.Container())
 	if err != nil {
 		return err
 	}
 
 	for _, runner := range runners {
-		err = runner.Run(ctx, args)
+		err = runner.Run(a.runtimeCtx, args)
 		if err != nil {
 			return err
 		}
@@ -133,14 +144,14 @@ func invokeCmdLineRunners(ctx runtime.Context, container component.Container, ar
 // prepareEnvironment initializes the application environment by creating a new environment instance, adding
 // property sources for command-line arguments and environment variables, and allowing customizers to modify
 // the environment.
-func prepareEnvironment(args *runtime.Args, app runtime.Application) (runtime.Environment, error) {
+func (a *Application) prepareEnvironment(args *runtime.Args) (runtime.Environment, error) {
 	env := NewEnvironment()
 
 	propertySources := env.PropertySources()
 	propertySources.PushFront(runtime.NewArgsPropertySource(args))
 	propertySources.PushBack(runtime.NewEnvPropertySource())
 
-	err := customizeEnv(env, app)
+	err := a.customizeEnv(env)
 	if err != nil {
 		return nil, err
 	}
@@ -150,19 +161,16 @@ func prepareEnvironment(args *runtime.Args, app runtime.Application) (runtime.En
 
 // customizeEnv retrieves all EnvironmentCustomizer components and invokes their CustomizeEnvironment method to allow
 // them to modify the environment before it is used by the application.
-func customizeEnv(env runtime.Environment, app runtime.Application) error {
-	components := component.ListOf[runtime.EnvironmentCustomizer]()
+func (a *Application) customizeEnv(env runtime.Environment) error {
+	customizers, err := a.resolveEnvCustomizers()
+	if err != nil {
+		return err
+	}
 
-	for _, comp := range components {
-		customizer, err := component.Load[runtime.EnvironmentCustomizer](comp.Definition().Name())
+	for _, customizer := range customizers {
+		err = customizer.CustomizeEnvironment(env, a)
 		if err != nil {
 			return err
-		}
-
-		err = customizer.CustomizeEnvironment(env, app)
-
-		if err != nil {
-			return nil
 		}
 	}
 
@@ -171,9 +179,10 @@ func customizeEnv(env runtime.Environment, app runtime.Application) error {
 
 // prepareRuntimeContext creates the application context, allows customizers to modify it, and registers
 // the command-line arguments in the context's container.
-func prepareRuntimeContext(env runtime.Environment, args *runtime.Args) (runtime.Context, error) {
-	runtimeCtx := createContext(env)
-	err := customizeRuntimeContext(runtimeCtx)
+func (a *Application) prepareRuntimeContext(args *runtime.Args) (runtime.Context, error) {
+	runtimeCtx := createContext(a.env, a.startupContainer)
+
+	err := a.initializeRuntimeContext(runtimeCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +190,7 @@ func prepareRuntimeContext(env runtime.Environment, args *runtime.Args) (runtime
 	log.Info("Starting application using Go {} ({}/{})", goruntime.Version()[2:], goruntime.GOOS, goruntime.GOARCH)
 	log.Info("Running with Procyon {}", Version)
 
-	container := runtimeCtx.Container()
-	err = container.RegisterSingleton("procyonAppArgs", args)
+	err = a.startupContainer.RegisterSingleton("procyonAppArgs", args)
 	if err != nil {
 		return nil, err
 	}
@@ -190,30 +198,50 @@ func prepareRuntimeContext(env runtime.Environment, args *runtime.Args) (runtime
 	return runtimeCtx, nil
 }
 
-// customizeRuntimeContext retrieves all ContextCustomizer components and invokes their CustomizeContext method to allow
+// initializeRuntimeContext retrieves all ContextInitializer components and invokes their InitializeContext method to allow
 // them to modify the application context before it is refreshed and used by the application.
-func customizeRuntimeContext(runtimeCtx *Context) error {
-	components := component.ListOf[runtime.ContextCustomizer]()
+func (a *Application) initializeRuntimeContext(runtimeCtx *Context) error {
+	customizers, err := a.resolveCtxInitializers()
+	if err != nil {
+		return err
+	}
 
-	for _, comp := range components {
-		customizer, err := component.Load[runtime.ContextCustomizer](comp.Definition().Name())
+	for _, customizer := range customizers {
+		err = customizer.InitializeContext(runtimeCtx)
 		if err != nil {
 			return err
-		}
-
-		err = customizer.CustomizeContext(runtimeCtx)
-
-		if err != nil {
-			return nil
 		}
 	}
 
 	return nil
 }
 
-// isServerApplication checks whether the application is a server application by looking for components of
-// type runtime.Server in the component list.
-func isServerApplication() bool {
-	components := component.ListOf[runtime.Server]()
-	return len(components) > 0
+func (a *Application) isServerApplication() bool {
+	return component.CanResolveType[runtime.Server](a.runtimeCtx.Container())
+}
+
+func resolveEnvCustomizers() ([]runtime.EnvironmentCustomizer, error) {
+	var customizers []runtime.EnvironmentCustomizer
+	for _, comp := range component.ListOf[runtime.EnvironmentCustomizer]() {
+		c, err := component.Load[runtime.EnvironmentCustomizer](comp.Definition().Name())
+		if err != nil {
+			return nil, err
+		}
+		customizers = append(customizers, c)
+	}
+	return customizers, nil
+}
+
+func resolveCtxInitializers() ([]runtime.ContextInitializer, error) {
+	var initializers []runtime.ContextInitializer
+	for _, comp := range component.ListOf[runtime.ContextInitializer]() {
+		c, err := component.Load[runtime.ContextInitializer](comp.Definition().Name())
+		if err != nil {
+			return nil, err
+		}
+
+		initializers = append(initializers, c)
+	}
+
+	return initializers, nil
 }

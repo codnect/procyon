@@ -60,18 +60,18 @@ func (l *YamlPropertySourceLoader) Load(ctx context.Context, name string, resour
 
 	reader, err := resource.Reader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load yaml property source %q: %w", name, err)
 	}
 
 	var data []byte
 	data, err = stdio.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load yaml property source %q: %w", name, err)
 	}
 
 	err = yaml.Unmarshal(data, &loaded)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load yaml property source %q: %w", name, err)
 	}
 
 	return NewMapPropertySource(name, loaded), nil

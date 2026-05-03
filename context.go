@@ -17,6 +17,7 @@ package procyon
 import (
 	"context"
 	"errors"
+	"reflect"
 	"sync"
 	"time"
 
@@ -29,6 +30,13 @@ const (
 	appContextContainerKey = "procyonAppContext"
 	// lifecycleManagerContainerKey is the key used to register the lifecycle manager in the component container.
 	lifecycleManagerContainerKey = "procyonLifecycleManager"
+)
+
+var (
+	bootstrapTypes = []reflect.Type{
+		reflect.TypeFor[runtime.EnvironmentCustomizer](),
+		reflect.TypeFor[runtime.ContextInitializer](),
+	}
 )
 
 // Context struct represents the application context of Procyon.
@@ -46,7 +54,7 @@ type Context struct {
 
 // createContext creates a new application context with the given environment.
 // The returned context is not started yet. You need to call Start method to start the context.
-func createContext(env runtime.Environment) *Context {
+func createContext(env runtime.Environment, startupContainer component.Container) *Context {
 	if env == nil {
 		panic("nil environment")
 	}
@@ -56,7 +64,7 @@ func createContext(env runtime.Environment) *Context {
 		mu:   sync.RWMutex{},
 		env:  env,
 		containerProvider: func() component.Container {
-			return component.NewDefaultContainer()
+			return component.NewDefaultContainer(startupContainer)
 		},
 	}
 }
@@ -95,7 +103,7 @@ func (c *Context) Start(ctx context.Context) error {
 	}
 
 	if c.lifecycleManager == nil {
-		return errors.New("lifecycle manager is not initialized, invoke refresh method before starting the context")
+		return errors.New("start context: context not refreshed")
 	}
 
 	if c.lifecycleManager.IsRunning() {
@@ -115,7 +123,7 @@ func (c *Context) Stop(ctx context.Context) error {
 	}
 
 	if c.lifecycleManager == nil {
-		return errors.New("lifecycle manager is not initialized, invoke refresh method before stopping the context")
+		return errors.New("stop context: context not refreshed")
 	}
 
 	if !c.lifecycleManager.IsRunning() {
@@ -170,7 +178,7 @@ func (c *Context) Refresh(ctx context.Context) error {
 
 	var lifecycleManager runtime.LifecycleManager
 	lifecycleManager, err = component.ResolveType[runtime.LifecycleManager](ctx, c.container)
-	if err != nil && !errors.Is(err, component.ErrInstanceNotFound) {
+	if err != nil && !errors.Is(err, component.ErrNotFound) {
 		return err
 	} else if lifecycleManager != nil {
 		c.lifecycleManager = lifecycleManager
@@ -225,7 +233,7 @@ func (c *Context) Container() component.Container {
 	defer c.mu.RUnlock()
 
 	if c.container == nil {
-		panic("container is not initialized, invoke refresh method before accessing the container")
+		panic("nil container: context not refreshed")
 	}
 
 	return c.container
@@ -255,8 +263,28 @@ func (c *Context) stopLifecycleManager(ctx context.Context) error {
 // It retrieves the list of component definitions and loads them into the container, allowing for conditional
 // loading based on the context.
 func (c *Context) loadComponentDefinitions(ctx context.Context) error {
-	loader := component.NewConditionalLoader(c.container, component.List())
+	components := component.List()
+
+	filtered := make([]*component.Component, 0, len(components))
+	for _, comp := range components {
+		if isBootstrapType(comp.Definition().Type()) {
+			continue
+		}
+		filtered = append(filtered, comp)
+	}
+
+	loader := component.NewConditionalLoader(c.container, filtered)
 	return loader.Load(ctx)
+}
+
+func isBootstrapType(typ reflect.Type) bool {
+	for _, bType := range bootstrapTypes {
+		if typ.ConvertibleTo(bType) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // initializeSingletons initializes all singleton components defined in the container. It iterates through

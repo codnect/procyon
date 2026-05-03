@@ -15,7 +15,7 @@
 package io
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -75,7 +75,7 @@ func (u *URLResource) Exists() bool {
 func (u *URLResource) Reader() (io.ReadCloser, error) {
 	resp, err := u.httpClient.Get(u.url.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read url resource %q: %w", u.url.String(), err)
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 
@@ -83,7 +83,7 @@ func (u *URLResource) Reader() (io.ReadCloser, error) {
 			_ = resp.Body.Close()
 		}
 
-		return nil, errors.New("resource does not exist")
+		return nil, fmt.Errorf("read url resource %q: unexpected status code %d", u.url.String(), resp.StatusCode)
 	}
 
 	return resp.Body, nil

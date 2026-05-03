@@ -41,6 +41,22 @@ type Resolver interface {
 	ResolveAll(ctx context.Context, typ reflect.Type) ([]any, error)
 }
 
+func CanResolve(container Container, name string) bool {
+	if container == nil {
+		panic("nil container")
+	}
+
+	return container.CanResolve(name)
+}
+
+func CanResolveType[T any](container Container) bool {
+	if container == nil {
+		panic("nil container")
+	}
+
+	return container.CanResolveType(reflect.TypeFor[T]())
+}
+
 // Resolve retrieves a component instance of type T from the container by its name.
 // It returns an error if the container is nil or if resolution fails.
 func Resolve[T any](ctx context.Context, container Container, name string) (T, error) {
