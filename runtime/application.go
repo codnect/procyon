@@ -38,11 +38,11 @@ type Context interface {
 	// Lifecycle interface provides start/stop lifecycle methods for the application context.
 	Lifecycle
 
-	// EnvironmentCapable interface provides access to the environment.
-	EnvironmentCapable
+	// EnvironmentHolder is an interface that provides access to an Environment.
+	EnvironmentHolder
 
-	// ContainerCapable interface provides access to the component container.
-	component.ContainerCapable
+	// ContainerHolder is an interface that provides access to a Container.
+	component.ContainerHolder
 
 	// Refresh reloads the application context contents (environment, container)
 	Refresh() error

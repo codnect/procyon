@@ -47,9 +47,8 @@ type Environment interface {
 	PropertyResolver() config.PropertyResolver
 }
 
-// EnvironmentCapable is an interface that indicates the ability to
-// provide access to an Environment instance.
-type EnvironmentCapable interface {
+// EnvironmentHolder is an interface that provides access to an Environment.
+type EnvironmentHolder interface {
 	// Environment returns the associated Environment.
 	Environment() Environment
 }
