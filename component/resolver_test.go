@@ -22,9 +22,131 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-func TestResolveNilContainer(t *testing.T) {
+func TestCanResolve_NilContainer(t *testing.T) {
+	// given
+
+	// when
+	require.PanicsWithValue(t, "nil container", func() {
+		CanResolve(nil, "anyInstance")
+	})
+
+	// then
+}
+
+func TestCanResolve(t *testing.T) {
+	testCases := []struct {
+		name         string
+		container    *AnyMockContainer
+		instanceName string
+		preCondition func(container *AnyMockContainer)
+
+		wantResult bool
+		wantPanic  error
+	}{
+		{
+			name:      "nil container",
+			wantPanic: errors.New("nil container"),
+		},
+		{
+			name:         "resolvable component",
+			container:    &AnyMockContainer{},
+			instanceName: "anyInstance",
+			preCondition: func(container *AnyMockContainer) {
+				container.On("CanResolve", "anyInstance").Return(true)
+			},
+			wantResult: true,
+		},
+		{
+			name:         "non-resolvable component",
+			container:    &AnyMockContainer{},
+			instanceName: "anyInstance",
+			preCondition: func(container *AnyMockContainer) {
+				container.On("CanResolve", "anyInstance").Return(false)
+			},
+			wantResult: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			if tc.preCondition != nil {
+				tc.preCondition(tc.container)
+			}
+
+			// when
+			if tc.wantPanic != nil {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
+					CanResolve(nil, tc.instanceName)
+				})
+				return
+			}
+
+			result := CanResolve(tc.container, tc.instanceName)
+
+			// then
+			assert.Equal(t, tc.wantResult, result)
+		})
+	}
+}
+
+func TestCanResolveType_NilContainer(t *testing.T) {
+	// given
+
+	// when
+	require.PanicsWithValue(t, "nil container", func() {
+		CanResolveType[any](nil)
+	})
+
+	// then
+}
+
+func TestCanResolveType(t *testing.T) {
+	testCases := []struct {
+		name         string
+		container    *AnyMockContainer
+		preCondition func(container *AnyMockContainer)
+
+		wantResult bool
+	}{
+		{
+			name:      "resolvable component type",
+			container: &AnyMockContainer{},
+			preCondition: func(container *AnyMockContainer) {
+				container.On("CanResolveType", reflect.TypeFor[*AnyPointerComponent]()).Return(true)
+			},
+			wantResult: true,
+		},
+		{
+			name:      "non-resolvable component type",
+			container: &AnyMockContainer{},
+			preCondition: func(container *AnyMockContainer) {
+				container.On("CanResolveType", reflect.TypeFor[*AnyPointerComponent]()).Return(false)
+			},
+			wantResult: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			if tc.preCondition != nil {
+				tc.preCondition(tc.container)
+			}
+
+			// when
+			result := CanResolveType[*AnyPointerComponent](tc.container)
+
+			// then
+			assert.Equal(t, tc.wantResult, result)
+		})
+	}
+}
+
+func TestResolve_NilContainer(t *testing.T) {
 	// given
 
 	// when
@@ -36,16 +158,16 @@ func TestResolveNilContainer(t *testing.T) {
 	assert.Nil(t, instance)
 }
 
-func TestResolveError(t *testing.T) {
+func TestResolve_Error(t *testing.T) {
 	// given
-	anyComponentType := reflect.TypeFor[*AnyComponent]()
+	anyComponentType := reflect.TypeFor[*AnyPointerComponent]()
 
-	container := &AnyContainer{}
+	container := &AnyMockContainer{}
 	container.On("ResolveAs", mock.AnythingOfType("context.backgroundCtx"), "anyInstance", anyComponentType).
 		Return(nil, errors.New("resolve error"))
 
 	// when
-	instance, err := Resolve[*AnyComponent](context.Background(), container, "anyInstance")
+	instance, err := Resolve[*AnyPointerComponent](context.Background(), container, "anyInstance")
 
 	// then
 	assert.NotNil(t, err)
@@ -55,22 +177,22 @@ func TestResolveError(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	// given
-	anyComponentType := reflect.TypeFor[*AnyComponent]()
-	anyComponent := &AnyComponent{}
+	anyComponentType := reflect.TypeFor[*AnyPointerComponent]()
+	anyComponent := &AnyPointerComponent{}
 
-	container := &AnyContainer{}
+	container := &AnyMockContainer{}
 	container.On("ResolveAs", mock.AnythingOfType("context.backgroundCtx"), "anyInstance", anyComponentType).
 		Return(anyComponent, nil)
 
 	// when
-	instance, err := Resolve[*AnyComponent](context.Background(), container, "anyInstance")
+	instance, err := Resolve[*AnyPointerComponent](context.Background(), container, "anyInstance")
 
 	// then
 	assert.Nil(t, err)
 	assert.Equal(t, anyComponent, instance)
 }
 
-func TestResolveTypeNilContainer(t *testing.T) {
+func TestResolveType_NilContainer(t *testing.T) {
 	// given
 
 	// when
@@ -82,16 +204,16 @@ func TestResolveTypeNilContainer(t *testing.T) {
 	assert.Nil(t, instance)
 }
 
-func TestResolveTypeError(t *testing.T) {
+func TestResolveType_Error(t *testing.T) {
 	// given
-	anyComponentType := reflect.TypeFor[*AnyComponent]()
+	anyComponentType := reflect.TypeFor[*AnyPointerComponent]()
 
-	container := &AnyContainer{}
+	container := &AnyMockContainer{}
 	container.On("ResolveType", mock.AnythingOfType("context.backgroundCtx"), anyComponentType).
 		Return(nil, errors.New("resolve error"))
 
 	// when
-	instance, err := ResolveType[*AnyComponent](context.Background(), container)
+	instance, err := ResolveType[*AnyPointerComponent](context.Background(), container)
 
 	// then
 	assert.NotNil(t, err)
@@ -101,22 +223,22 @@ func TestResolveTypeError(t *testing.T) {
 
 func TestResolveType(t *testing.T) {
 	// given
-	anyComponentType := reflect.TypeFor[*AnyComponent]()
-	anyComponent := &AnyComponent{}
+	anyComponentType := reflect.TypeFor[*AnyPointerComponent]()
+	anyComponent := &AnyPointerComponent{}
 
-	container := &AnyContainer{}
+	container := &AnyMockContainer{}
 	container.On("ResolveType", mock.AnythingOfType("context.backgroundCtx"), anyComponentType).
 		Return(anyComponent, nil)
 
 	// when
-	instance, err := ResolveType[*AnyComponent](context.Background(), container)
+	instance, err := ResolveType[*AnyPointerComponent](context.Background(), container)
 
 	// then
 	assert.Nil(t, err)
 	assert.Equal(t, anyComponent, instance)
 }
 
-func TestResolveAllNilContainer(t *testing.T) {
+func TestResolveAll_NilContainer(t *testing.T) {
 	// given
 
 	// when
@@ -128,16 +250,16 @@ func TestResolveAllNilContainer(t *testing.T) {
 	assert.Nil(t, instance)
 }
 
-func TestResolveAllError(t *testing.T) {
+func TestResolveAll_Error(t *testing.T) {
 	// given
-	anyInterfaceType := reflect.TypeFor[AnyInterface]()
+	anyInterfaceType := reflect.TypeFor[AnyComponent]()
 
-	container := &AnyContainer{}
+	container := &AnyMockContainer{}
 	container.On("ResolveAll", mock.AnythingOfType("context.backgroundCtx"), anyInterfaceType).
 		Return(nil, errors.New("resolve error"))
 
 	// when
-	instances, err := ResolveAll[AnyInterface](context.Background(), container)
+	instances, err := ResolveAll[AnyComponent](context.Background(), container)
 
 	// then
 	assert.NotNil(t, err)
@@ -147,18 +269,18 @@ func TestResolveAllError(t *testing.T) {
 
 func TestResolveAll(t *testing.T) {
 	// given
-	anyInterfaceType := reflect.TypeFor[AnyInterface]()
-	anyComponent := &AnyComponent{}
-	anotherComponent := &AnotherComponent{}
+	anyInterfaceType := reflect.TypeFor[AnyComponent]()
+	anyComponent := &AnyPointerComponent{}
+	anotherComponent := &AnyDependentComponent{}
 
-	container := &AnyContainer{}
+	container := &AnyMockContainer{}
 	container.On("ResolveAll", mock.AnythingOfType("context.backgroundCtx"), anyInterfaceType).
 		Return([]any{anyComponent, anotherComponent}, nil)
 
 	// when
-	instances, err := ResolveAll[AnyInterface](context.Background(), container)
+	instances, err := ResolveAll[AnyComponent](context.Background(), container)
 
 	// then
 	assert.Nil(t, err)
-	assert.Equal(t, []AnyInterface{anyComponent, anotherComponent}, instances)
+	assert.Equal(t, []AnyComponent{anyComponent, anotherComponent}, instances)
 }
