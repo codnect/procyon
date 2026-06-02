@@ -21,69 +21,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-type AnyInterface interface {
-	AnyMethod()
-}
-
-type AnyComponent struct{}
-
-func (a AnyComponent) AnyMethod() {}
-
-func NewAnyComponent() *AnyComponent {
-	return &AnyComponent{}
-}
-
-type AnotherComponent struct {
-	dependentComponent DependentComponent
-}
-
-func NewAnotherComponent(dependentComponent DependentComponent) *AnotherComponent {
-	return &AnotherComponent{
-		dependentComponent: dependentComponent,
-	}
-}
-
-func (a *AnotherComponent) AnyMethod() {}
-
-type DependentComponent struct {
-}
-
-func NewDependentComponent() DependentComponent {
-	return DependentComponent{}
-}
-
-func (d DependentComponent) AnyMethod() {
-
-}
-
-type AnySliceDependentComponent struct {
-	components []AnyInterface
-}
-
-func NewAnySliceDependentComponent(components []AnyInterface) *AnySliceDependentComponent {
-	return &AnySliceDependentComponent{
-		components: components,
-	}
-}
-
-type AnyComponentWithInitializer struct {
-	mock *mock.Mock
-}
-
-func NewAnyComponentWithInitializer(mock *mock.Mock) *AnyComponentWithInitializer {
-	return &AnyComponentWithInitializer{
-		mock: mock,
-	}
-}
-
-func (a *AnyComponentWithInitializer) Init(ctx context.Context) error {
-	result := a.mock.Called(ctx)
-	return result.Error(0)
-}
 
 func TestRegister(t *testing.T) {
 	testCases := []struct {
@@ -107,60 +46,67 @@ func TestRegister(t *testing.T) {
 		{
 			name: "already exists",
 			preCondition: func() {
-				components["anyComponent"] = &Component{}
+				components["anySimpleComponent"] = &Component{}
 			},
-			constructorFn: NewAnyComponent,
-			wantPanic:     errors.New("component: duplicate component name 'anyComponent'"),
+			constructorFn: NewAnySimpleComponent,
+			wantPanic:     errors.New("component: duplicate component name 'anySimpleComponent'"),
 		},
 		{
 			name:          "without options",
-			constructorFn: NewAnyComponent,
-			wantName:      "anyComponent",
+			constructorFn: NewAnySimpleComponent,
+			wantName:      "anySimpleComponent",
 			wantScope:     SingletonScope,
-			wantType:      reflect.TypeFor[*AnyComponent](),
+			wantType:      reflect.TypeFor[AnySimpleComponent](),
 		},
 		{
 			name:          "with custom name",
-			constructorFn: NewAnyComponent,
+			constructorFn: NewAnySimpleComponent,
 			opts: []DefinitionOption{
 				WithName("customName"),
 			},
 			wantName:  "customName",
 			wantScope: SingletonScope,
-			wantType:  reflect.TypeFor[*AnyComponent](),
+			wantType:  reflect.TypeFor[AnySimpleComponent](),
 		},
 		{
 			name:          "with prototype scope",
-			constructorFn: NewAnyComponent,
+			constructorFn: NewAnySimpleComponent,
 			opts: []DefinitionOption{
 				WithScope(PrototypeScope),
 			},
-			wantName:  "anyComponent",
+			wantName:  "anySimpleComponent",
 			wantScope: PrototypeScope,
-			wantType:  reflect.TypeFor[*AnyComponent](),
+			wantType:  reflect.TypeFor[AnySimpleComponent](),
 		},
 		{
 			name:          "with custom scope",
-			constructorFn: NewAnyComponent,
+			constructorFn: NewAnySimpleComponent,
 			opts: []DefinitionOption{
 				WithScope("anyScope"),
 			},
-			wantName:  "anyComponent",
+			wantName:  "anySimpleComponent",
 			wantScope: "anyScope",
-			wantType:  reflect.TypeFor[*AnyComponent](),
+			wantType:  reflect.TypeFor[AnySimpleComponent](),
 		},
 		{
 			name:          "with conditions",
-			constructorFn: NewAnyComponent,
+			constructorFn: NewAnySimpleComponent,
 			conditions: []Condition{
 				AnyCondition{},
 			},
-			wantName:  "anyComponent",
+			wantName:  "anySimpleComponent",
 			wantScope: SingletonScope,
-			wantType:  reflect.TypeFor[*AnyComponent](),
+			wantType:  reflect.TypeFor[AnySimpleComponent](),
 			wantConditions: []Condition{
 				AnyCondition{},
 			},
+		},
+		{
+			name: "multi return values",
+			constructorFn: func() (AnySimpleComponent, error) {
+				return AnySimpleComponent{}, nil
+			},
+			wantPanic: errors.New("component: constructor must return exactly one result"),
 		},
 	}
 
@@ -208,12 +154,75 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+func TestLoad_NotFound(t *testing.T) {
+	// given
+	clear(components)
+
+	// when
+	instance, err := Load[*AnyPointerComponent]("anyPointerComponent")
+
+	// then
+	require.Nil(t, instance)
+	require.NotNil(t, err)
+
+	assert.Equal(t, "load component \"anyPointerComponent\": not found", err.Error())
+	assert.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestLoad_NotConvertible(t *testing.T) {
+	// given
+	clear(components)
+
+	Register(NewAnySimpleComponent)
+
+	// when
+	instance, err := Load[AnyPointerComponent]("anySimpleComponent")
+
+	// then
+	require.Zero(t, instance)
+	require.NotNil(t, err)
+
+	assert.Equal(t, "load component \"anySimpleComponent\": component.AnySimpleComponent is not convertible to component.AnyPointerComponent: type mismatch", err.Error())
+	assert.ErrorIs(t, err, ErrTypeMismatch)
+
+}
+
+func TestLoad_InvalidArgument(t *testing.T) {
+	// given
+	clear(components)
+
+	Register(NewAnyPointerComponent)
+
+	// when
+	instance, err := Load[*AnyPointerComponent]("anyPointerComponent", context.Background())
+
+	// then
+	require.Nil(t, instance)
+	require.NotNil(t, err)
+
+	assert.Equal(t, "load component \"anyPointerComponent\": invalid argument count: got 1, want 0", err.Error())
+}
+
+func TestLoad(t *testing.T) {
+	// given
+	clear(components)
+
+	Register(NewAnyPointerComponent)
+
+	// when
+	instance, err := Load[*AnyPointerComponent]("anyPointerComponent")
+
+	// then
+	require.NotNil(t, instance)
+	require.Nil(t, err)
+}
+
 func TestList(t *testing.T) {
 	// cleanup
 	clear(components)
 
 	// given
-	Register(NewAnyComponent).Conditional(AnyCondition{})
+	Register(NewAnySimpleComponent).Conditional(AnyCondition{})
 
 	// when
 	componentList := List()
@@ -225,7 +234,7 @@ func TestList(t *testing.T) {
 	def := component.Definition()
 
 	require.NotNil(t, def, "nil definition")
-	assert.Equal(t, "anyComponent", def.Name())
+	assert.Equal(t, "anySimpleComponent", def.Name())
 
 	// Condition check
 	require.Len(t, component.Conditions(), 1)
@@ -236,8 +245,8 @@ func TestList_MultipleComponent(t *testing.T) {
 	clear(components)
 
 	// given
-	Register(NewAnyComponent).Conditional(AnyCondition{})
-	Register(NewAnotherComponent).Conditional(nil)
+	Register(NewAnySimpleComponent).Conditional(AnyCondition{})
+	Register(NewAnyPointerComponent).Conditional(nil)
 
 	// when
 	componentList := List()
@@ -245,33 +254,33 @@ func TestList_MultipleComponent(t *testing.T) {
 	// then
 	require.Len(t, componentList, 2)
 
-	assert.Contains(t, components, "anyComponent")
-	assert.Contains(t, components, "anotherComponent")
+	assert.Contains(t, components, "anySimpleComponent")
+	assert.Contains(t, components, "anyPointerComponent")
 }
 
-func TestListOf_WithNonRegisteredType(t *testing.T) {
+func TestListOf_NonRegisteredType(t *testing.T) {
 	// cleanup
 	clear(components)
 
 	// given
-	Register(NewAnotherComponent)
+	Register(NewAnySimpleComponent)
 
 	// when
-	componentList := ListOf[*AnyComponent]()
+	componentList := ListOf[*AnyPointerComponent]()
 
 	// then
 	require.Len(t, componentList, 0)
 }
 
-func TestListOf_WithPointerStructType(t *testing.T) {
+func TestListOf_PointerStructType(t *testing.T) {
 	// cleanup
 	clear(components)
 
 	// given
-	Register(NewAnyComponent)
+	Register(NewAnyPointerComponent)
 
 	// when
-	componentList := ListOf[*AnyComponent]()
+	componentList := ListOf[*AnyPointerComponent]()
 
 	// then
 	require.Len(t, componentList, 1)
@@ -280,15 +289,35 @@ func TestListOf_WithPointerStructType(t *testing.T) {
 	def := component.Definition()
 
 	require.NotNil(t, def, "nil definition")
-	assert.Equal(t, "anyComponent", def.Name())
+	assert.Equal(t, "anyPointerComponent", def.Name())
 }
 
-func TestListOf_WithNonPointerStructType(t *testing.T) {
+func TestListOf_NonPointerStructType(t *testing.T) {
 	// cleanup
 	clear(components)
 
 	// given
-	Register(NewAnyComponent)
+	Register(NewAnyPointerComponent)
+
+	// when
+	componentList := ListOf[AnyPointerComponent]()
+
+	// then
+	require.Len(t, componentList, 1)
+
+	component := componentList[0]
+	def := component.Definition()
+
+	require.NotNil(t, def, "nil definition")
+	assert.Equal(t, "anyPointerComponent", def.Name())
+}
+
+func TestListOf_InterfaceType(t *testing.T) {
+	// cleanup
+	clear(components)
+
+	// given
+	Register(NewAnyPointerComponent)
 
 	// when
 	componentList := ListOf[AnyComponent]()
@@ -300,25 +329,5 @@ func TestListOf_WithNonPointerStructType(t *testing.T) {
 	def := component.Definition()
 
 	require.NotNil(t, def, "nil definition")
-	assert.Equal(t, "anyComponent", def.Name())
-}
-
-func TestListOf_WithInterfaceType(t *testing.T) {
-	// cleanup
-	clear(components)
-
-	// given
-	Register(NewAnyComponent)
-
-	// when
-	componentList := ListOf[AnyInterface]()
-
-	// then
-	require.Len(t, componentList, 1)
-
-	component := componentList[0]
-	def := component.Definition()
-
-	require.NotNil(t, def, "nil definition")
-	assert.Equal(t, "anyComponent", def.Name())
+	assert.Equal(t, "anyPointerComponent", def.Name())
 }

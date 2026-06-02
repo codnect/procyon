@@ -42,13 +42,13 @@ func TestNewConditionalLoader(t *testing.T) {
 		{
 			name:       "valid container",
 			ctx:        context.Background(),
-			container:  NewDefaultContainer(),
+			container:  NewStandardContainer(),
 			components: []*Component{},
 		},
 		{
 			name:       "nil components",
 			ctx:        context.Background(),
-			container:  NewDefaultContainer(),
+			container:  NewStandardContainer(),
 			components: nil,
 		},
 	}
@@ -74,10 +74,10 @@ func TestNewConditionalLoader(t *testing.T) {
 }
 
 func TestConditionalLoader_Load(t *testing.T) {
-	anyComponentDef, _ := MakeDefinition(NewAnyComponent)
+	anyComponentDef, _ := MakeDefinition(NewAnyPointerComponent)
 	require.NotNil(t, anyComponentDef)
 
-	anotherComponentDef, _ := MakeDefinition(NewAnotherComponent)
+	anotherComponentDef, _ := MakeDefinition(NewAnyDependentComponent)
 	require.NotNil(t, anotherComponentDef)
 
 	testCases := []struct {
@@ -89,37 +89,44 @@ func TestConditionalLoader_Load(t *testing.T) {
 		wantTypes  []reflect.Type
 	}{
 		{
+			name:       "nil context",
+			ctx:        nil,
+			container:  NewStandardContainer(),
+			components: []*Component{},
+			wantErr:    errors.New("nil context"),
+		},
+		{
 			name:      "load component",
 			ctx:       context.Background(),
-			container: NewDefaultContainer(),
+			container: NewStandardContainer(),
 			components: []*Component{
 				createComponent(anyComponentDef),
 			},
 			wantTypes: []reflect.Type{
-				reflect.TypeOf(&AnyComponent{}),
+				reflect.TypeOf(&AnyPointerComponent{}),
 			},
 		},
 		{
 			name:      "skip component",
 			ctx:       context.Background(),
-			container: NewDefaultContainer(),
+			container: NewStandardContainer(),
 			components: []*Component{
 				createComponent(anyComponentDef, AnyCondition{matches: false}),
 				createComponent(anotherComponentDef),
 			},
 			wantTypes: []reflect.Type{
-				reflect.TypeOf(&AnotherComponent{}),
+				reflect.TypeOf(&AnyDependentComponent{}),
 			},
 		},
 		{
 			name:      "already exists",
 			ctx:       context.Background(),
-			container: NewDefaultContainer(),
+			container: NewStandardContainer(),
 			components: []*Component{
 				createComponent(anyComponentDef),
 				createComponent(anyComponentDef),
 			},
-			wantErr: fmt.Errorf("load component \"anyComponent\": register definition \"anyComponent\": duplicate definition"),
+			wantErr: fmt.Errorf("load component \"anyPointerComponent\": register definition \"anyPointerComponent\": duplicate definition"),
 		},
 	}
 

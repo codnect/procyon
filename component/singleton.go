@@ -32,4 +32,7 @@ type SingletonRegistry interface {
 
 	// DestroySingletons destroys all registered singleton instances, performing any necessary cleanup.
 	DestroySingletons()
+
+	// SingletonNames returns a slice of all registered singleton names.
+	SingletonNames() []string
 }
