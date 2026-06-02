@@ -66,7 +66,7 @@ func (f Constructor) Args() []Arg {
 
 // Invoke invokes the constructor function with the provided arguments.
 // It returns the results of the function invocation and an error if the invocation fails.
-func (f Constructor) Invoke(args ...any) (any, error) {
+func (f Constructor) Invoke(args ...any) (result any, err error) {
 	numIn := f.fnType.NumIn()
 	isVariadic := f.fnType.IsVariadic()
 
@@ -112,6 +112,12 @@ func (f Constructor) Invoke(args ...any) (any, error) {
 
 		inputs = append(inputs, reflect.ValueOf(arg))
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("constructor panic: %v", r)
+		}
+	}()
 
 	results := f.fnValue.Call(inputs)
 	return results[0].Interface(), nil

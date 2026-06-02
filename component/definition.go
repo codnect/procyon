@@ -44,6 +44,12 @@ type DefinitionRegistry interface {
 
 	// DefinitionsOf returns a slice of component definitions that are assignable to the specified type.
 	DefinitionsOf(typ reflect.Type) []*Definition
+
+	// DefinitionNames returns a slice of all registered component definition names.
+	DefinitionNames() []string
+
+	// DefinitionNamesOf returns a slice of component definition names that are assignable to the specified type.
+	DefinitionNamesOf(typ reflect.Type) []string
 }
 
 // Definition represents the metadata and constructor for a component.

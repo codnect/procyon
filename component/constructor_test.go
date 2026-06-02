@@ -51,13 +51,13 @@ func TestCreateConstructor(t *testing.T) {
 		},
 		{
 			name:          "valid constructor function",
-			constructorFn: NewAnotherComponent,
-			wantOutType:   reflect.TypeFor[*AnotherComponent](),
+			constructorFn: NewAnyDependentComponent,
+			wantOutType:   reflect.TypeFor[*AnyDependentComponent](),
 			wantArgs: []Arg{
 				{
 					0,
 					"",
-					reflect.TypeFor[DependentComponent](),
+					reflect.TypeFor[AnySimpleComponent](),
 				},
 			},
 		},
@@ -107,63 +107,70 @@ func TestConstructor_Invoke(t *testing.T) {
 	}{
 		{
 			name:          "invalid parameter count",
-			constructorFn: NewAnotherComponent,
+			constructorFn: NewAnyDependentComponent,
 			wantErr:       errors.New("invalid argument count: got 0, want 1"),
 		},
 		{
+			name: "invalid variadic parameter count",
+			constructorFn: func(dependency AnySimpleComponent, another ...AnyDependentComponent) any {
+				return nil
+			},
+			wantErr: errors.New("invalid argument count: got 0, want at least 1"),
+		},
+		{
 			name:          "invalid parameter",
-			constructorFn: NewAnotherComponent,
+			constructorFn: NewAnyDependentComponent,
 			inputs: []any{
 				"invalid parameter",
 			},
-			wantErr: errors.New("argument 0 has type string, want component.DependentComponent"),
+			wantErr: errors.New("argument 0 has type string, want component.AnySimpleComponent"),
 		},
 		{
 			name:          "nil parameter",
-			constructorFn: NewAnotherComponent,
+			constructorFn: NewAnyDependentComponent,
 			inputs: []any{
 				nil,
 			},
-			wantOutType: reflect.TypeFor[*AnotherComponent](),
+			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
 		},
 		{
 			name:          "valid constructor",
-			constructorFn: NewAnotherComponent,
+			constructorFn: NewAnyDependentComponent,
 			inputs: []any{
-				DependentComponent{},
+				AnySimpleComponent{},
 			},
-			wantOutType: reflect.TypeFor[*AnotherComponent](),
+			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
 		},
 		{
 			name: "invalid variadic parameter",
-			constructorFn: func(dependents ...DependentComponent) *AnotherComponent {
-				return &AnotherComponent{}
+			constructorFn: func(dependencies ...AnySimpleComponent) *AnyDependentComponent {
+				return &AnyDependentComponent{}
 			},
 			inputs: []any{
 				"invalid parameter",
 			},
-			wantErr: errors.New("argument 0 has type string, want component.DependentComponent"),
+			wantErr: errors.New("argument 0 has type string, want component.AnySimpleComponent"),
 		},
 		{
 			name: "nil variadic parameter",
-			constructorFn: func(dependents ...DependentComponent) *AnotherComponent {
-				return &AnotherComponent{}
+			constructorFn: func(dependencies ...AnySimpleComponent) *AnyDependentComponent {
+				return &AnyDependentComponent{}
 			},
 			inputs: []any{
 				nil,
 			},
-			wantOutType: reflect.TypeFor[*AnotherComponent](),
+			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
 		},
 		{
 			name: "valid variadic constructor",
-			constructorFn: func(dependents ...DependentComponent) *AnotherComponent {
-				return &AnotherComponent{}
+			constructorFn: func(dependencies ...AnySimpleComponent) *AnyDependentComponent {
+				return &AnyDependentComponent{}
 			},
 			inputs: []any{
-				DependentComponent{},
-				DependentComponent{},
+				AnySimpleComponent{},
+				AnySimpleComponent{},
 			},
-			wantOutType: reflect.TypeFor[*AnotherComponent](),
+			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
 		},
 	}
 
