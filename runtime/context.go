@@ -1,0 +1,47 @@
+// Copyright 2026 Codnect
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package runtime
+
+import (
+	"context"
+
+	"codnect.io/procyon/component"
+)
+
+// Context represents the central runtime context of the application.
+type Context interface {
+	context.Context
+
+	// Lifecycle interface provides start/stop lifecycle methods for the application context.
+	Lifecycle
+
+	// EnvironmentHolder is an interface that provides access to an Environment.
+	EnvironmentHolder
+
+	// ContainerHolder is an interface that provides access to a Container.
+	component.ContainerHolder
+
+	// Refresh reloads the application context contents (environment, container)
+	Refresh(ctx context.Context) error
+
+	// Close closes the application context and releases all resources.
+	Close(ctx context.Context) error
+}
+
+// ContextInitializer is an interface for initializing the application context.
+type ContextInitializer interface {
+	// InitializeContext initializes the given application context.
+	InitializeContext(ctx Context) error
+}
