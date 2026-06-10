@@ -42,10 +42,14 @@ func (b *BannerPrinter) Print(_ runtime.Environment, w io.Writer) error {
 	for _, line := range bannerText {
 		_, err := w.Write([]byte(line))
 		if err != nil {
-			return err
+			return fmt.Errorf("print banner: %w", err)
 		}
 	}
 
 	_, err := w.Write([]byte(fmt.Sprintf(versionFormat, "(", Version)))
-	return err
+	if err != nil {
+		return fmt.Errorf("print banner: %w", err)
+	}
+
+	return nil
 }

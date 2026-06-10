@@ -15,7 +15,6 @@
 package procyon
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -26,52 +25,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type AnyWriter struct {
-	mock.Mock
-	buf bytes.Buffer
-}
-
-func (w *AnyWriter) Write(p []byte) (int, error) {
-	args := w.Called(p)
-	err := args.Error(1)
-
-	if err == nil {
-		w.buf.Write(p)
-	}
-
-	return args.Int(0), err
-}
-
-func (w *AnyWriter) String() string {
-	return w.buf.String()
-}
-
 func TestBannerPrinter_PrintBanner(t *testing.T) {
 	testCases := []struct {
 		name         string
-		preCondition func(writer *AnyWriter)
+		preCondition func(writer *AnyMockWriter)
 
 		wantOutput string
 		wantErr    error
 	}{
 		{
 			name: "no error",
-			preCondition: func(writer *AnyWriter) {
+			preCondition: func(writer *AnyMockWriter) {
 				writer.On("Write", mock.Anything).Return(0, nil)
 			},
 			wantOutput: strings.Join(bannerText, "") + fmt.Sprintf(versionFormat, "(", Version),
 		},
 		{
 			name: "text write error",
-			preCondition: func(writer *AnyWriter) {
+			preCondition: func(writer *AnyMockWriter) {
 				writer.On("Write", mock.Anything).Return(0, errors.New("write error"))
 			},
-			wantErr:    errors.New("write error"),
+			wantErr:    errors.New("print banner: write error"),
 			wantOutput: "",
 		},
 		{
 			name: "version write error",
-			preCondition: func(writer *AnyWriter) {
+			preCondition: func(writer *AnyMockWriter) {
 				for _, line := range bannerText {
 					writer.On("Write", []byte(line)).Return(len(line), nil).Once()
 				}
@@ -79,7 +58,7 @@ func TestBannerPrinter_PrintBanner(t *testing.T) {
 				writer.On("Write", []byte(fmt.Sprintf(versionFormat, "(", Version))).
 					Return(0, errors.New("write error"))
 			},
-			wantErr:    errors.New("write error"),
+			wantErr:    errors.New("print banner: write error"),
 			wantOutput: strings.Join(bannerText, ""),
 		},
 	}
@@ -87,7 +66,7 @@ func TestBannerPrinter_PrintBanner(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			anyWriter := &AnyWriter{}
+			anyWriter := &AnyMockWriter{}
 			if tc.preCondition != nil {
 				tc.preCondition(anyWriter)
 			}
