@@ -921,7 +921,7 @@ func TestStandardContainer_Resolve(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("create \"anyInstanceName\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 (component.AnySimpleComponent): resolve type component.AnySimpleComponent: not found"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": create \"anyInstanceName\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 (component.AnySimpleComponent): resolve type component.AnySimpleComponent: not found"),
 		},
 		{
 			name: "resolve singleton with named dependencies",
@@ -947,7 +947,7 @@ func TestStandardContainer_Resolve(t *testing.T) {
 
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("create \"anyInstanceName\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 \"anyDependentName\" (component.AnySimpleComponent): resolve \"anyDependentName\": not found"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": create \"anyInstanceName\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 \"anyDependentName\" (component.AnySimpleComponent): resolve \"anyDependentName\": not found"),
 		},
 		{
 			name: "resolve singleton with slice dependencies",
@@ -992,7 +992,7 @@ func TestStandardContainer_Resolve(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("create \"anyInstanceName\" (*component.AnyIndexedComponent): unsatisfied dependency for argument 0 ([]component.AnyComponent): create \"anyDependentComponent\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 (component.AnySimpleComponent): resolve type component.AnySimpleComponent: not found"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": create \"anyInstanceName\" (*component.AnyIndexedComponent): unsatisfied dependency for argument 0 ([]component.AnyComponent): resolve \"anyDependentComponent\": create \"anyDependentComponent\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 (component.AnySimpleComponent): resolve type component.AnySimpleComponent: not found"),
 		},
 		{
 			name: "constructor error",
@@ -1005,7 +1005,7 @@ func TestStandardContainer_Resolve(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("invoke constructor \"anyInstanceName\" (*component.AnySimpleComponent): constructor panic: any constructor error"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": invoke constructor \"anyInstanceName\" (*component.AnySimpleComponent): constructor panic: any constructor error"),
 		},
 		{
 			name: "resolve instance with circular dependencies",
@@ -1028,7 +1028,7 @@ func TestStandardContainer_Resolve(t *testing.T) {
 				require.NoError(t, err)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("create \"anyInstanceName\" (*component.AnyPointerComponent): unsatisfied dependency for argument 0 (*component.AnyDependentComponent): create \"anyDependentName\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 (*component.AnyPointerComponent): circular dependency detected for \"anyInstanceName\""),
+			wantErr:      errors.New("resolve \"anyInstanceName\": create \"anyInstanceName\" (*component.AnyPointerComponent): unsatisfied dependency for argument 0 (*component.AnyDependentComponent): resolve \"anyDependentName\": create \"anyDependentName\" (*component.AnyDependentComponent): unsatisfied dependency for argument 0 (*component.AnyPointerComponent): resolve \"anyInstanceName\": circular dependency detected"),
 		},
 	}
 
@@ -1196,7 +1196,7 @@ func TestStandardContainer_ResolveAs(t *testing.T) {
 			},
 			instanceName: "anyInstanceName",
 			instanceType: reflect.TypeFor[*AnySimpleComponent](),
-			wantErr:      errors.New("invoke constructor \"anyInstanceName\" (*component.AnySimpleComponent): constructor panic: any constructor error"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": invoke constructor \"anyInstanceName\" (*component.AnySimpleComponent): constructor panic: any constructor error"),
 		},
 	}
 
@@ -1891,7 +1891,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 				_ = container.RegisterDefinition(def)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyInitializableComponent): invoke init: failed to initialize"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): invoke init: failed to initialize"),
 		},
 		{
 			name: "no initialize error",
@@ -1916,7 +1916,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 					Return(nil, errors.New("pre processor error"))
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply pre-processors: pre-processor (*component.AnyMockPreProcessor): pre processor error"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply pre-processors: pre-processor (*component.AnyMockPreProcessor): pre processor error"),
 		},
 		{
 			name: "pre processor nil value",
@@ -1931,7 +1931,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 					Return(nil, nil)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply pre-processors: pre-processor (*component.AnyMockPreProcessor) returned nil"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply pre-processors: pre-processor (*component.AnyMockPreProcessor) returned nil"),
 		},
 		{
 			name: "apply pre processor",
@@ -1961,7 +1961,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 					Return(nil, errors.New("post processor error"))
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply post-processors: post-processor (*component.AnyMockPostProcessor): post processor error"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply post-processors: post-processor (*component.AnyMockPostProcessor): post processor error"),
 		},
 		{
 			name: "post processor nil value",
@@ -1976,7 +1976,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 					Return(nil, nil)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply post-processors: post-processor (*component.AnyMockPostProcessor) returned nil"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply post-processors: post-processor (*component.AnyMockPostProcessor) returned nil"),
 		},
 		{
 			name: "apply post processor",
