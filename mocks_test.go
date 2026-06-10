@@ -16,7 +16,11 @@ package procyon
 
 import (
 	"bytes"
+	"context"
+	stdio "io"
 
+	"codnect.io/procyon/io"
+	"codnect.io/procyon/runtime"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -38,4 +42,75 @@ func (w *AnyMockWriter) Write(p []byte) (int, error) {
 
 func (w *AnyMockWriter) String() string {
 	return w.buf.String()
+}
+
+type AnyMockApplication struct {
+	mock.Mock
+}
+
+func (a *AnyMockApplication) SetBannerPrinter(printer runtime.BannerPrinter) {
+	a.Called(printer)
+}
+
+func (a *AnyMockApplication) ResourceResolver() io.ResourceResolver {
+	result := a.Called()
+	if result.Get(0) == nil {
+		return nil
+	}
+
+	return result.Get(0).(io.ResourceResolver)
+}
+
+func (a *AnyMockApplication) Run(args ...string) error {
+	result := a.Called(args)
+	return result.Error(0)
+}
+
+type AnyMockResource struct {
+	mock.Mock
+}
+
+func (a *AnyMockResource) Name() string {
+	result := a.Called()
+	if result.Get(0) == nil {
+		return ""
+	}
+
+	return result.Get(0).(string)
+}
+
+func (a *AnyMockResource) Location() string {
+	result := a.Called()
+	if result.Get(0) == nil {
+		return ""
+	}
+
+	return result.Get(0).(string)
+}
+
+func (a *AnyMockResource) Exists() bool {
+	result := a.Called()
+	return result.Bool(0)
+}
+
+func (a *AnyMockResource) Reader() (stdio.ReadCloser, error) {
+	result := a.Called()
+	if result.Get(0) == nil {
+		return nil, result.Error(1)
+	}
+
+	return result.Get(0).(stdio.ReadCloser), result.Error(1)
+}
+
+type AnyMockResourceResolver struct {
+	mock.Mock
+}
+
+func (a *AnyMockResourceResolver) Resolve(ctx context.Context, location string) (io.Resource, error) {
+	result := a.Called(ctx, location)
+	if result.Get(0) == nil {
+		return nil, result.Error(1)
+	}
+
+	return result.Get(0).(io.Resource), nil
 }
