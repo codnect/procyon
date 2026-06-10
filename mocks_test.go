@@ -136,3 +136,22 @@ func (l *AnyMockLifecycle) IsRunning() bool {
 	results := l.Called()
 	return results.Bool(0)
 }
+
+type anyMockLifecycleManager struct {
+	mock.Mock
+}
+
+func (a *anyMockLifecycleManager) Startup(ctx context.Context) error {
+	result := a.Called(ctx)
+	return result.Error(0)
+}
+
+func (a *anyMockLifecycleManager) Shutdown(ctx context.Context) error {
+	result := a.Called(ctx)
+	return result.Error(0)
+}
+
+func (a *anyMockLifecycleManager) IsRunning() bool {
+	result := a.Called()
+	return result.Bool(0)
+}
