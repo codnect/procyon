@@ -15,9 +15,6 @@
 package runtime
 
 import (
-	"context"
-
-	"codnect.io/procyon/component"
 	"codnect.io/procyon/io"
 )
 
@@ -29,27 +26,4 @@ type Application interface {
 	ResourceResolver() io.ResourceResolver
 	// Run starts the application with the given command-line arguments.
 	Run(args ...string) error
-}
-
-// Context represents the central runtime context of the application.
-type Context interface {
-	context.Context
-
-	// Lifecycle interface provides start/stop lifecycle methods for the application context.
-	Lifecycle
-
-	// EnvironmentHolder is an interface that provides access to an Environment.
-	EnvironmentHolder
-
-	// ContainerHolder is an interface that provides access to a Container.
-	component.ContainerHolder
-
-	// Refresh reloads the application context contents (environment, container)
-	Refresh() error
-}
-
-// ContextInitializer is an interface for initializing the application context.
-type ContextInitializer interface {
-	// InitializeContext initializes the given application context.
-	InitializeContext(ctx Context) error
 }
