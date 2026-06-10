@@ -48,8 +48,8 @@ type Context interface {
 	Refresh() error
 }
 
-// ContextCustomizer is an interface for customizing the application context.
-type ContextCustomizer interface {
-	// CustomizeContext customizes the given application context.
-	CustomizeContext(ctx Context) error
+// ContextInitializer is an interface for initializing the application context.
+type ContextInitializer interface {
+	// InitializeContext initializes the given application context.
+	InitializeContext(ctx Context) error
 }
