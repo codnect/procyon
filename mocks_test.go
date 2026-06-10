@@ -155,3 +155,62 @@ func (a *anyMockLifecycleManager) IsRunning() bool {
 	result := a.Called()
 	return result.Bool(0)
 }
+
+type AnyMockBannerPrinter struct {
+	mock.Mock
+}
+
+func (p *AnyMockBannerPrinter) Print(env runtime.Environment, writer stdio.Writer) error {
+	result := p.Called(env, writer)
+	return result.Error(0)
+}
+
+type AnyMockEnvironmentCustomizer struct {
+	mock.Mock
+}
+
+func (c *AnyMockEnvironmentCustomizer) CustomizeEnvironment(env runtime.Environment, app runtime.Application) error {
+	results := c.Called(env, app)
+	return results.Error(0)
+}
+
+type AnyMockContextInitializer struct {
+	mock.Mock
+}
+
+func (a *AnyMockContextInitializer) InitializeContext(ctx runtime.Context) error {
+	results := a.Called(ctx)
+	return results.Error(0)
+}
+
+type AnyMockCommandLineRunner struct {
+	mock.Mock
+}
+
+func newAnyMockCommandLinerRunner(anyComponent AnyComponent) *AnyMockCommandLineRunner {
+	return &AnyMockCommandLineRunner{}
+}
+
+func (r *AnyMockCommandLineRunner) Run(ctx runtime.Context, args *runtime.Args) error {
+	results := r.Called(ctx, args)
+	return results.Error(0)
+}
+
+type AnyMockServerApp struct {
+	mock.Mock
+}
+
+func (a *AnyMockServerApp) Start(ctx context.Context) error {
+	results := a.Called(ctx)
+	return results.Error(0)
+}
+
+func (a *AnyMockServerApp) Stop(ctx context.Context) error {
+	results := a.Called(ctx)
+	return results.Error(0)
+}
+
+func (a *AnyMockServerApp) Port() int {
+	results := a.Called()
+	return results.Int(0)
+}
