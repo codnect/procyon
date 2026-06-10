@@ -457,7 +457,12 @@ func (d *StandardContainer) Resolve(ctx context.Context, name string) (any, erro
 	}
 
 	if def.IsSingleton() || def.IsPrototype() {
-		return d.createInstance(ctx, def)
+		instance, err := d.createInstance(ctx, def)
+		if err != nil {
+			return nil, fmt.Errorf("resolve %q: %w", name, err)
+		}
+
+		return instance, nil
 	}
 
 	scopeName := def.Scope()
@@ -467,7 +472,12 @@ func (d *StandardContainer) Resolve(ctx context.Context, name string) (any, erro
 	}
 
 	instance, err := scope.Resolve(ctx, name, func(ctx context.Context) (any, error) {
-		return d.createInstance(ctx, def)
+		instance, err := d.createInstance(ctx, def)
+		if err != nil {
+			return nil, fmt.Errorf("resolve %q: %w", name, err)
+		}
+
+		return instance, nil
 	})
 
 	if err != nil {

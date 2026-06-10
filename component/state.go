@@ -69,7 +69,7 @@ func (s *creationState) putToPreparation(name string) error {
 	defer s.mu.Unlock()
 
 	if _, ok := s.currentlyInCreation[name]; ok {
-		return fmt.Errorf("circular dependency detected for %q", name)
+		return fmt.Errorf("circular dependency detected")
 	}
 
 	s.currentlyInCreation[name] = struct{}{}

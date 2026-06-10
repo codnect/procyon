@@ -100,7 +100,7 @@ func TestConditionalLoader_Load(t *testing.T) {
 			ctx:       context.Background(),
 			container: NewStandardContainer(),
 			components: []*Component{
-				createComponent(anyComponentDef),
+				Create(anyComponentDef),
 			},
 			wantTypes: []reflect.Type{
 				reflect.TypeOf(&AnyPointerComponent{}),
@@ -111,8 +111,8 @@ func TestConditionalLoader_Load(t *testing.T) {
 			ctx:       context.Background(),
 			container: NewStandardContainer(),
 			components: []*Component{
-				createComponent(anyComponentDef, AnyCondition{matches: false}),
-				createComponent(anotherComponentDef),
+				Create(anyComponentDef, AnyCondition{matches: false}),
+				Create(anotherComponentDef),
 			},
 			wantTypes: []reflect.Type{
 				reflect.TypeOf(&AnyDependentComponent{}),
@@ -123,8 +123,8 @@ func TestConditionalLoader_Load(t *testing.T) {
 			ctx:       context.Background(),
 			container: NewStandardContainer(),
 			components: []*Component{
-				createComponent(anyComponentDef),
-				createComponent(anyComponentDef),
+				Create(anyComponentDef),
+				Create(anyComponentDef),
 			},
 			wantErr: fmt.Errorf("load component \"anyPointerComponent\": register definition \"anyPointerComponent\": duplicate definition"),
 		},

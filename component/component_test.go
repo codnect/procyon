@@ -24,6 +24,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCreate(t *testing.T) {
+	testCases := []struct {
+		name       string
+		def        *Definition
+		conditions []Condition
+
+		wantPanic error
+	}{
+		{
+			name:       "nil definition",
+			def:        nil,
+			conditions: []Condition{},
+			wantPanic:  errors.New("component: nil definition"),
+		},
+		{
+			name:       "valid definition",
+			def:        &Definition{},
+			conditions: []Condition{},
+		},
+		{
+
+			name: "valid definition with conditions",
+			def:  &Definition{},
+			conditions: []Condition{
+				AnyCondition{matches: true},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+
+			// when
+			if tc.wantPanic != nil {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
+					Create(tc.def, tc.conditions...)
+				})
+				return
+			}
+
+			comp := Create(tc.def, tc.conditions...)
+			require.NotNil(t, comp, "nil component")
+		})
+	}
+}
+
 func TestRegister(t *testing.T) {
 	testCases := []struct {
 		name          string

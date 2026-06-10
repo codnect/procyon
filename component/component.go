@@ -37,8 +37,12 @@ type Component struct {
 	conditions []Condition
 }
 
-// createComponent creates a new component instance with the given definition.
-func createComponent(def *Definition, cond ...Condition) *Component {
+// Create creates a new component instance with the given definition.
+func Create(def *Definition, cond ...Condition) *Component {
+	if def == nil {
+		panic("component: nil definition")
+	}
+
 	return &Component{
 		definition: def,
 		conditions: cond,
@@ -95,7 +99,7 @@ func Register(fn ConstructorFunc, opts ...DefinitionOption) *Registration {
 		panic(fmt.Sprintf("component: duplicate component name '%s'", name))
 	}
 
-	component := createComponent(def)
+	component := Create(def)
 
 	components[name] = component
 	return &Registration{
