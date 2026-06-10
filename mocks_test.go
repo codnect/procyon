@@ -24,6 +24,9 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+type AnyComponent struct {
+}
+
 type AnyMockWriter struct {
 	mock.Mock
 	buf bytes.Buffer
@@ -113,4 +116,23 @@ func (a *AnyMockResourceResolver) Resolve(ctx context.Context, location string) 
 	}
 
 	return result.Get(0).(io.Resource), nil
+}
+
+type AnyMockLifecycle struct {
+	mock.Mock
+}
+
+func (l *AnyMockLifecycle) Start(ctx context.Context) error {
+	results := l.Called(ctx)
+	return results.Error(0)
+}
+
+func (l *AnyMockLifecycle) Stop(ctx context.Context) error {
+	results := l.Called(ctx)
+	return results.Error(0)
+}
+
+func (l *AnyMockLifecycle) IsRunning() bool {
+	results := l.Called()
+	return results.Bool(0)
 }
