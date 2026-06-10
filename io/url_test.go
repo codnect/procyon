@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -145,6 +146,10 @@ func TestURLResource_Reader(t *testing.T) {
 	testServer := httptest.NewServer(handler)
 	defer testServer.Close()
 
+	closedServer := httptest.NewServer(nil)
+	closedServerUrl := closedServer.URL
+	closedServer.Close()
+
 	testCases := []struct {
 		name     string
 		url      string
@@ -162,9 +167,10 @@ func TestURLResource_Reader(t *testing.T) {
 			wantData: []byte("anyData"),
 		},
 		{
-			name:    "no host",
-			url:     "http://localhost:8080/resources/procyon.yaml",
-			wantErr: fmt.Errorf("read url resource \"http://localhost:8080/resources/procyon.yaml\": Get \"http://localhost:8080/resources/procyon.yaml\": dial tcp 127.0.0.1:8080: connect: connection refused"),
+			name: "no host",
+			url:  fmt.Sprintf("%s/resources/procyon.yaml", closedServerUrl),
+			wantErr: fmt.Errorf("read url resource \"%s/resources/procyon.yaml\": Get \"%s/resources/procyon.yaml\": dial tcp %s: connect: connection refused",
+				closedServerUrl, closedServerUrl, strings.TrimPrefix(closedServerUrl, "http://")),
 		},
 	}
 
