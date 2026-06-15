@@ -16,6 +16,8 @@ package procyon
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	goruntime "runtime"
@@ -90,22 +92,36 @@ func (a *Application) ResourceResolver() io.ResourceResolver {
 
 // Run starts the application with the given command-line arguments. It initializes the environment, prepares
 // the application context, and invokes any command-line runners defined in the application context.
-func (a *Application) Run(args ...string) error {
+func (a *Application) Run(args ...string) (err error) {
 	startTime := time.Now()
 
-	rArgs, err := runtime.ParseArgs(args)
+	defer func() {
+		if r := recover(); r != nil {
+			switch v := r.(type) {
+			case error:
+				err = v
+			default:
+				err = fmt.Errorf("%v", v)
+			}
+		}
+
+		err = a.close(err)
+	}()
+
+	var rArgs *runtime.Args
+	rArgs, err = runtime.ParseArgs(args)
 	if err != nil {
-		return err
+		return
 	}
 
 	a.env, err = a.prepareEnvironment(rArgs)
 	if err != nil {
-		return err
+		return
 	}
 
 	err = a.bannerPrinter.Print(a.env, os.Stdout)
 	if err != nil {
-		return err
+		return
 	}
 
 	signalCtx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -113,14 +129,14 @@ func (a *Application) Run(args ...string) error {
 
 	a.runtimeCtx, err = a.prepareRuntimeContext(rArgs)
 	if err != nil {
-		return err
+		return
 	}
 
 	startupCtx := context.Background()
 	err = a.runtimeCtx.Refresh(startupCtx)
 
 	if err != nil {
-		return err
+		return
 	}
 
 	timeTakenToStartup := time.Now().Sub(startTime)
@@ -128,19 +144,32 @@ func (a *Application) Run(args ...string) error {
 
 	err = a.invokeCmdLineRunners(rArgs)
 	if err != nil {
-		return err
+		return
 	}
 
 	if a.isServerApplication() {
 		<-signalCtx.Done()
 	}
 
-	if a.runtimeCtx.IsRunning() {
-		closeCtx := context.Background()
-		return a.runtimeCtx.Close(closeCtx)
+	return
+}
+
+// close handles application shutdown by recovering from panics, logging run failures,
+// and closing the runtime context if it is still running.
+func (a *Application) close(err error) error {
+	if err != nil {
+		log.Error("Application run failed", err)
 	}
 
-	return nil
+	if a.runtimeCtx != nil && a.runtimeCtx.IsRunning() {
+		closeErr := a.runtimeCtx.Close(context.Background())
+		if closeErr != nil {
+			log.Error("Application context close failed {}", closeErr)
+			err = errors.Join(err, closeErr)
+		}
+	}
+
+	return err
 }
 
 // invokeCmdLineRunners retrieves all CommandLineRunner components from the application context and executes
