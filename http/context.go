@@ -38,14 +38,23 @@ type Context struct {
 	err    error
 }
 
-func NewContext(req *http.Request, writer http.ResponseWriter) *Context {
+func CreateContext(req *http.Request, writer http.ResponseWriter) *Context {
+	if req == nil {
+		panic("nil http request")
+	}
+
+	if writer == nil {
+		panic("nil response writer")
+	}
+
 	ctx := &Context{
 		values: make(map[any]any),
 		req: &ServerRequest{
 			nativeReq: req,
 		},
 		res: &ServerResponse{
-			writer: writer,
+			writer:  writer,
+			headers: map[string][]string{},
 		},
 	}
 
@@ -106,7 +115,7 @@ func (c *Context) SetEndpoint(endpoint *Endpoint) {
 }
 
 // reset clears the context state and assigns a new HTTP request and response writer.
-func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
+func (c *Context) reset(r *http.Request, w http.ResponseWriter) {
 	c.err = nil
 	clear(c.values)
 
@@ -118,11 +127,7 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.res.status = StatusOK
 	c.res.writtenHeaders = false
 	c.res.writerUsed = false
-	if c.res.headers == nil {
-		c.res.headers = make(http.Header)
-	} else {
-		clear(c.res.headers)
-	}
+	clear(c.res.headers)
 }
 
 // EndpointContext represents a typed context for an HTTP endpoint handler.

@@ -36,6 +36,10 @@ type Endpoint struct {
 
 // NewEndpoint creates a new Endpoint with the specified method, path, and delegate.
 func NewEndpoint(method Method, path string, delegate RequestDelegate) *Endpoint {
+	if delegate == nil {
+		panic("nil request delegate")
+	}
+
 	return &Endpoint{
 		method:   method,
 		path:     path,
@@ -204,15 +208,17 @@ func (g *EndpointGroup) MapGroup(prefix string) *EndpointGroup {
 // ensuring that there is exactly one '/' separator between elements
 // and preserving leading and trailing slashes.
 func joinPaths(elem ...string) string {
-	var result string
-	if !strings.HasPrefix(elem[0], "/") {
-		elem[0] = "/" + elem[0]
-		result = path.Join(elem...)[1:]
-	} else {
-		result = path.Join(elem...)
+	last := elem[len(elem)-1]
+
+	for i, e := range elem {
+		if !strings.HasPrefix(e, "/") {
+			elem[i] = "/" + e
+		}
 	}
 
-	if strings.HasSuffix(elem[len(elem)-1], "/") && !strings.HasSuffix(result, "/") {
+	result := path.Join(elem...)
+
+	if last != "" && strings.HasSuffix(last, "/") && !strings.HasSuffix(result, "/") {
 		result += "/"
 	}
 

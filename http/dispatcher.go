@@ -34,6 +34,10 @@ type RequestDispatcher struct {
 // User middlewares run after routing, so they can inspect the
 // matched endpoint via ctx.Endpoint() before it executes.
 func NewRequestDispatcher(endpointMatcher EndpointMatcher, middlewares ...Middleware) Dispatcher {
+	if endpointMatcher == nil {
+		panic("nil endpoint matcher")
+	}
+
 	pipeline := buildPipeline(endpointMatcher, middlewares...)
 	return &RequestDispatcher{
 		delegate: pipeline,

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Procyon</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, sans-serif;
+            background:
+                    radial-gradient(circle at top left, #eef6ff 0%, white 45%),
+                    #ffffff;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px 100px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 80px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        nav {
+            display: flex;
+            gap: 28px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #475569;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #2563eb;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 68px;
+            line-height: 1;
+            letter-spacing: -0.06em;
+            margin: 0 0 24px;
+            max-width: 700px;
+        }
+
+        .gradient {
+            background: linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #7c3aed
+            );
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .description {
+            font-size: 19px;
+            line-height: 1.8;
+            color: #475569;
+            max-width: 620px;
+            margin-bottom: 36px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            text-decoration: none;
+            border-radius: 14px;
+            padding: 15px 22px;
+            font-weight: 600;
+            transition: .2s ease;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            box-shadow:
+                    0 10px 30px rgba(37, 99, 235, .18);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            border: 1px solid #dbe3ef;
+            color: #0f172a;
+            background: white;
+        }
+
+        .code-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow:
+                    0 30px 60px rgba(15, 23, 42, .08);
+        }
+
+        .code-header {
+            display: flex;
+            gap: 8px;
+            padding: 18px 22px;
+            border-bottom: 1px solid #edf2f7;
+            background: #fafcff;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .red { background: #ff5f57; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #28c840; }
+
+        pre {
+            margin: 0;
+            padding: 28px;
+            overflow-x: auto;
+            background: #ffffff;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 15px;
+            line-height: 1.9;
+        }
+
+        /* GO Syntax Highlight */
+
+        .keyword { color: #a855f7; }
+        .package { color: #2563eb; }
+        .string { color: #16a34a; }
+        .function { color: #0f172a; font-weight: 600; }
+        .type { color: #0ea5e9; }
+        .comment { color: #94a3b8; }
+
+        .features {
+            margin-top: 120px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature {
+            background: rgba(255,255,255,.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid #e5edf7;
+            border-radius: 24px;
+            padding: 30px;
+        }
+
+        .feature h3 {
+            margin: 0 0 14px;
+            font-size: 20px;
+        }
+
+        .feature p {
+            margin: 0;
+            color: #64748b;
+            line-height: 1.8;
+        }
+
+        @media(max-width: 980px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 48px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <header>
+        <div class="logo">Procyon</div>
+
+        <nav>
+            <a href="#">Docs</a>
+            <a href="#">GitHub</a>
+            <a href="#">Examples</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+
+        <div>
+            <div class="badge">
+                Lightweight application framework for Go
+            </div>
+
+            <h1>
+                Build clean,
+                <span class="gradient">
+          production-ready
+        </span>
+                Go applications.
+            </h1>
+
+            <p class="description">
+                Procyon provides dependency injection, configuration,
+                lifecycle management, profiles, and web support —
+                while keeping the simplicity and performance of Go.
+            </p>
+
+            <div class="buttons">
+                <a href="#" class="btn btn-primary">
+                    Get Started
+                </a>
+
+                <a href="#" class="btn btn-secondary">
+                    GitHub
+                </a>
+            </div>
+        </div>
+
+        <div class="code-card">
+
+            <div class="code-header">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+
+            <pre><code>
+<span class="keyword">package</span> <span class="package">main</span>
+
+<span class="keyword">import</span> (
+    <span class="string">"os"</span>
+
+    <span class="string">"codnect.io/procyon"</span>
+)
+
+<span class="keyword">func</span> <span class="function">main</span>() {
+    app := procyon.New()
+
+    <span class="keyword">if</span> err := app.Run(os.Args...); err != nil {
+        os.Exit(1)
+    }
+}
+      </code></pre>
+
+        </div>
+
+    </section>
+
+    <section class="features">
+
+        <div class="feature">
+            <h3>Dependency Injection</h3>
+            <p>
+                Wire components and services with a clean,
+                lightweight dependency injection model.
+            </p>
+        </div>
+
+        <div class="feature">
+            <h3>Configuration & Profiles</h3>
+            <p>
+                Load environment-specific configuration and
+                activate profiles effortlessly.
+            </p>
+        </div>
+
+        <div class="feature">
+            <h3>Application Lifecycle</h3>
+            <p>
+                Graceful startup and shutdown with a
+                structured runtime model.
+            </p>
+        </div>
+
+    </section>
+
+</div>
+
+</body>
+</html>

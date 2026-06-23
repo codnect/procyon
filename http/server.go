@@ -26,6 +26,17 @@ type ServerProperties struct {
 	Port int `property:"port" default:"8080"`
 }
 
+// stdServer abstracts http.Server to allow Server to be tested
+// without starting a real HTTP listener.
+type stdServer interface {
+	// ListenAndServe starts the HTTP server and begins accepting requests.
+
+	ListenAndServe() error
+	// Shutdown gracefully stops the HTTP server without interrupting
+	// active connections.
+	Shutdown(ctx context.Context) error
+}
+
 // Server is the HTTP server that listens for incoming requests and
 // dispatches them through the configured Dispatcher.
 //
@@ -33,7 +44,7 @@ type ServerProperties struct {
 // to minimize allocations per request.
 type Server struct {
 	props       ServerProperties
-	httpServer  *http.Server
+	httpServer  stdServer
 	contextPool sync.Pool
 	dispatcher  Dispatcher
 }
@@ -42,6 +53,10 @@ type Server struct {
 // The dispatcher is invoked for every incoming request to route it through
 // the middleware pipeline to the appropriate endpoint handler.
 func NewServer(props ServerProperties, dispatcher Dispatcher) *Server {
+	if dispatcher == nil {
+		panic("nil dispatcher")
+	}
+
 	return &Server{
 		props: props,
 		contextPool: sync.Pool{
@@ -90,7 +105,7 @@ func (s *Server) Port() int {
 // returning the Context to the pool when done.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := s.contextPool.Get().(*Context)
-	ctx.reset(w, r)
+	ctx.reset(r, w)
 
 	defer func() {
 		s.contextPool.Put(ctx)
