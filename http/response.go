@@ -33,7 +33,7 @@ type ServerResponse struct {
 	writerUsed     bool
 }
 
-// Context returns the Context associated with this response.
+// Context return writers the Context associated with this response.
 func (r *ServerResponse) Context() *Context {
 	return r.ctx
 }
@@ -135,6 +135,10 @@ func (r *ServerResponse) Writer() io.Writer {
 
 // Flush sends any buffered data to the client.
 func (r *ServerResponse) Flush() error {
+	if r.writtenHeaders {
+		return errors.New("response already committed")
+	}
+
 	r.writeHeaders()
 
 	if flusher, ok := r.writer.(http.Flusher); ok {
@@ -153,7 +157,7 @@ func (r *ServerResponse) IsCommitted() bool {
 // It returns an error if the response has already been committed.
 func (r *ServerResponse) Redirect(location string, status Status) error {
 	if r.writtenHeaders {
-		return errors.New("already committed")
+		return errors.New("response already committed")
 	}
 
 	r.status = status
@@ -165,8 +169,8 @@ func (r *ServerResponse) Redirect(location string, status Status) error {
 // Reset clears the response status and headers if not yet committed.
 // It returns an error if the response has already been committed.
 func (r *ServerResponse) Reset() error {
-	if r.IsCommitted() {
-		return errors.New("already committed")
+	if r.writtenHeaders {
+		return errors.New("response already committed")
 	}
 
 	r.status = StatusOK

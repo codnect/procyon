@@ -73,7 +73,6 @@ func Handle[T any, C interface {
 	*T
 	serverContext
 }](fn func(C) error) Handler {
-	// Fast path: *Context requires no allocation
 	if _, ok := any((*T)(nil)).(*Context); ok {
 		return HandlerFunc(func(ctx *Context) (Result, error) {
 			return nil, fn(any(ctx).(C))
@@ -88,7 +87,6 @@ func HandleResult[T any, C interface {
 	*T
 	serverContext
 }, R Result](fn func(C) (R, error)) Handler {
-	// Fast path: *Context requires no allocation
 	if _, ok := any((*T)(nil)).(*Context); ok {
 		return HandlerFunc(func(ctx *Context) (Result, error) {
 			return fn(any(ctx).(C))

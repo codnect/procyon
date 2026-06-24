@@ -16,6 +16,7 @@ package http
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -145,13 +146,15 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest(string(tc.method), tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			ep, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("%s %s: got match=%v, want %v", tc.method, tc.path, ok, tc.match)
+				t.Errorf("%s %s: got match=%v, wantPath %v", tc.method, tc.path, ok, tc.match)
 			}
 			if ok && ep.method != tc.method {
-				t.Errorf("%s %s: got method=%s, want %s", tc.method, tc.path, ep.method, tc.method)
+				t.Errorf("%s %s: got method=%s, wantPath %s", tc.method, tc.path, ep.method, tc.method)
 			}
 		}
 	})
@@ -203,16 +206,17 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest(string(tc.method), tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+			ctx := CreateContext(req, recorder)
 			_, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("%s %s: got match=%v, want %v", tc.method, tc.path, ok, tc.match)
+				t.Errorf("%s %s: got match=%v, wantPath %v", tc.method, tc.path, ok, tc.match)
 			}
 			if ok && tc.params != nil {
 				r := ctx.Request()
 				for k, want := range tc.params {
 					if got := r.PathValue(k); got != want {
-						t.Errorf("%s %s: param %s: got %q, want %q", tc.method, tc.path, k, got, want)
+						t.Errorf("%s %s: param %s: got %q, wantPath %q", tc.method, tc.path, k, got, want)
 					}
 				}
 			}
@@ -256,10 +260,12 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest(string(tc.method), tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			_, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("%s %s: got match=%v, want %v", tc.method, tc.path, ok, tc.match)
+				t.Errorf("%s %s: got match=%v, wantPath %v", tc.method, tc.path, ok, tc.match)
 			}
 		}
 	})
@@ -329,10 +335,12 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest(string(tc.method), tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			_, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("%s %s: got match=%v, want %v", tc.method, tc.path, ok, tc.match)
+				t.Errorf("%s %s: got match=%v, wantPath %v", tc.method, tc.path, ok, tc.match)
 			}
 		}
 	})
@@ -401,10 +409,12 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest(string(tc.method), tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			_, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("%s %s: got match=%v, want %v", tc.method, tc.path, ok, tc.match)
+				t.Errorf("%s %s: got match=%v, wantPath %v", tc.method, tc.path, ok, tc.match)
 			}
 		}
 	})
@@ -463,14 +473,16 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest("GET", tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			ep, ok := tree.Match(ctx)
 			if !ok {
-				t.Errorf("GET %s: no match, want %s", tc.path, tc.wantPattern)
+				t.Errorf("GET %s: no match, wantPath %s", tc.path, tc.wantPattern)
 				continue
 			}
 			if ep.path != tc.wantPattern {
-				t.Errorf("GET %s: matched %s, want %s", tc.path, ep.path, tc.wantPattern)
+				t.Errorf("GET %s: matched %s, wantPath %s", tc.path, ep.path, tc.wantPattern)
 			}
 		}
 	})
@@ -529,14 +541,16 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest("GET", tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			ep, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("GET %s: got match=%v, want %v", tc.path, ok, tc.match)
+				t.Errorf("GET %s: got match=%v, wantPath %v", tc.path, ok, tc.match)
 				continue
 			}
 			if ok && ep.path != tc.wantPattern {
-				t.Errorf("GET %s: matched %s, want %s", tc.path, ep.path, tc.wantPattern)
+				t.Errorf("GET %s: matched %s, wantPath %s", tc.path, ep.path, tc.wantPattern)
 			}
 		}
 	})
@@ -604,10 +618,12 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest(string(tc.method), tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			ep, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("%s %s: got match=%v, want %v", tc.method, tc.path, ok, tc.match)
+				t.Errorf("%s %s: got match=%v, wantPath %v", tc.method, tc.path, ok, tc.match)
 				continue
 			}
 			if ok && ep.method != tc.method {
@@ -776,14 +792,16 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest(string(tc.method), tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			ep, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("%s %s: got match=%v, want %v", tc.method, tc.path, ok, tc.match)
+				t.Errorf("%s %s: got match=%v, wantPath %v", tc.method, tc.path, ok, tc.match)
 				continue
 			}
 			if ok && ep.path != tc.wantPattern {
-				t.Errorf("%s %s: matched %s, want %s", tc.method, tc.path, ep.path, tc.wantPattern)
+				t.Errorf("%s %s: matched %s, wantPath %s", tc.method, tc.path, ep.path, tc.wantPattern)
 			}
 		}
 	})
@@ -839,10 +857,12 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 		for _, tc := range testCases {
 			req, _ := http.NewRequest("GET", tc.path, nil)
-			ctx := NewContext(req, nil)
+			recorder := httptest.NewRecorder()
+
+			ctx := CreateContext(req, recorder)
 			_, ok := tree.Match(ctx)
 			if ok != tc.match {
-				t.Errorf("GET %s: got match=%v, want %v", tc.path, ok, tc.match)
+				t.Errorf("GET %s: got match=%v, wantPath %v", tc.path, ok, tc.match)
 			}
 		}
 	})
@@ -1092,7 +1112,7 @@ func BenchmarkRadixTreeMatcher_Match(b *testing.B) {
 	for _, bc := range benchCases {
 		b.Run(bc.name, func(b *testing.B) {
 			req, _ := http.NewRequest(bc.method, bc.path, nil)
-			ctx := NewContext(req, nil)
+			ctx := CreateContext(req, nil)
 
 			b.ResetTimer()
 			b.ReportAllocs()
