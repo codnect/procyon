@@ -1782,24 +1782,24 @@ func TestStandardContainer_Scope(t *testing.T) {
 	}
 }
 
-func TestStandardContainer_UsePreProcessor(t *testing.T) {
+func TestStandardContainer_UseBeforeInitProcessor(t *testing.T) {
 	testCases := []struct {
-		name         string
-		preProcessor PreProcessor
+		name                string
+		beforeInitProcessor BeforeInitProcessor
 
 		wantErr error
 		wantLen int
 	}{
 		{
-			name:    "nil pre processor",
-			wantErr: errors.New("nil pre-processor"),
+			name:    "nil before-init processor",
+			wantErr: errors.New("nil before-init processor"),
 			wantLen: 0,
 		},
 		{
-			name:         "valid pre processor",
-			preProcessor: &AnyMockPreProcessor{},
-			wantErr:      nil,
-			wantLen:      1,
+			name:                "valid before-init processor",
+			beforeInitProcessor: &AnyMockBeforeInitProcessor{},
+			wantErr:             nil,
+			wantLen:             1,
 		},
 	}
 
@@ -1809,7 +1809,7 @@ func TestStandardContainer_UsePreProcessor(t *testing.T) {
 			container := NewStandardContainer()
 
 			// when
-			err := container.UsePreProcessor(tc.preProcessor)
+			err := container.UseBeforeInitProcessor(tc.beforeInitProcessor)
 
 			// then
 			if tc.wantErr != nil {
@@ -1820,29 +1820,29 @@ func TestStandardContainer_UsePreProcessor(t *testing.T) {
 
 			assert.NoError(t, err)
 
-			assert.Len(t, container.preProcessors, tc.wantLen)
+			assert.Len(t, container.beforeInitProcessors, tc.wantLen)
 		})
 	}
 }
 
-func TestStandardContainer_UsePostProcessor(t *testing.T) {
+func TestStandardContainer_UseAfterInitProcessor(t *testing.T) {
 	testCases := []struct {
-		name          string
-		postProcessor PostProcessor
+		name               string
+		afterInitProcessor AfterInitProcessor
 
 		wantErr error
 		wantLen int
 	}{
 		{
-			name:    "nil pre processor",
-			wantErr: errors.New("nil post-processor"),
+			name:    "nil after-init processor",
+			wantErr: errors.New("nil after-init processor"),
 			wantLen: 0,
 		},
 		{
-			name:          "valid pre processor",
-			postProcessor: &AnyMockPostProcessor{},
-			wantErr:       nil,
-			wantLen:       1,
+			name:               "valid after-init processor",
+			afterInitProcessor: &AnyMockAfterInitProcessor{},
+			wantErr:            nil,
+			wantLen:            1,
 		},
 	}
 
@@ -1852,7 +1852,7 @@ func TestStandardContainer_UsePostProcessor(t *testing.T) {
 			container := NewStandardContainer()
 
 			// when
-			err := container.UsePostProcessor(tc.postProcessor)
+			err := container.UseAfterInitProcessor(tc.afterInitProcessor)
 
 			// then
 			if tc.wantErr != nil {
@@ -1863,7 +1863,7 @@ func TestStandardContainer_UsePostProcessor(t *testing.T) {
 
 			assert.NoError(t, err)
 
-			assert.Len(t, container.postProcessors, tc.wantLen)
+			assert.Len(t, container.afterInitProcessors, tc.wantLen)
 		})
 	}
 }
@@ -1904,90 +1904,90 @@ func TestStandardContainer_Initialize(t *testing.T) {
 			wantTyp:      reflect.TypeFor[*AnyInitializableComponent](),
 		},
 		{
-			name: "pre processor error",
+			name: "before-init processor returns error",
 			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyInitializableComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
 
-				anyPreprocessor := &AnyMockPreProcessor{}
-				_ = container.UsePreProcessor(anyPreprocessor)
-				anyPreprocessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
-					Return(nil, errors.New("pre processor error"))
+				anyBeforeInitProcessor := &AnyMockBeforeInitProcessor{}
+				_ = container.UseBeforeInitProcessor(anyBeforeInitProcessor)
+				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
+					Return(nil, errors.New("before initialization error"))
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply pre-processors: pre-processor (*component.AnyMockPreProcessor): pre processor error"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply before-init processors: before-init processor (*component.AnyMockBeforeInitProcessor): before initialization error"),
 		},
 		{
-			name: "pre processor nil value",
+			name: "before-init processor returns nil value",
 			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyInitializableComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
 
-				anyPreprocessor := &AnyMockPreProcessor{}
-				_ = container.UsePreProcessor(anyPreprocessor)
-				anyPreprocessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
+				anyBeforeInitProcessor := &AnyMockBeforeInitProcessor{}
+				_ = container.UseBeforeInitProcessor(anyBeforeInitProcessor)
+				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
 					Return(nil, nil)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply pre-processors: pre-processor (*component.AnyMockPreProcessor) returned nil"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply before-init processors: before-init processor (*component.AnyMockBeforeInitProcessor) returned nil"),
 		},
 		{
-			name: "apply pre processor",
+			name: "apply before-init processor",
 			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyInitializableComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
 
-				anyPreprocessor := &AnyMockPreProcessor{}
-				_ = container.UsePreProcessor(anyPreprocessor)
-				anyPreprocessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
+				anyBeforeInitProcessor := &AnyMockBeforeInitProcessor{}
+				_ = container.UseBeforeInitProcessor(anyBeforeInitProcessor)
+				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
 					Return(&AnyPointerComponent{}, nil)
 			},
 			instanceName: "anyInstanceName",
 			wantTyp:      reflect.TypeFor[*AnyPointerComponent](),
 		},
 		{
-			name: "post processor error",
+			name: "after-init processor returns error",
 			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyInitializableComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
 
-				anyPostProcessor := &AnyMockPostProcessor{}
-				_ = container.UsePostProcessor(anyPostProcessor)
-				anyPostProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
-					Return(nil, errors.New("post processor error"))
+				anyAfterInitProcessor := &AnyMockAfterInitProcessor{}
+				_ = container.UseAfterInitProcessor(anyAfterInitProcessor)
+				anyAfterInitProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
+					Return(nil, errors.New("after initialization error"))
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply post-processors: post-processor (*component.AnyMockPostProcessor): post processor error"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply after-init processors: after-init processor (*component.AnyMockAfterInitProcessor): after initialization error"),
 		},
 		{
-			name: "post processor nil value",
+			name: "after-init processor returns nil value",
 			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyInitializableComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
 
-				anyPostProcessor := &AnyMockPostProcessor{}
-				_ = container.UsePostProcessor(anyPostProcessor)
-				anyPostProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
+				anyAfterInitProcessor := &AnyMockAfterInitProcessor{}
+				_ = container.UseAfterInitProcessor(anyAfterInitProcessor)
+				anyAfterInitProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
 					Return(nil, nil)
 			},
 			instanceName: "anyInstanceName",
-			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply post-processors: post-processor (*component.AnyMockPostProcessor) returned nil"),
+			wantErr:      errors.New("resolve \"anyInstanceName\": initialize \"anyInstanceName\" (*component.AnyInitializableComponent): apply after-init processors: after-init processor (*component.AnyMockAfterInitProcessor) returned nil"),
 		},
 		{
-			name: "apply post processor",
+			name: "apply after-init processor",
 			ctx:  context.Background(),
 			preCondition: func(container Container) {
 				def, _ := MakeDefinition(NewAnyInitializableComponent, WithName("anyInstanceName"))
 				_ = container.RegisterDefinition(def)
 
-				anyPostProcessor := &AnyMockPostProcessor{}
-				_ = container.UsePostProcessor(anyPostProcessor)
-				anyPostProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
+				anyAfterInitProcessor := &AnyMockAfterInitProcessor{}
+				_ = container.UseAfterInitProcessor(anyAfterInitProcessor)
+				anyAfterInitProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
 					Return(&AnyPointerComponent{}, nil)
 			},
 			instanceName: "anyInstanceName",

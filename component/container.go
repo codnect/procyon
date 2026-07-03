@@ -50,8 +50,8 @@ type Container interface {
 	// ScopeRegistry manages custom scopes.
 	ScopeRegistry
 
-	// LifecycleManager manages lifecycle hooks.
-	LifecycleManager
+	// ProcessorRegistry manages lifecycle hooks.
+	ProcessorRegistry
 }
 
 type HierarchicalContainer interface {
@@ -92,9 +92,9 @@ type StandardContainer struct {
 	scopes   map[string]Scope
 	muScopes sync.RWMutex
 
-	preProcessors  []PreProcessor
-	postProcessors []PostProcessor
-	muProcessors   sync.RWMutex
+	beforeInitProcessors []BeforeInitProcessor
+	afterInitProcessors  []AfterInitProcessor
+	muProcessors         sync.RWMutex
 }
 
 // NewStandardContainer creates a StandardContainer.
@@ -117,9 +117,9 @@ func NewStandardContainer() *StandardContainer {
 		resolvableDependencies: make(map[reflect.Type]any),
 		muResolvableInstances:  sync.RWMutex{},
 
-		preProcessors:  []PreProcessor{},
-		postProcessors: []PostProcessor{},
-		muProcessors:   sync.RWMutex{},
+		beforeInitProcessors: []BeforeInitProcessor{},
+		afterInitProcessors:  []AfterInitProcessor{},
+		muProcessors:         sync.RWMutex{},
 	}
 }
 
@@ -688,29 +688,29 @@ func (d *StandardContainer) Scope(name string) (Scope, bool) {
 	return nil, false
 }
 
-// UsePreProcessor registers a PreProcessor to be applied before initialization.
-func (d *StandardContainer) UsePreProcessor(processor PreProcessor) error {
+// UseBeforeInitProcessor registers an BeforeInitProcessor to be applied before initialization.
+func (d *StandardContainer) UseBeforeInitProcessor(processor BeforeInitProcessor) error {
 	if processor == nil {
-		return errors.New("nil pre-processor")
+		return errors.New("nil before-init processor")
 	}
 
 	d.muProcessors.Lock()
 	defer d.muProcessors.Unlock()
 
-	d.preProcessors = append(d.preProcessors, processor)
+	d.beforeInitProcessors = append(d.beforeInitProcessors, processor)
 	return nil
 }
 
-// UsePostProcessor registers a PostProcessor to be applied after initialization.
-func (d *StandardContainer) UsePostProcessor(processor PostProcessor) error {
+// UseAfterInitProcessor registers an AfterInitProcessor to be applied after initialization.
+func (d *StandardContainer) UseAfterInitProcessor(processor AfterInitProcessor) error {
 	if processor == nil {
-		return errors.New("nil post-processor")
+		return errors.New("nil after-init processor")
 	}
 
 	d.muProcessors.Lock()
 	defer d.muProcessors.Unlock()
 
-	d.postProcessors = append(d.postProcessors, processor)
+	d.afterInitProcessors = append(d.afterInitProcessors, processor)
 	return nil
 }
 
@@ -874,9 +874,9 @@ func (d *StandardContainer) registerDependency(name, dependency string) {
 // initialize runs pre-processors, the Init method (if defined), and post-processors
 // on the given instance, and it returns the fully initialized instance.
 func (d *StandardContainer) initialize(ctx context.Context, instance any) (any, error) {
-	result, err := d.applyPreProcessors(ctx, instance)
+	result, err := d.applyBeforeInitProcessors(ctx, instance)
 	if err != nil {
-		return nil, fmt.Errorf("apply pre-processors: %w", err)
+		return nil, fmt.Errorf("apply before-init processors: %w", err)
 	}
 
 	if initializer, ok := result.(Initializer); ok {
@@ -887,29 +887,29 @@ func (d *StandardContainer) initialize(ctx context.Context, instance any) (any, 
 		}
 	}
 
-	result, err = d.applyPostProcessors(ctx, result)
+	result, err = d.applyAfterInitProcessors(ctx, result)
 	if err != nil {
-		return nil, fmt.Errorf("apply post-processors: %w", err)
+		return nil, fmt.Errorf("apply after-init processors: %w", err)
 	}
 
 	return result, nil
 }
 
-// applyPreProcessors executes all registered PreProcessor hooks on the instance.
+// applyBeforeInitProcessors executes all registered BeforeInitProcessor hooks on the instance.
 // Returns the processed object or an error.
-func (d *StandardContainer) applyPreProcessors(ctx context.Context, instance any) (any, error) {
+func (d *StandardContainer) applyBeforeInitProcessors(ctx context.Context, instance any) (any, error) {
 	d.muProcessors.RLock()
 	defer d.muProcessors.RUnlock()
 
-	for _, processor := range d.preProcessors {
+	for _, processor := range d.beforeInitProcessors {
 		result, err := processor.ProcessBeforeInit(ctx, instance)
 
 		if err != nil {
-			return nil, fmt.Errorf("pre-processor (%T): %w", processor, err)
+			return nil, fmt.Errorf("before-init processor (%T): %w", processor, err)
 		}
 
 		if result == nil {
-			return nil, fmt.Errorf("pre-processor (%T) returned nil", processor)
+			return nil, fmt.Errorf("before-init processor (%T) returned nil", processor)
 		}
 
 		instance = result
@@ -918,21 +918,21 @@ func (d *StandardContainer) applyPreProcessors(ctx context.Context, instance any
 	return instance, nil
 }
 
-// applyPostProcessors executes all registered PostProcessor hooks on the instance.
+// applyAfterInitProcessors executes all registered AfterInitProcessor hooks on the instance.
 // Returns the processed object or an error.
-func (d *StandardContainer) applyPostProcessors(ctx context.Context, instance any) (any, error) {
+func (d *StandardContainer) applyAfterInitProcessors(ctx context.Context, instance any) (any, error) {
 	d.muProcessors.RLock()
 	defer d.muProcessors.RUnlock()
 
-	for _, processor := range d.postProcessors {
+	for _, processor := range d.afterInitProcessors {
 		result, err := processor.ProcessAfterInit(ctx, instance)
 
 		if err != nil {
-			return nil, fmt.Errorf("post-processor (%T): %w", processor, err)
+			return nil, fmt.Errorf("after-init processor (%T): %w", processor, err)
 		}
 
 		if result == nil {
-			return nil, fmt.Errorf("post-processor (%T) returned nil", processor)
+			return nil, fmt.Errorf("after-init processor (%T) returned nil", processor)
 		}
 
 		instance = result

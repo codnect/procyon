@@ -46,11 +46,11 @@ func (a *AnyMockScope) Remove(ctx context.Context, name string) error {
 	return result.Error(0)
 }
 
-type AnyMockPreProcessor struct {
+type AnyMockBeforeInitProcessor struct {
 	mock.Mock
 }
 
-func (a *AnyMockPreProcessor) ProcessBeforeInit(ctx context.Context, instance any) (any, error) {
+func (a *AnyMockBeforeInitProcessor) ProcessBeforeInit(ctx context.Context, instance any) (any, error) {
 	result := a.Called(ctx, instance)
 
 	if result.Get(0) == nil {
@@ -60,11 +60,11 @@ func (a *AnyMockPreProcessor) ProcessBeforeInit(ctx context.Context, instance an
 	return result.Get(0).(any), result.Error(1)
 }
 
-type AnyMockPostProcessor struct {
+type AnyMockAfterInitProcessor struct {
 	mock.Mock
 }
 
-func (a *AnyMockPostProcessor) ProcessAfterInit(ctx context.Context, instance any) (any, error) {
+func (a *AnyMockAfterInitProcessor) ProcessAfterInit(ctx context.Context, instance any) (any, error) {
 	result := a.Called(ctx, instance)
 
 	if result.Get(0) == nil {
@@ -237,12 +237,12 @@ func (a *AnyMockContainer) Scope(name string) (Scope, bool) {
 	return scope.(Scope), result.Bool(1)
 }
 
-func (a *AnyMockContainer) UsePreProcessor(processor PreProcessor) error {
+func (a *AnyMockContainer) UseBeforeInitProcessor(processor BeforeInitProcessor) error {
 	result := a.Called(processor)
 	return result.Error(0)
 }
 
-func (a *AnyMockContainer) UsePostProcessor(processor PostProcessor) error {
+func (a *AnyMockContainer) UseAfterInitProcessor(processor AfterInitProcessor) error {
 	result := a.Called(processor)
 	return result.Error(0)
 }
