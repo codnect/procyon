@@ -18,23 +18,23 @@ import (
 	"context"
 )
 
-// Initializer can be implemented by components that require custom logic during initialization.
+// Initializer can be implemented by components that require custom initialization logic.
 type Initializer interface {
-	// Init is called once the component has been constructed and dependencies injected.
+	// Init is called after the component has been constructed and its dependencies have been injected.
 	Init(ctx context.Context) error
 }
 
-// PreProcessor defines logic that runs before a component is initialized.
-type PreProcessor interface {
-	// ProcessBeforeInit is called before the Init method.
-	// Allows modification or validation of the instance before initialization.
+// BeforeInitProcessor defines logic to be applied before a component is initialized.
+type BeforeInitProcessor interface {
+	// ProcessBeforeInit is called before the component's Init method.
+	// It can modify or validate the component instance before initialization.
 	ProcessBeforeInit(ctx context.Context, instance any) (any, error)
 }
 
-// PostProcessor defines logic that runs after a component is initialized.
-type PostProcessor interface {
-	// ProcessAfterInit is called after the Init method.
-	// Allows additional configuration or enhancement of the instance.
+// AfterInitProcessor defines logic to be applied after a component is initialized.
+type AfterInitProcessor interface {
+	// ProcessAfterInit is called after the component's Init method.
+	// It can further configure or enhance the component instance.
 	ProcessAfterInit(ctx context.Context, instance any) (any, error)
 }
 
@@ -44,11 +44,10 @@ type Disposable interface {
 	Dispose() error
 }
 
-// LifecycleManager manages the registration of lifecycle hooks such as pre/post processors.
-type LifecycleManager interface {
-	// UsePreProcessor registers a PreProcessor to be applied before initialization.
-	UsePreProcessor(processor PreProcessor) error
-
-	// UsePostProcessor registers a PostProcessor to be applied after initialization.
-	UsePostProcessor(processor PostProcessor) error
+// ProcessorRegistry manages the registration of initialization processors.
+type ProcessorRegistry interface {
+	// UseBeforeInitProcessor registers a BeforeInitProcessor.
+	UseBeforeInitProcessor(processor BeforeInitProcessor) error
+	// UseAfterInitProcessor registers an AfterInitProcessor.
+	UseAfterInitProcessor(processor AfterInitProcessor) error
 }
