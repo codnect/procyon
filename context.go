@@ -23,12 +23,13 @@ import (
 	"time"
 
 	"codnect.io/procyon/component"
+	"codnect.io/procyon/io"
 	"codnect.io/procyon/runtime"
 )
 
 const (
-	// appContextContainerKey is the key used to register the application context itself in the component container.
-	appContextContainerKey = "procyonAppContext"
+	// envContainerKey is the key used to register the runtime environment in the component container.
+	envContainerKey = "environment"
 	// lifecycleManagerContainerKey is the key used to register the lifecycle manager in the component container.
 	lifecycleManagerContainerKey = "procyonLifecycleManager"
 )
@@ -65,29 +66,40 @@ func (e *contextError) Unwrap() error {
 
 // Context struct represents the application context of Procyon.
 type Context struct {
-	done chan struct{}
-	err  error
-	mu   sync.RWMutex
+	done      chan struct{}
+	err       error
+	mu        sync.RWMutex
+	refreshed bool
 
+	resourceResolver  io.ResourceResolver
 	env               runtime.Environment
 	containerProvider func() component.Container
-	components        []*component.Component
 
+	components       []*component.Component
 	container        component.Container
 	lifecycleManager runtime.LifecycleManager
 }
 
 // createContext creates a new application context with the given environment.
 // The returned context is not started yet. You need to call Start method to start the context.
-func createContext(env runtime.Environment, startupContainer component.Container) *Context {
+func createContext(env runtime.Environment, startupContainer component.Container, resolver io.ResourceResolver) *Context {
 	if env == nil {
 		panic("nil environment")
 	}
 
+	if startupContainer == nil {
+		panic("nil startup container")
+	}
+
+	if resolver == nil {
+		panic("nil resource resolver")
+	}
+
 	return &Context{
-		done: make(chan struct{}),
-		mu:   sync.RWMutex{},
-		env:  env,
+		done:             make(chan struct{}),
+		mu:               sync.RWMutex{},
+		resourceResolver: resolver,
+		env:              env,
 		containerProvider: func() component.Container {
 			container := component.NewStandardContainer()
 			container.SetParentContainer(startupContainer)
@@ -127,21 +139,29 @@ func (c *Context) Start(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if err := c.doStart(ctx); err != nil {
+		return &contextError{Op: "start", Err: err}
+	}
+
+	return nil
+}
+
+// doStart starts the lifecycle manager if the context has been refreshed and is not already running.
+func (c *Context) doStart(ctx context.Context) error {
 	if c.err != nil {
 		return c.err
 	}
 
-	if c.lifecycleManager == nil {
-		return &contextError{Op: "start", Err: errors.New("context not refreshed")}
+	if !c.refreshed {
+		return errors.New("context not refreshed")
 	}
 
 	if c.lifecycleManager.IsRunning() {
 		return nil
 	}
 
-	err := c.startLifecycleManager(ctx)
-	if err != nil {
-		return &contextError{Op: "start", Err: err}
+	if err := c.startLifecycleManager(ctx); err != nil {
+		return err
 	}
 
 	return nil
@@ -153,21 +173,29 @@ func (c *Context) Stop(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if err := c.doStop(ctx); err != nil {
+		return &contextError{Op: "stop", Err: err}
+	}
+
+	return nil
+}
+
+// doStop stops the lifecycle manager if the context is currently running.
+func (c *Context) doStop(ctx context.Context) error {
 	if c.err != nil {
 		return c.err
 	}
 
-	if c.lifecycleManager == nil {
-		return &contextError{Op: "stop", Err: errors.New("context not refreshed")}
+	if !c.refreshed {
+		return errors.New("context not refreshed")
 	}
 
 	if !c.lifecycleManager.IsRunning() {
 		return nil
 	}
 
-	err := c.stopLifecycleManager(ctx)
-	if err != nil {
-		return &contextError{Op: "stop", Err: err}
+	if err := c.stopLifecycleManager(ctx); err != nil {
+		return err
 	}
 
 	return nil
@@ -181,80 +209,133 @@ func (c *Context) IsRunning() bool {
 	return c.lifecycleManager != nil && c.lifecycleManager.IsRunning()
 }
 
-// Refresh reloads the application context by recreating the container, reloading component  definitions,
-// reinitializing singletons, and restarting lifecycle management.
+// Refresh initializes the application context by preparing the container, loading component definitions,
+// initializing singleton components, and starting lifecycle management.
 func (c *Context) Refresh(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.err != nil {
-		return &contextError{Op: "refresh", Err: c.err}
-	}
-
-	err := c.stopLifecycleManager(ctx)
-	if err != nil {
-		return &contextError{Op: "refresh", Err: err}
-	}
-
-	if c.container != nil {
-		c.container.DestroySingletons()
-		c.container = nil
-	}
-
-	c.container = c.containerProvider()
-
-	err = c.loadComponentDefinitions(ctx)
-	if err != nil {
-		return &contextError{Op: "refresh", Err: err}
-	}
-
-	err = c.container.RegisterSingleton(appContextContainerKey, c)
-	if err != nil {
-		return &contextError{Op: "refresh", Err: err}
-	}
-
-	err = c.initializeSingletons(ctx)
-	if err != nil {
-		return &contextError{Op: "refresh", Err: err}
-	}
-
-	var lifecycleManager runtime.LifecycleManager
-	lifecycleManager, err = component.ResolveType[runtime.LifecycleManager](ctx, c.container)
-	if err != nil && !errors.Is(err, component.ErrNotFound) {
-		return err
-	} else if lifecycleManager != nil {
-		c.lifecycleManager = lifecycleManager
-	}
-
-	if c.lifecycleManager == nil {
-		c.lifecycleManager = newDefaultLifecycleManager(c.container)
-	}
-
-	err = c.container.RegisterSingleton(lifecycleManagerContainerKey, c.lifecycleManager)
-	if err != nil {
-		return &contextError{Op: "refresh", Err: err}
-	}
-
-	err = c.startLifecycleManager(ctx)
-	if err != nil {
+	if err := c.doRefresh(ctx); err != nil {
 		return &contextError{Op: "refresh", Err: err}
 	}
 
 	return nil
 }
 
-// Close stops the application context, destroys all singleton components, releases resources, and
-// marks the context as canceled.
+// doRefresh initializes the application context. It prepares the container, loads component definitions, initializes
+// singleton components, resolves the lifecycle manager, and starts it.
+func (c *Context) doRefresh(ctx context.Context) (err error) {
+	if c.err != nil {
+		return c.err
+	}
+
+	if c.refreshed {
+		return errors.New("context already refreshed")
+	}
+
+	c.refreshed = true
+
+	defer func() {
+		if r := recover(); r != nil {
+			switch v := r.(type) {
+			case error:
+				err = v
+			default:
+				err = fmt.Errorf("%v", v)
+			}
+		}
+
+		if err != nil {
+			log.Warn("Cancelling application context refresh attempt due to error: {}", err)
+			err = errors.Join(err, c.cancelRefresh(ctx))
+		}
+	}()
+
+	c.container = c.containerProvider()
+
+	if err = c.prepareContainer(); err != nil {
+		return err
+	}
+
+	if err = c.loadComponentDefinitions(ctx); err != nil {
+		return err
+	}
+
+	if err = c.initializeSingletons(ctx); err != nil {
+		return err
+	}
+
+	if err = c.resolveLifecycleManager(ctx); err != nil {
+		return err
+	}
+
+	if err = c.container.RegisterSingleton(lifecycleManagerContainerKey, c.lifecycleManager); err != nil {
+		return err
+	}
+
+	return c.startLifecycleManager(ctx)
+}
+
+// prepareContainer registers core infrastructure dependencies and singletons that must be available before
+// component definitions are loaded.
+func (c *Context) prepareContainer() error {
+
+	if err := c.container.RegisterDependency(reflect.TypeFor[component.Container](), c.container); err != nil {
+		return err
+	}
+
+	if err := c.container.RegisterDependency(reflect.TypeFor[runtime.Context](), c); err != nil {
+		return err
+	}
+
+	if err := c.container.RegisterDependency(reflect.TypeFor[io.ResourceResolver](), c.resourceResolver); err != nil {
+		return err
+	}
+
+	if err := c.container.RegisterSingleton(envContainerKey, c.env); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// resolveLifecycleManager resolves a LifecycleManager from the container.
+// If none is registered, a default implementation is created and used.
+func (c *Context) resolveLifecycleManager(ctx context.Context) error {
+	manager, err := component.ResolveType[runtime.LifecycleManager](ctx, c.container)
+	if err != nil && !errors.Is(err, component.ErrNotFound) {
+		return err
+	}
+
+	if manager != nil {
+		c.lifecycleManager = manager
+	} else if c.lifecycleManager == nil {
+		c.lifecycleManager = newDefaultLifecycleManager(c.container)
+	}
+
+	return nil
+}
+
+// Close stops the application context, destroys all singleton components, releases resources, and marks
+// the context as canceled.
 func (c *Context) Close(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if err := c.doClose(ctx); err != nil {
+		return &contextError{Op: "close", Err: err}
+	}
+
+	return nil
+}
+
+// doClose stops lifecycle management, destroys singleton components, and marks the context as canceled.
+func (c *Context) doClose(ctx context.Context) error {
 	if c.err != nil {
 		return c.err
 	}
 
 	err := c.stopLifecycleManager(ctx)
-
 	if c.container != nil {
 		c.container.DestroySingletons()
 		c.container = nil
@@ -264,6 +345,7 @@ func (c *Context) Close(ctx context.Context) error {
 	c.err = context.Canceled
 	close(c.done)
 	return err
+
 }
 
 // Environment returns the runtime environment associated with this context.
@@ -284,6 +366,11 @@ func (c *Context) Container() component.Container {
 	}
 
 	return c.container
+}
+
+// ResourceResolver returns the resource resolver used by the application to load resources.
+func (c *Context) ResourceResolver() io.ResourceResolver {
+	return c.resourceResolver
 }
 
 // startLifecycleManager starts the lifecycle manager if it exists and is not already running.
@@ -358,4 +445,21 @@ func (c *Context) initializeSingletons(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// cancelRefresh rolls back a failed refresh attempt by stopping lifecycle management, destroying initialized
+// singletons, and clearing context state.
+func (c *Context) cancelRefresh(ctx context.Context) error {
+	if err := c.stopLifecycleManager(ctx); err != nil {
+		return fmt.Errorf("cancel context refresh: %w", err)
+	}
+
+	if c.container != nil {
+		c.container.DestroySingletons()
+		c.container = nil
+	}
+
+	c.lifecycleManager = nil
+	return nil
+
 }
