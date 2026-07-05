@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"codnect.io/procyon/component"
+	"codnect.io/procyon/io"
 )
 
 // Context represents the central runtime context of the application.
@@ -27,11 +28,14 @@ type Context interface {
 	// Lifecycle interface provides start/stop lifecycle methods for the application context.
 	Lifecycle
 
-	// EnvironmentHolder is an interface that provides access to an Environment.
-	EnvironmentHolder
+	// Environment returns the runtime environment associated with this context.
+	Environment() Environment
 
-	// ContainerHolder is an interface that provides access to a Container.
-	component.ContainerHolder
+	// Container returns the component container associated with this context.
+	Container() component.Container
+
+	// ResourceResolver returns the resource resolver associated with this context.
+	ResourceResolver() io.ResourceResolver
 
 	// Refresh reloads the application context contents (environment, container)
 	Refresh(ctx context.Context) error

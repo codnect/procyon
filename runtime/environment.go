@@ -47,12 +47,6 @@ type Environment interface {
 	PropertyResolver() config.PropertyResolver
 }
 
-// EnvironmentHolder is an interface that provides access to an Environment.
-type EnvironmentHolder interface {
-	// Environment returns the associated Environment.
-	Environment() Environment
-}
-
 // EnvironmentCustomizer interface represents a customizer for the application environment.
 type EnvironmentCustomizer interface {
 	// CustomizeEnvironment method customizes the given environment for the application.

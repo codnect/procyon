@@ -65,12 +65,6 @@ type HierarchicalContainer interface {
 	SetParentContainer(container Container)
 }
 
-// ContainerHolder is an interface that provides access to a Container.
-type ContainerHolder interface {
-	// Container returns the associated Container.
-	Container() Container
-}
-
 // StandardContainer is the default implementation of the Container interface.
 // It manages component definitions, singleton instances, custom scopes,
 // and lifecycle processing.
@@ -805,8 +799,13 @@ func (d *StandardContainer) resolveArguments(ctx context.Context, args []Arg) ([
 
 		if arg.Name() != "" {
 			instance, err = d.Resolve(ctx, arg.Name())
+
 		} else {
-			instance, err = d.ResolveType(ctx, arg.Type())
+			if dep, ok := d.resolveDependency(arg.Type()); ok {
+				instance = dep
+			} else {
+				instance, err = d.ResolveType(ctx, arg.Type())
+			}
 		}
 
 		if err != nil {
@@ -939,4 +938,21 @@ func (d *StandardContainer) applyAfterInitProcessors(ctx context.Context, instan
 	}
 
 	return instance, nil
+}
+
+func (d *StandardContainer) resolveDependency(typ reflect.Type) (any, bool) {
+
+	d.muResolvableInstances.RLock()
+	defer d.muResolvableInstances.RUnlock()
+	instance, ok := d.resolvableDependencies[typ]
+	if ok {
+		return instance, true
+	}
+	for depType, instance := range d.resolvableDependencies {
+		if convertibleTo(depType, typ) || convertibleTo(reflect.TypeOf(instance), typ) {
+			return instance, true
+		}
+	}
+	return nil, false
+
 }
