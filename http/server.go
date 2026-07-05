@@ -23,7 +23,15 @@ import (
 
 // ServerProperties defines the configuration properties for the Server component.
 type ServerProperties struct {
-	Port int `property:"port" default:"8080"`
+	Port int `property:"port,default=8080"`
+}
+
+func newServerProperties() *ServerProperties {
+	return &ServerProperties{}
+}
+
+func (s *ServerProperties) Prefix() string {
+	return "server"
 }
 
 // stdServer abstracts http.Server to allow Server to be tested
