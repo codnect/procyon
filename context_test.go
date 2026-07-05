@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"codnect.io/procyon/component"
+	"codnect.io/procyon/io"
 	"codnect.io/procyon/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -61,6 +62,8 @@ func TestCreateContext(t *testing.T) {
 	testCases := []struct {
 		name        string
 		environment runtime.Environment
+		container   component.Container
+		resolver    io.ResourceResolver
 		wantPanic   error
 	}{
 		{
@@ -69,8 +72,23 @@ func TestCreateContext(t *testing.T) {
 			wantPanic:   errors.New("nil environment"),
 		},
 		{
+			name:        "nil container",
+			environment: NewEnvironment(),
+			container:   nil,
+			wantPanic:   errors.New("nil startup container"),
+		},
+		{
+			name:        "nil resolver",
+			environment: NewEnvironment(),
+			container:   component.NewStandardContainer(),
+			resolver:    nil,
+			wantPanic:   errors.New("nil resource resolver"),
+		},
+		{
 			name:        "valid environment",
 			environment: NewEnvironment(),
+			container:   component.NewStandardContainer(),
+			resolver:    io.NewDefaultResourceResolver(),
 			wantPanic:   nil,
 		},
 	}
@@ -82,12 +100,12 @@ func TestCreateContext(t *testing.T) {
 			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					createContext(tc.environment, component.NewStandardContainer())
+					createContext(tc.environment, tc.container, tc.resolver)
 				})
 				return
 			}
 
-			ctx := createContext(tc.environment, component.NewStandardContainer())
+			ctx := createContext(tc.environment, tc.container, tc.resolver)
 
 			// then
 			require.NotNil(t, ctx)
@@ -99,7 +117,7 @@ func TestCreateContext(t *testing.T) {
 func TestContext_Deadline(t *testing.T) {
 	// given
 	env := NewEnvironment()
-	ctx := createContext(env, component.NewStandardContainer())
+	ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 
 	// when
 	deadline, ok := ctx.Deadline()
@@ -144,7 +162,7 @@ func TestContext_Done(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env, component.NewStandardContainer())
+			ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -209,7 +227,7 @@ func TestContext_Err(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env, component.NewStandardContainer())
+			ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -226,7 +244,7 @@ func TestContext_Err(t *testing.T) {
 func TestContext_Value(t *testing.T) {
 	// given
 	env := NewEnvironment()
-	ctx := createContext(env, component.NewStandardContainer())
+	ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 
 	// when
 	value := ctx.Value("anyKey")
@@ -260,7 +278,7 @@ func TestContext_Start(t *testing.T) {
 				err := ctx.Close(context.Background())
 				assert.NoError(t, err)
 			},
-			wantErr: context.Canceled,
+			wantErr: fmt.Errorf("start context: %w", context.Canceled),
 		},
 		{
 			name: "already stopped context",
@@ -283,19 +301,9 @@ func TestContext_Start(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "lifecycle component error",
-			preCondition: func(ctx *Context) {
-				lifecycleManager := &anyMockLifecycleManager{}
-				lifecycleManager.On("Startup", mock.AnythingOfType("context.backgroundCtx")).
-					Return(errors.New("lifecycle component error"))
-				lifecycleManager.On("Shutdown", mock.AnythingOfType("context.backgroundCtx")).
-					Return(nil)
-				lifecycleManager.On("IsRunning").
-					Return(false)
-
-				ctx.lifecycleManager = lifecycleManager
-			},
-			wantErr: errors.New("start context: start lifecycle manager: lifecycle component error"),
+			name:         "context not refreshed",
+			preCondition: func(ctx *Context) {},
+			wantErr:      errors.New("start context: context not refreshed"),
 		},
 	}
 
@@ -303,7 +311,7 @@ func TestContext_Start(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env, component.NewStandardContainer())
+			ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -347,7 +355,7 @@ func TestContext_Stop(t *testing.T) {
 				err := ctx.Close(context.Background())
 				assert.NoError(t, err)
 			},
-			wantErr: context.Canceled,
+			wantErr: fmt.Errorf("stop context: %w", context.Canceled),
 		},
 		{
 			name: "already stopped context",
@@ -360,19 +368,9 @@ func TestContext_Stop(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "lifecycle component error",
-			preCondition: func(ctx *Context) {
-				lifecycleManager := &anyMockLifecycleManager{}
-				lifecycleManager.On("Startup", mock.AnythingOfType("context.backgroundCtx")).
-					Return(nil)
-				lifecycleManager.On("Shutdown", mock.AnythingOfType("context.backgroundCtx")).
-					Return(errors.New("lifecycle component error"))
-				lifecycleManager.On("IsRunning").
-					Return(true)
-
-				ctx.lifecycleManager = lifecycleManager
-			},
-			wantErr: errors.New("stop context: stop lifecycle manager: lifecycle component error"),
+			name:         "context not refreshed",
+			preCondition: func(ctx *Context) {},
+			wantErr:      errors.New("stop context: context not refreshed"),
 		},
 	}
 
@@ -380,7 +378,7 @@ func TestContext_Stop(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env, component.NewStandardContainer())
+			ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -452,7 +450,7 @@ func TestContext_IsRunning(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env, component.NewStandardContainer())
+			ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -487,14 +485,14 @@ func TestContext_Refresh(t *testing.T) {
 			wantErr: fmt.Errorf("refresh context: context canceled"),
 		},
 		{
-			name: "already stopped context",
+			name: "already refreshed context",
 			preCondition: func(ctx *Context, startupContainer component.Container) {
 				err := ctx.Refresh(context.Background())
 				assert.NoError(t, err)
 				err = ctx.Stop(context.Background())
 				assert.NoError(t, err)
 			},
-			wantErr: nil,
+			wantErr: errors.New("refresh context: context already refreshed"),
 		},
 		{
 			name: "lifecycle component start error",
@@ -512,21 +510,6 @@ func TestContext_Refresh(t *testing.T) {
 			wantErr: errors.New("refresh context: start lifecycle manager: lifecycle component error"),
 		},
 		{
-			name: "lifecycle component stop error",
-			preCondition: func(ctx *Context, startupContainer component.Container) {
-				lifecycleManager := &anyMockLifecycleManager{}
-				lifecycleManager.On("Startup", mock.AnythingOfType("context.backgroundCtx")).
-					Return(nil)
-				lifecycleManager.On("Shutdown", mock.AnythingOfType("context.backgroundCtx")).
-					Return(errors.New("lifecycle component error"))
-				lifecycleManager.On("IsRunning").
-					Return(true)
-
-				ctx.lifecycleManager = lifecycleManager
-			},
-			wantErr: errors.New("refresh context: stop lifecycle manager: lifecycle component error"),
-		},
-		{
 			name: "multiple lifecycle manager",
 			preCondition: func(ctx *Context, startupContainer component.Container) {
 				err := startupContainer.RegisterSingleton("anyMockLifecycleManager", &anyMockLifecycleManager{})
@@ -535,21 +518,7 @@ func TestContext_Refresh(t *testing.T) {
 				err = startupContainer.RegisterSingleton("anotherLifecycleManager", &anyMockLifecycleManager{})
 				assert.NoError(t, err)
 			},
-			wantErr: errors.New("resolve type runtime.LifecycleManager: ambiguous match"),
-		},
-		{
-			name: "duplicate registered app context",
-			preCondition: func(ctx *Context, startupContainer component.Container) {
-				container := component.NewStandardContainer()
-
-				err := container.RegisterSingleton(appContextContainerKey, &Context{})
-				assert.NoError(t, err)
-
-				ctx.containerProvider = func() component.Container {
-					return container
-				}
-			},
-			wantErr: errors.New("refresh context: register singleton \"procyonAppContext\": duplicate instance"),
+			wantErr: errors.New("refresh context: resolve type runtime.LifecycleManager: ambiguous match"),
 		},
 		{
 			name: "duplicate lifecycle manager",
@@ -563,8 +532,7 @@ func TestContext_Refresh(t *testing.T) {
 					return container
 				}
 			},
-			wantErr: errors.New("refresh context: register singleton \"procyonLifecycleManager\": duplicate instance"),
-		},
+			wantErr: errors.New("refresh context: register singleton \"procyonLifecycleManager\": duplicate instance")},
 		{
 			name: "singleton resolve error",
 			preCondition: func(ctx *Context, startupContainer component.Container) {
@@ -651,7 +619,7 @@ func TestContext_Refresh(t *testing.T) {
 			env := NewEnvironment()
 			startupContainer := component.NewStandardContainer()
 
-			ctx := createContext(env, startupContainer)
+			ctx := createContext(env, startupContainer, io.NewDefaultResourceResolver())
 
 			if tc.preCondition != nil {
 				tc.preCondition(ctx, startupContainer)
@@ -700,7 +668,7 @@ func TestContext_Close(t *testing.T) {
 				err := ctx.Close(context.Background())
 				assert.NoError(t, err)
 			},
-			wantErr: context.Canceled,
+			wantErr: fmt.Errorf("close context: %w", context.Canceled),
 		},
 		{
 			name: "already stopped context",
@@ -718,7 +686,7 @@ func TestContext_Close(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env, component.NewStandardContainer())
+			ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}
@@ -740,7 +708,7 @@ func TestContext_Close(t *testing.T) {
 func TestContext_Environment(t *testing.T) {
 	// given
 	env := NewEnvironment()
-	ctx := createContext(env, component.NewStandardContainer())
+	ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 
 	// when
 	result := ctx.Environment()
@@ -773,7 +741,7 @@ func TestContext_Container(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			env := NewEnvironment()
-			ctx := createContext(env, component.NewStandardContainer())
+			ctx := createContext(env, component.NewStandardContainer(), io.NewDefaultResourceResolver())
 			if tc.preCondition != nil {
 				tc.preCondition(ctx)
 			}

@@ -229,7 +229,7 @@ func (a *Application) customizeEnv(env runtime.Environment) error {
 // prepareRuntimeContext creates the application context, allows customizers to modify it, and registers
 // the command-line arguments in the context's container.
 func (a *Application) prepareRuntimeContext(args *runtime.Args) (runtime.Context, error) {
-	runtimeCtx := createContext(a.env, a.startupContainer)
+	runtimeCtx := createContext(a.env, a.startupContainer, a.resourceResolver)
 
 	err := a.initializeRuntimeContext(runtimeCtx)
 	if err != nil {
