@@ -253,11 +253,15 @@ func (c *Context) doRefresh(ctx context.Context) (err error) {
 
 	c.container = c.containerProvider()
 
-	if err = c.prepareContainer(); err != nil {
+	if err = c.prepareContainer(ctx); err != nil {
 		return err
 	}
 
-	if err = c.loadComponentDefinitions(ctx); err != nil {
+	if err = c.invokeContainerCustomizers(ctx); err != nil {
+		return err
+	}
+
+	if err = c.registerInitProcessors(ctx); err != nil {
 		return err
 	}
 
@@ -278,8 +282,7 @@ func (c *Context) doRefresh(ctx context.Context) (err error) {
 
 // prepareContainer registers core infrastructure dependencies and singletons that must be available before
 // component definitions are loaded.
-func (c *Context) prepareContainer() error {
-
+func (c *Context) prepareContainer(ctx context.Context) error {
 	if err := c.container.RegisterDependency(reflect.TypeFor[component.Container](), c.container); err != nil {
 		return err
 	}
@@ -296,7 +299,86 @@ func (c *Context) prepareContainer() error {
 		return err
 	}
 
+	if err := c.loadComponentDefinitions(ctx); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// invokeContainerCustomizers resolves and invokes all registered ContainerCustomizer components before
+// singleton initialization.
+func (c *Context) invokeContainerCustomizers(ctx context.Context) error {
+	customizerType := reflect.TypeFor[component.ContainerCustomizer]()
+
+	for _, definition := range c.container.DefinitionsOf(customizerType) {
+		name := definition.Name()
+		instance, err := c.container.Resolve(ctx, name)
+		if err != nil {
+			return fmt.Errorf("resolve container customizer %q: %w", name, err)
+		}
+
+		customizer := instance.(component.ContainerCustomizer)
+		if err = customizer.CustomizeContainer(c.container); err != nil {
+			return fmt.Errorf("customize container %q: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// registerInitProcessors resolves and registers all BeforeInitProcessor and AfterInitProcessor components
+// with the container before singleton initialization.
+func (c *Context) registerInitProcessors(ctx context.Context) error {
+	if err := c.registerBeforeInitProcessors(ctx); err != nil {
+		return err
+	}
+
+	if err := c.registerAfterInitProcessors(ctx); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+// registerBeforeInitProcessors resolves and registers all BeforeInitProcessor components with the container.
+func (c *Context) registerBeforeInitProcessors(ctx context.Context) error {
+	processorType := reflect.TypeFor[component.BeforeInitProcessor]()
+
+	for _, definition := range c.container.DefinitionsOf(processorType) {
+		name := definition.Name()
+		instance, err := c.container.Resolve(ctx, name)
+		if err != nil {
+			return fmt.Errorf("resolve before init processor %q: %w", name, err)
+		}
+
+		processor := instance.(component.BeforeInitProcessor)
+		if err = c.container.UseBeforeInitProcessor(processor); err != nil {
+			return fmt.Errorf("register before init processor %q: %w", name, err)
+		}
+	}
+
+	return nil
+}
+
+// registerAfterInitProcessors resolves and registers all AfterInitProcessor components with the container.
+func (c *Context) registerAfterInitProcessors(ctx context.Context) error {
+	processorType := reflect.TypeFor[component.AfterInitProcessor]()
+
+	for _, definition := range c.container.DefinitionsOf(processorType) {
+		name := definition.Name()
+		instance, err := c.container.Resolve(ctx, name)
+		if err != nil {
+			return fmt.Errorf("resolve after init processor %q: %w", name, err)
+		}
+
+		processor := instance.(component.AfterInitProcessor)
+		if err = c.container.UseAfterInitProcessor(processor); err != nil {
+			return fmt.Errorf("register after init processor %q: %w", name, err)
+		}
+	}
+	return nil
+
 }
 
 // resolveLifecycleManager resolves a LifecycleManager from the container.
