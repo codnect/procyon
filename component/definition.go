@@ -52,6 +52,12 @@ type DefinitionRegistry interface {
 	DefinitionNamesOf(typ reflect.Type) []string
 }
 
+// DefinitionRegistrar registers component definitions with a DefinitionRegistry.
+type DefinitionRegistrar interface {
+	// RegisterDefinitions registers component definitions with the given registry.
+	RegisterDefinitions(registry DefinitionRegistry) error
+}
+
 // Definition represents the metadata and constructor for a component.
 type Definition struct {
 	name        string

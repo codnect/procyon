@@ -65,6 +65,12 @@ type HierarchicalContainer interface {
 	SetParentContainer(container Container)
 }
 
+// ContainerCustomizer defines logic for customizing a Container.
+type ContainerCustomizer interface {
+	// CustomizeContainer customizes the given container.
+	CustomizeContainer(container Container) error
+}
+
 // StandardContainer is the default implementation of the Container interface.
 // It manages component definitions, singleton instances, custom scopes,
 // and lifecycle processing.
@@ -940,6 +946,9 @@ func (d *StandardContainer) applyAfterInitProcessors(ctx context.Context, instan
 	return instance, nil
 }
 
+// resolveDependency resolves a registered resolvable dependency by type.
+// It first checks for an exact type match, then looks for a compatible
+// registered type or instance type.
 func (d *StandardContainer) resolveDependency(typ reflect.Type) (any, bool) {
 
 	d.muResolvableInstances.RLock()
