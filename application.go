@@ -27,20 +27,12 @@ import (
 	"codnect.io/procyon/component"
 	"codnect.io/procyon/io"
 	"codnect.io/procyon/runtime"
-	"codnect.io/procyon/runtime/config"
 )
 
 const (
 	// procyonArgsContainerKey is the key used to register the procyon args in the component container.
 	procyonArgsContainerKey = "procyonAppArgs"
 )
-
-func init() {
-	// runtime/config
-	component.Register(config.NewYamlPropertySourceLoader)
-	// main
-	component.Register(newConfigEnvCustomizer)
-}
 
 // Application is the main entry point of the Procyon framework. It is responsible for initializing the application
 // context, loading resources, and running the application.
