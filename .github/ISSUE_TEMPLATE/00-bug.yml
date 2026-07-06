@@ -1,6 +1,6 @@
 name: Bug Report
 description: Report a problem with Procyon
-title: ""
+title: "import/path: issue title"
 labels: ["bug"]
 body:
   - type: markdown
