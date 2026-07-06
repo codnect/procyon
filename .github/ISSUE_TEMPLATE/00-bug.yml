@@ -51,6 +51,7 @@ body:
     id: what-did-you-expect
     attributes:
       label: What did you expect to see?
+      description: Describe what you expected to happen instead.
     validations:
       required: true
 
