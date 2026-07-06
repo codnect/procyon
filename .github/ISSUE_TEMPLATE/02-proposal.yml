@@ -1,0 +1,53 @@
+name: Proposal
+description: Propose a significant API, behavior, or design change
+title: ""
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to propose significant changes to Procyon's API, behavior, or design.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Proposal
+      description: Describe the proposed change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does this proposal solve, and why is the change needed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: design
+    attributes:
+      label: Proposed design
+      description: |
+        Describe how the proposal should work.
+        Include API examples or code snippets where useful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe other approaches you considered and why they were not preferred.
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility
+      description: Describe any backward compatibility concerns or migration requirements.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context that may help evaluate the proposal.

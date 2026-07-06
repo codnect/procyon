@@ -1,0 +1,61 @@
+name: Bug Report
+description: Report a problem with Procyon
+title: ""
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        Please provide enough information to reproduce the problem.
+
+  - type: input
+    id: procyon-version
+    attributes:
+      label: Procyon version
+      description: What version of Procyon are you using?
+      placeholder: e.g. v1.2.3 or commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      description: What version of Go are you using?
+      placeholder: e.g. go1.26.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-did-you-do
+    attributes:
+      label: What did you do?
+      description: |
+        Describe the steps needed to reproduce the problem.
+        If possible, provide a minimal reproducible example or a link to a repository.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-did-you-see
+    attributes:
+      label: What did you see happen?
+      description: |
+        Describe what happened. Include any relevant logs, errors, or stack traces.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-did-you-expect
+    attributes:
+      label: What did you expect to see?
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context that may help us understand the problem.
