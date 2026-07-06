@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Questions and Discussions
+    url: https://github.com/codnect/procyon/discussions
+    about: Ask questions and discuss ideas with the community.
