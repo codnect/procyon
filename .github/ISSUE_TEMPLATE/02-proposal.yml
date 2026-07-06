@@ -1,6 +1,6 @@
 name: Proposal
 description: Propose a significant API, behavior, or design change
-title: "proposal: import/path: proposal title"
+title: "import/path: proposal title"
 labels: ["proposal"]
 body:
   - type: markdown

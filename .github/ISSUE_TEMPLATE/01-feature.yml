@@ -1,6 +1,6 @@
 name: Feature Request
 description: Suggest a new feature or improvement for Procyon
-title: "feature: import/path: feature title"
+title: "import/path: feature title"
 labels: ["enhancement"]
 body:
   - type: markdown
