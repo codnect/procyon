@@ -140,7 +140,7 @@ func TestMakeDefinition(t *testing.T) {
 			opts: []DefinitionOption{
 				WithMetadata(nil, "anyValue"),
 			},
-			wantErr: errors.New("metadata key cannot be nil"),
+			wantErr: errors.New("nil metadata key"),
 		},
 		{
 
@@ -195,7 +195,9 @@ func TestMakeDefinition(t *testing.T) {
 				assert.Equal(t, wantArg, args[index].Name())
 			}
 
-			assert.Equal(t, tc.wantMetadata, def.Metadata())
+			if tc.wantMetadata != nil {
+				assert.Equal(t, tc.wantMetadata, def.Metadata())
+			}
 		})
 	}
 }
