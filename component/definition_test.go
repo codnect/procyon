@@ -34,6 +34,7 @@ func TestMakeDefinition(t *testing.T) {
 		wantType     reflect.Type
 		wantErr      error
 		wantArgNames []string
+		wantMetadata Metadata
 	}{
 		{
 			name:          "nil constructor",
@@ -118,6 +119,38 @@ func TestMakeDefinition(t *testing.T) {
 			wantType:  reflect.TypeFor[*AnyDependentComponent](),
 			wantErr:   errors.New("constructor has no parameter of type string"),
 		},
+		{
+
+			name:          "with metadata",
+			constructorFn: NewAnyPointerComponent,
+			opts: []DefinitionOption{
+				WithMetadata("anyKey", "anyValue"),
+			},
+			wantName:  "anyPointerComponent",
+			wantScope: SingletonScope,
+			wantType:  reflect.TypeFor[*AnyPointerComponent](),
+			wantMetadata: Metadata{
+				"anyKey": "anyValue",
+			},
+		},
+		{
+
+			name:          "with nil metadata key",
+			constructorFn: NewAnyPointerComponent,
+			opts: []DefinitionOption{
+				WithMetadata(nil, "anyValue"),
+			},
+			wantErr: errors.New("metadata key cannot be nil"),
+		},
+		{
+
+			name:          "with non-comparable metadata key",
+			constructorFn: NewAnyPointerComponent,
+			opts: []DefinitionOption{
+				WithMetadata([]string{"anyKey"}, "anyValue"),
+			},
+			wantErr: errors.New("metadata key type []string not comparable"),
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -161,6 +194,8 @@ func TestMakeDefinition(t *testing.T) {
 				assert.Equal(t, index, args[index].Index())
 				assert.Equal(t, wantArg, args[index].Name())
 			}
+
+			assert.Equal(t, tc.wantMetadata, def.Metadata())
 		})
 	}
 }

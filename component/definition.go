@@ -15,7 +15,9 @@
 package component
 
 import (
+	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 )
 
@@ -57,6 +59,7 @@ type Definition struct {
 	name        string
 	scope       string
 	constructor Constructor
+	metadata    Metadata
 }
 
 // Name returns the name of the definition.
@@ -89,6 +92,11 @@ func (d *Definition) Constructor() Constructor {
 	return d.constructor
 }
 
+// Metadata returns a copy of the metadata associated with the component definition
+func (d *Definition) Metadata() Metadata {
+	return maps.Clone(d.metadata)
+}
+
 // MakeDefinition creates a new definition with the provided constructor function and options.
 func MakeDefinition(fn ConstructorFunc, opts ...DefinitionOption) (*Definition, error) {
 	constructor, err := createConstructor(fn)
@@ -110,6 +118,7 @@ func MakeDefinition(fn ConstructorFunc, opts ...DefinitionOption) (*Definition, 
 		name:        componentName,
 		scope:       SingletonScope,
 		constructor: constructor,
+		metadata:    make(Metadata),
 	}
 
 	err = applyDefinitionOpts(def, opts)
@@ -197,6 +206,23 @@ func WithQualifierFor[T any](name string) DefinitionOption {
 			return fmt.Errorf("constructor has no parameter of type %v", typ)
 		}
 
+		return nil
+	}
+}
+
+// WithMetadata adds a metadata key-value pair to the component definition.
+func WithMetadata(key, value any) DefinitionOption {
+	return func(def *Definition) error {
+		if key == nil {
+			return errors.New("nil metadata key")
+
+		}
+
+		if !reflect.TypeOf(key).Comparable() {
+			return fmt.Errorf("metadata key type %T not comparable", key)
+		}
+
+		def.metadata[key] = value
 		return nil
 	}
 }
