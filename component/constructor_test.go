@@ -58,6 +58,7 @@ func TestCreateConstructor(t *testing.T) {
 					0,
 					"",
 					reflect.TypeFor[AnySimpleComponent](),
+					false,
 				},
 			},
 		},
