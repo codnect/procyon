@@ -162,13 +162,44 @@ func TestConstructor_Invoke(t *testing.T) {
 			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
 		},
 		{
-			name: "valid variadic constructor",
+			name: "valid variadic constructor with slice argument",
+			constructorFn: func(dependencies ...AnySimpleComponent) *AnyDependentComponent {
+				return &AnyDependentComponent{}
+			},
+			inputs: []any{
+				[]AnySimpleComponent{{}, {}},
+			},
+			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
+		},
+		{
+			name: "valid variadic constructor with expanded arguments",
 			constructorFn: func(dependencies ...AnySimpleComponent) *AnyDependentComponent {
 				return &AnyDependentComponent{}
 			},
 			inputs: []any{
 				AnySimpleComponent{},
 				AnySimpleComponent{},
+			},
+			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
+		},
+		{
+
+			name: "valid variadic constructor with single argument",
+			constructorFn: func(dependencies ...AnySimpleComponent) *AnyDependentComponent {
+				return &AnyDependentComponent{}
+			},
+			inputs: []any{
+				AnySimpleComponent{},
+			},
+			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
+		},
+		{
+			name: "valid constructor with slice parameter",
+			constructorFn: func(dependencies []AnySimpleComponent) *AnyDependentComponent {
+				return &AnyDependentComponent{}
+			},
+			inputs: []any{
+				[]AnySimpleComponent{{}, {}},
 			},
 			wantOutType: reflect.TypeFor[*AnyDependentComponent](),
 		},

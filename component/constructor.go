@@ -92,11 +92,27 @@ func (f Constructor) Invoke(args ...any) (result any, err error) {
 				inputs = append(inputs, reflect.New(variadicType).Elem())
 				continue
 			}
+
+			argVal := reflect.ValueOf(arg)
+
+			if argType.Kind() == reflect.Slice {
+
+				if !argType.Elem().ConvertibleTo(variadicType) {
+					return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, variadicType)
+				}
+
+				for i := 0; i < argVal.Len(); i++ {
+					inputs = append(inputs, argVal.Index(i))
+				}
+
+				continue
+			}
+
 			if !argType.ConvertibleTo(variadicType) {
 				return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, variadicType)
 			}
 
-			inputs = append(inputs, reflect.ValueOf(arg))
+			inputs = append(inputs, argVal)
 			continue
 		}
 
@@ -106,6 +122,7 @@ func (f Constructor) Invoke(args ...any) (result any, err error) {
 			inputs = append(inputs, reflect.New(expectedArgType).Elem())
 			continue
 		}
+
 		if !argType.ConvertibleTo(expectedArgType) {
 			return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, expectedArgType)
 		}
