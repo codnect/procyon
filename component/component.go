@@ -31,6 +31,9 @@ var (
 	muComponents = sync.RWMutex{}
 )
 
+// Metadata contains arbitrary key-value pairs associated with a component definition.
+type Metadata map[any]any
+
 // Component represents a registered component and holds its definition.
 type Component struct {
 	definition *Definition
