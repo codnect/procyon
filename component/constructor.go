@@ -92,27 +92,11 @@ func (f Constructor) Invoke(args ...any) (result any, err error) {
 				inputs = append(inputs, reflect.New(variadicType).Elem())
 				continue
 			}
-
-			argVal := reflect.ValueOf(arg)
-
-			if argType.Kind() == reflect.Slice {
-
-				if !argType.Elem().ConvertibleTo(variadicType) {
-					return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, variadicType)
-				}
-
-				for i := 0; i < argVal.Len(); i++ {
-					inputs = append(inputs, argVal.Index(i))
-				}
-
-				continue
-			}
-
 			if !argType.ConvertibleTo(variadicType) {
 				return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, variadicType)
 			}
 
-			inputs = append(inputs, argVal)
+			inputs = append(inputs, reflect.ValueOf(arg))
 			continue
 		}
 
@@ -122,7 +106,6 @@ func (f Constructor) Invoke(args ...any) (result any, err error) {
 			inputs = append(inputs, reflect.New(expectedArgType).Elem())
 			continue
 		}
-
 		if !argType.ConvertibleTo(expectedArgType) {
 			return nil, fmt.Errorf("argument %d has type %v, want %v", index, argType, expectedArgType)
 		}
@@ -142,9 +125,10 @@ func (f Constructor) Invoke(args ...any) (result any, err error) {
 
 // Arg represents an argument of a constructor function.
 type Arg struct {
-	index int          // The index of the argument in the function parameter list.
-	name  string       // The name of the argument.
-	typ   reflect.Type // The type of the argument.
+	index    int          // The index of the argument in the function parameter list.
+	name     string       // The name of the argument.
+	typ      reflect.Type // The type of the argument.
+	variadic bool         // Indicates if the argument is variadic.
 }
 
 // Index returns the index of the argument in the function parameter list.
@@ -162,6 +146,11 @@ func (a Arg) Type() reflect.Type {
 	return a.typ
 }
 
+// IsVariadic returns true if the argument is variadic.
+func (a Arg) IsVariadic() bool {
+	return a.variadic
+}
+
 // extractConstructorArgs returns the list of argument metadata for a given function type.
 func extractConstructorArgs(fnType reflect.Type) []Arg {
 	numIn := fnType.NumIn()
@@ -169,8 +158,9 @@ func extractConstructorArgs(fnType reflect.Type) []Arg {
 
 	for index := 0; index < numIn; index++ {
 		args = append(args, Arg{
-			index: index,
-			typ:   fnType.In(index),
+			index:    index,
+			typ:      fnType.In(index),
+			variadic: fnType.IsVariadic() && index == numIn-1,
 		})
 	}
 

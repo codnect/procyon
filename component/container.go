@@ -781,12 +781,25 @@ func (d *StandardContainer) resolveArguments(ctx context.Context, args []Arg) ([
 	resolvedArgs := make([]any, 0, len(args))
 
 	for idx, arg := range args {
+		argType := arg.Type()
 
-		if arg.Type().Kind() == reflect.Slice {
-			elemType := arg.Type().Elem()
+		if arg.IsVariadic() {
+			elemType := argType.Elem()
+			instances, err := d.ResolveAll(ctx, elemType)
+
+			if err != nil {
+				return nil, fmt.Errorf("unsatisfied dependency for argument %d (%s): %w", idx, argType, err)
+			}
+
+			resolvedArgs = append(resolvedArgs, instances...)
+			continue
+		}
+
+		if argType.Kind() == reflect.Slice {
+			elemType := argType.Elem()
 			instances, err := d.ResolveAll(ctx, elemType)
 			if err != nil {
-				return nil, fmt.Errorf("unsatisfied dependency for argument %d (%s): %w", idx, arg.Type(), err)
+				return nil, fmt.Errorf("unsatisfied dependency for argument %d (%s): %w", idx, argType, err)
 			}
 
 			sliceVal := reflect.MakeSlice(arg.Type(), len(instances), len(instances))
