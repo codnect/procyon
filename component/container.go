@@ -756,7 +756,7 @@ func (d *StandardContainer) createInstance(ctx context.Context, def *Definition)
 		return nil, fmt.Errorf("invoke constructor %q (%s): %w", name, def.Type(), err)
 	}
 
-	instance, err = d.initialize(ctx, instance)
+	instance, err = d.initialize(ctx, name, instance)
 	if err != nil {
 		return nil, fmt.Errorf("initialize %q (%s): %w", name, def.Type(), err)
 	}
@@ -891,8 +891,8 @@ func (d *StandardContainer) registerDependency(name, dependency string) {
 
 // initialize runs pre-processors, the Init method (if defined), and post-processors
 // on the given instance, and it returns the fully initialized instance.
-func (d *StandardContainer) initialize(ctx context.Context, instance any) (any, error) {
-	result, err := d.applyBeforeInitProcessors(ctx, instance)
+func (d *StandardContainer) initialize(ctx context.Context, name string, instance any) (any, error) {
+	result, err := d.applyBeforeInitProcessors(ctx, name, instance)
 	if err != nil {
 		return nil, fmt.Errorf("apply before-init processors: %w", err)
 	}
@@ -905,7 +905,7 @@ func (d *StandardContainer) initialize(ctx context.Context, instance any) (any, 
 		}
 	}
 
-	result, err = d.applyAfterInitProcessors(ctx, result)
+	result, err = d.applyAfterInitProcessors(ctx, name, result)
 	if err != nil {
 		return nil, fmt.Errorf("apply after-init processors: %w", err)
 	}
@@ -915,12 +915,12 @@ func (d *StandardContainer) initialize(ctx context.Context, instance any) (any, 
 
 // applyBeforeInitProcessors executes all registered BeforeInitProcessor hooks on the instance.
 // Returns the processed object or an error.
-func (d *StandardContainer) applyBeforeInitProcessors(ctx context.Context, instance any) (any, error) {
+func (d *StandardContainer) applyBeforeInitProcessors(ctx context.Context, name string, instance any) (any, error) {
 	d.muProcessors.RLock()
 	defer d.muProcessors.RUnlock()
 
 	for _, processor := range d.beforeInitProcessors {
-		result, err := processor.ProcessBeforeInit(ctx, instance)
+		result, err := processor.ProcessBeforeInit(ctx, name, instance)
 
 		if err != nil {
 			return nil, fmt.Errorf("before-init processor (%T): %w", processor, err)
@@ -938,12 +938,12 @@ func (d *StandardContainer) applyBeforeInitProcessors(ctx context.Context, insta
 
 // applyAfterInitProcessors executes all registered AfterInitProcessor hooks on the instance.
 // Returns the processed object or an error.
-func (d *StandardContainer) applyAfterInitProcessors(ctx context.Context, instance any) (any, error) {
+func (d *StandardContainer) applyAfterInitProcessors(ctx context.Context, name string, instance any) (any, error) {
 	d.muProcessors.RLock()
 	defer d.muProcessors.RUnlock()
 
 	for _, processor := range d.afterInitProcessors {
-		result, err := processor.ProcessAfterInit(ctx, instance)
+		result, err := processor.ProcessAfterInit(ctx, name, instance)
 
 		if err != nil {
 			return nil, fmt.Errorf("after-init processor (%T): %w", processor, err)

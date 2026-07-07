@@ -1912,7 +1912,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 
 				anyBeforeInitProcessor := &AnyMockBeforeInitProcessor{}
 				_ = container.UseBeforeInitProcessor(anyBeforeInitProcessor)
-				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
+				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.AnythingOfType("*context.valueCtx"), "anyInstanceName", mock.AnythingOfType("*component.AnyInitializableComponent")).
 					Return(nil, errors.New("before initialization error"))
 			},
 			instanceName: "anyInstanceName",
@@ -1927,7 +1927,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 
 				anyBeforeInitProcessor := &AnyMockBeforeInitProcessor{}
 				_ = container.UseBeforeInitProcessor(anyBeforeInitProcessor)
-				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
+				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.AnythingOfType("*context.valueCtx"), "anyInstanceName", mock.AnythingOfType("*component.AnyInitializableComponent")).
 					Return(nil, nil)
 			},
 			instanceName: "anyInstanceName",
@@ -1942,7 +1942,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 
 				anyBeforeInitProcessor := &AnyMockBeforeInitProcessor{}
 				_ = container.UseBeforeInitProcessor(anyBeforeInitProcessor)
-				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.Anything, mock.Anything).
+				anyBeforeInitProcessor.On("ProcessBeforeInit", mock.AnythingOfType("*context.valueCtx"), "anyInstanceName", mock.AnythingOfType("*component.AnyInitializableComponent")).
 					Return(&AnyPointerComponent{}, nil)
 			},
 			instanceName: "anyInstanceName",
@@ -1957,7 +1957,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 
 				anyAfterInitProcessor := &AnyMockAfterInitProcessor{}
 				_ = container.UseAfterInitProcessor(anyAfterInitProcessor)
-				anyAfterInitProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
+				anyAfterInitProcessor.On("ProcessAfterInit", mock.AnythingOfType("*context.valueCtx"), "anyInstanceName", mock.AnythingOfType("*component.AnyInitializableComponent")).
 					Return(nil, errors.New("after initialization error"))
 			},
 			instanceName: "anyInstanceName",
@@ -1972,7 +1972,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 
 				anyAfterInitProcessor := &AnyMockAfterInitProcessor{}
 				_ = container.UseAfterInitProcessor(anyAfterInitProcessor)
-				anyAfterInitProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
+				anyAfterInitProcessor.On("ProcessAfterInit", mock.AnythingOfType("*context.valueCtx"), "anyInstanceName", mock.AnythingOfType("*component.AnyInitializableComponent")).
 					Return(nil, nil)
 			},
 			instanceName: "anyInstanceName",
@@ -1987,7 +1987,7 @@ func TestStandardContainer_Initialize(t *testing.T) {
 
 				anyAfterInitProcessor := &AnyMockAfterInitProcessor{}
 				_ = container.UseAfterInitProcessor(anyAfterInitProcessor)
-				anyAfterInitProcessor.On("ProcessAfterInit", mock.Anything, mock.Anything).
+				anyAfterInitProcessor.On("ProcessAfterInit", mock.AnythingOfType("*context.valueCtx"), "anyInstanceName", mock.AnythingOfType("*component.AnyInitializableComponent")).
 					Return(&AnyPointerComponent{}, nil)
 			},
 			instanceName: "anyInstanceName",

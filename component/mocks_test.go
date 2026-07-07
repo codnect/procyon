@@ -50,8 +50,8 @@ type AnyMockBeforeInitProcessor struct {
 	mock.Mock
 }
 
-func (a *AnyMockBeforeInitProcessor) ProcessBeforeInit(ctx context.Context, instance any) (any, error) {
-	result := a.Called(ctx, instance)
+func (a *AnyMockBeforeInitProcessor) ProcessBeforeInit(ctx context.Context, name string, instance any) (any, error) {
+	result := a.Called(ctx, name, instance)
 
 	if result.Get(0) == nil {
 		return nil, result.Error(1)
@@ -64,8 +64,8 @@ type AnyMockAfterInitProcessor struct {
 	mock.Mock
 }
 
-func (a *AnyMockAfterInitProcessor) ProcessAfterInit(ctx context.Context, instance any) (any, error) {
-	result := a.Called(ctx, instance)
+func (a *AnyMockAfterInitProcessor) ProcessAfterInit(ctx context.Context, name string, instance any) (any, error) {
+	result := a.Called(ctx, name, instance)
 
 	if result.Get(0) == nil {
 		return nil, result.Error(1)
