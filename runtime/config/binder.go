@@ -206,6 +206,14 @@ func (b *DefaultPropertyBinder) bindStruct(name string, targetVal reflect.Value)
 		propTag := &PropertyTag{}
 		tags := string(field.Tag)
 		if len(tags) == 0 {
+			if field.Anonymous && fieldVal.Kind() == reflect.Struct {
+				err := b.bindStruct(name, fieldVal)
+				if err != nil {
+					return fmt.Errorf("embedded struct field %q: %w", field.Name, err)
+				}
+
+			}
+
 			continue
 		}
 
