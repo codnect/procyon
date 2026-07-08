@@ -28,14 +28,14 @@ type Initializer interface {
 type BeforeInitProcessor interface {
 	// ProcessBeforeInit is called before the component's Init method.
 	// It can modify or validate the component instance before initialization.
-	ProcessBeforeInit(ctx context.Context, instance any) (any, error)
+	ProcessBeforeInit(ctx context.Context, name string, instance any) (any, error)
 }
 
 // AfterInitProcessor defines logic to be applied after a component is initialized.
 type AfterInitProcessor interface {
 	// ProcessAfterInit is called after the component's Init method.
 	// It can further configure or enhance the component instance.
-	ProcessAfterInit(ctx context.Context, instance any) (any, error)
+	ProcessAfterInit(ctx context.Context, name string, instance any) (any, error)
 }
 
 // Disposable can be implemented by components that need to release resources or clean up during shutdown.
