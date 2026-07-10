@@ -187,8 +187,7 @@ func AsPrototype() DefinitionOption {
 	}
 }
 
-// WithQualifierFor sets a named qualifier for the constructor argument
-// that matches the given type T.
+// WithQualifierFor sets a named qualifier for the constructor argument that matches the given type T.
 func WithQualifierFor[T any](name string) DefinitionOption {
 	return func(def *Definition) error {
 		typ := reflect.TypeFor[T]()
@@ -206,6 +205,20 @@ func WithQualifierFor[T any](name string) DefinitionOption {
 			return fmt.Errorf("constructor has no parameter of type %v", typ)
 		}
 
+		return nil
+	}
+}
+
+// WithQualifierAt assigns a named qualifier to the constructor parameter at the specified index.
+func WithQualifierAt(index int, name string) DefinitionOption {
+	return func(def *Definition) error {
+		args := def.constructor.Args()
+
+		if index < 0 || index >= len(args) {
+			return fmt.Errorf("constructor parameter index %d out of range", index)
+		}
+
+		def.constructor.args[index].name = name
 		return nil
 	}
 }
