@@ -15,6 +15,7 @@
 package http
 
 import (
+	"context"
 	"path"
 	"strings"
 )
@@ -70,11 +71,13 @@ type EndpointDataSource interface {
 }
 
 type endpointDataSource struct {
-	endpoints []*Endpoint
+	endpoints []*Endpoint `inject:""`
 }
 
-func NewEndpointDataSource(endpoints ...*Endpoint) EndpointDataSource {
-	return &endpointDataSource{endpoints: endpoints}
+func newEndpointDataSource() EndpointDataSource {
+	return &endpointDataSource{
+		endpoints: make([]*Endpoint, 0),
+	}
 }
 
 func (s *endpointDataSource) Endpoints() []*Endpoint {
@@ -223,4 +226,27 @@ func joinPaths(elem ...string) string {
 	}
 
 	return result
+}
+
+type endpointMappingProcessor struct {
+	endpointDataSource *EndpointDataSource
+}
+
+func newEndpointMappingProcessor(endpointDataSource *EndpointDataSource) *endpointMappingProcessor {
+	return &endpointMappingProcessor{
+		endpointDataSource: endpointDataSource,
+	}
+}
+
+func (p *endpointMappingProcessor) ProcessBeforeInit(ctx context.Context, _ string, instance any) (any, error) {
+	if configurer, ok := instance.(EndpointConfigurer); ok {
+		endpoints := newEndpointGroup("/")
+		configurer.ConfigureEndpoints(endpoints)
+
+		if endpoints != nil {
+
+		}
+	}
+
+	return instance, nil
 }

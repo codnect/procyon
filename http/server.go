@@ -17,8 +17,11 @@ package http
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
+
+	"codnect.io/procyon/component"
 )
 
 // ServerProperties defines the configuration properties for the Server component.
@@ -51,7 +54,7 @@ type stdServer interface {
 // It implements http.Handler and uses a sync.Pool for Context reuse
 // to minimize allocations per request.
 type Server struct {
-	props       ServerProperties
+	props       *ServerProperties
 	httpServer  stdServer
 	contextPool sync.Pool
 	dispatcher  Dispatcher
@@ -60,7 +63,11 @@ type Server struct {
 // NewServer creates a new Server with the given properties and dispatcher.
 // The dispatcher is invoked for every incoming request to route it through
 // the middleware pipeline to the appropriate endpoint handler.
-func NewServer(props ServerProperties, dispatcher Dispatcher) *Server {
+func NewServer(props *ServerProperties, dispatcher Dispatcher) *Server {
+	if props == nil {
+		panic("nil server properties")
+	}
+
 	if dispatcher == nil {
 		panic("nil dispatcher")
 	}
@@ -83,18 +90,20 @@ func NewServer(props ServerProperties, dispatcher Dispatcher) *Server {
 // Start begins listening for HTTP requests on the configured port.
 // It blocks until the server is shut down or an error occurs.
 func (s *Server) Start(ctx context.Context) error {
-	if s.httpServer == nil {
-		s.httpServer = &http.Server{
-			Addr:    fmt.Sprintf(":%d", s.props.Port),
-			Handler: s,
-		}
+	if s.httpServer != nil {
+		return nil
 	}
 
-	if err := s.httpServer.ListenAndServe(); err != nil {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.props.Port))
+	if err != nil {
 		return err
 	}
 
-	return nil
+	httpServer := &http.Server{
+		Handler: s,
+	}
+
+	return httpServer.Serve(listener)
 }
 
 // Stop gracefully shuts down the server without interrupting
@@ -120,4 +129,76 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	_ = s.dispatcher.Dispatch(ctx)
+}
+
+type containerCustomizer struct {
+	serverFactory *DefaultFactory
+}
+
+func newContainerCustomizer(factory *DefaultFactory) *containerCustomizer {
+	return &containerCustomizer{
+		serverFactory: factory,
+	}
+}
+
+func (s *containerCustomizer) CustomizeContainer(container component.Container) error {
+	server, err := s.serverFactory.CreateServer()
+	if err != nil {
+		return err
+	}
+
+	if err = container.RegisterSingleton("httpServer", server); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type ServerFactory interface {
+	CreateServer() (*Server, error)
+}
+
+type DefaultFactory struct {
+	properties *ServerProperties
+	dispatcher Dispatcher
+}
+
+func NewDefaultServerFactory(properties *ServerProperties, dispatcher Dispatcher) *DefaultFactory {
+	return &DefaultFactory{
+		properties: properties,
+	}
+}
+
+func (s *DefaultFactory) CreateServer() (*Server, error) {
+	return nil, nil
+}
+
+type serverLifecycle struct {
+	server *Server
+}
+
+func newServerLifecycle(server *Server) *serverLifecycle {
+	return &serverLifecycle{
+		server: server,
+	}
+}
+
+func (s *serverLifecycle) Start(ctx context.Context) error {
+	go func() {
+		if err := s.server.Start(ctx); err != nil {
+			panic(err)
+		}
+	}()
+
+	return nil
+}
+
+func (s *serverLifecycle) Stop(ctx context.Context) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *serverLifecycle) IsRunning() bool {
+	//TODO implement me
+	panic("implement me")
 }

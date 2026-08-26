@@ -14,8 +14,16 @@
 
 package http
 
-import "codnect.io/procyon/component"
-
 func init() {
-	component.Register(newServerProperties)
+	// endpoint
+	//component.Register(newEndpointDataSource)
+	//component.Register(newEndpointMappingProcessor)
+	//component.Register(NewRequestEndpointMatcher)
+
+	// dispatcher
+	//component.Register(NewRequestDispatcher)
+
+	// server
+	//component.Register(newServerProperties)
+	//component.Register(NewServer)
 }

@@ -29,6 +29,10 @@ import (
 	"codnect.io/procyon/runtime"
 )
 
+func Run(args ...string) error {
+	return New().Run(args...)
+}
+
 const (
 	// procyonArgsContainerKey is the key used to register the procyon args in the component container.
 	procyonArgsContainerKey = "procyonAppArgs"

@@ -113,7 +113,7 @@ func TestEndpointDataSource_Endpoints(t *testing.T) {
 		return nil
 	})
 
-	reqEndpointDataSource := NewEndpointDataSource(endpoint)
+	reqEndpointDataSource := newEndpointDataSource(endpoint)
 
 	// when
 	endpoints := reqEndpointDataSource.Endpoints()

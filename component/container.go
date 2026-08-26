@@ -325,8 +325,8 @@ func (d *StandardContainer) DestroySingletons() {
 
 	destroyed := make(map[string]struct{}, len(d.singletonOrder))
 
-	for i := len(d.singletonOrder) - 1; i >= 0; i-- {
-		d.destroySingleton(d.singletonOrder[i], destroyed)
+	for _, v := range slices.Backward(d.singletonOrder) {
+		d.destroySingleton(v, destroyed)
 	}
 
 	clear(d.singletons)
