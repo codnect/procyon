@@ -18,4 +18,6 @@ import "codnect.io/procyon/component"
 
 func init() {
 	component.Register(newServerProperties)
+	component.Register(newEndpointDataSource)
+	component.Register(newEndpointMappingProcessor)
 }

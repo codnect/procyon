@@ -1,6 +1,6 @@
 module codnect.io/procyon
 
-go 1.24.0
+go 1.27.0
 
 require (
 	codnect.io/logy v1.0.2

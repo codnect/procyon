@@ -42,7 +42,7 @@ func TestTypedResult_StatusCode(t *testing.T) {
 			// given
 
 			// when
-			typedResult := TypedResult[any]{
+			typedResult := BodyResult[any]{
 				Status: tc.status,
 			}
 
@@ -57,7 +57,7 @@ func TestTypedResult_BodyValue(t *testing.T) {
 	body := any("anyBody")
 
 	// when
-	typedResult := TypedResult[any]{
+	typedResult := BodyResult[any]{
 		Body: body,
 	}
 
@@ -70,7 +70,7 @@ func TestTypedResult_Header(t *testing.T) {
 	headers := Header{}
 
 	// when
-	typedResult := TypedResult[any]{
+	typedResult := BodyResult[any]{
 		Headers: headers,
 	}
 

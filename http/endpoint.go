@@ -15,6 +15,7 @@
 package http
 
 import (
+	"context"
 	"path"
 	"strings"
 )
@@ -73,8 +74,32 @@ type endpointDataSource struct {
 	endpoints []*Endpoint
 }
 
+func newEndpointDataSource() *endpointDataSource {
+	return &endpointDataSource{}
+}
+
 func NewEndpointDataSource(endpoints ...*Endpoint) EndpointDataSource {
 	return &endpointDataSource{endpoints: endpoints}
+}
+
+// register collects endpoint definitions. Their delegates are built later,
+// once endpoint mapping has completed.
+func (s *endpointDataSource) register(group *EndpointGroup) {
+	for _, route := range group.routes {
+		methods := route.methods
+
+		for _, method := range methods {
+			endpoint := NewEndpoint(method, route.path, func(ctx *Context) error {
+				_, _ = route.handler.Handle(ctx)
+				return nil
+			})
+			s.endpoints = append(s.endpoints, endpoint)
+		}
+	}
+
+	for _, child := range group.children {
+		s.register(child)
+	}
 }
 
 func (s *endpointDataSource) Endpoints() []*Endpoint {
@@ -159,7 +184,13 @@ func newEndpointGroup(prefix string) *EndpointGroup {
 
 // MapAny maps a handler function to the specified path for all HTTP methods within the group.
 func (g *EndpointGroup) MapAny(path string, handler Handler) *EndpointBuilder {
-	return g.MapMethods(path, nil, handler)
+	return g.MapMethods(path, []Method{
+		MethodGet,
+		MethodPost,
+		MethodPut,
+		MethodDelete,
+		MethodPatch,
+	}, handler)
 }
 
 // MapMethods maps a handler function to the specified path for the given HTTP methods within the group.
@@ -202,6 +233,32 @@ func (g *EndpointGroup) MapGroup(prefix string) *EndpointGroup {
 	group := newEndpointGroup(result)
 	g.children = append(g.children, group)
 	return group
+}
+
+// endpointMappingProcessor collects mappings after the configurer's Init hook
+// has completed, so mappings can use initialized component state.
+type endpointMappingProcessor struct {
+	dataSource *endpointDataSource
+}
+
+func newEndpointMappingProcessor(dataSource *endpointDataSource) *endpointMappingProcessor {
+	if dataSource == nil {
+		panic("nil endpoint data source")
+	}
+
+	return &endpointMappingProcessor{dataSource: dataSource}
+}
+
+func (p *endpointMappingProcessor) ProcessAfterInit(ctx context.Context, name string, instance any) (any, error) {
+	configurer, ok := instance.(EndpointConfigurer)
+	if !ok {
+		return instance, nil
+	}
+
+	group := newEndpointGroup("/")
+	configurer.ConfigureEndpoints(group)
+	p.dataSource.register(group)
+	return instance, nil
 }
 
 // joinPaths joins multiple path elements into a single path string,
