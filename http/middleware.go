@@ -45,11 +45,8 @@ func newRoutingMiddleware(matcher EndpointMatcher) *routingMiddleware {
 // If a matching endpoint is found, it is set on the context for later use.
 // The next delegate is always called regardless of whether a match was found.
 func (r *routingMiddleware) Invoke(ctx *Context, next RequestDelegate) error {
-	endpoint, ok := r.matcher.Match(ctx)
-
-	if ok {
-		ctx.SetEndpoint(endpoint)
-	}
+	endpoint, _ := r.matcher.Match(ctx)
+	ctx.SetEndpoint(endpoint)
 
 	return next(ctx)
 }

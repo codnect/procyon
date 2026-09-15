@@ -16,9 +16,13 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
+
+	"codnect.io/logy"
 )
 
 // ServerProperties defines the configuration properties for the Server component.
@@ -34,17 +38,6 @@ func (s *ServerProperties) Prefix() string {
 	return "server"
 }
 
-// stdServer abstracts http.Server to allow Server to be tested
-// without starting a real HTTP listener.
-type stdServer interface {
-	// ListenAndServe starts the HTTP server and begins accepting requests.
-
-	ListenAndServe() error
-	// Shutdown gracefully stops the HTTP server without interrupting
-	// active connections.
-	Shutdown(ctx context.Context) error
-}
-
 // Server is the HTTP server that listens for incoming requests and
 // dispatches them through the configured Dispatcher.
 //
@@ -52,9 +45,13 @@ type stdServer interface {
 // to minimize allocations per request.
 type Server struct {
 	props       ServerProperties
-	httpServer  stdServer
+	httpServer  *http.Server
 	contextPool sync.Pool
 	dispatcher  Dispatcher
+	mu          sync.RWMutex
+	running     bool
+	stopping    bool
+	boundPort   int
 }
 
 // NewServer creates a new Server with the given properties and dispatcher.
@@ -80,31 +77,75 @@ func NewServer(props ServerProperties, dispatcher Dispatcher) *Server {
 	}
 }
 
-// Start begins listening for HTTP requests on the configured port.
-// It blocks until the server is shut down or an error occurs.
-func (s *Server) Start(ctx context.Context) error {
-	if s.httpServer == nil {
-		s.httpServer = &http.Server{
-			Addr:    fmt.Sprintf(":%d", s.props.Port),
-			Handler: s,
-		}
-	}
+// newServer adapts the pointer properties component to the public constructor.
+func newServer(props *ServerProperties, dispatcher Dispatcher) *Server {
+	return NewServer(*props, dispatcher)
+}
 
-	if err := s.httpServer.ListenAndServe(); err != nil {
+// Start binds synchronously, then serves in the background. A bind failure is
+// returned before lifecycle startup succeeds.
+func (s *Server) Start(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.stopping {
+		return fmt.Errorf("HTTP server is stopping")
+	}
+	if s.running {
+		return nil
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
-
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", fmt.Sprintf(":%d", s.props.Port))
+	if err != nil {
+		return err
+	}
+	server := &http.Server{Handler: s}
+	s.httpServer = server
+	s.boundPort = listener.Addr().(*net.TCPAddr).Port
+	s.running = true
+	go func() {
+		err := server.Serve(listener)
+		s.mu.Lock()
+		if s.httpServer == server {
+			s.running = false
+		}
+		s.mu.Unlock()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logy.Get().Error("HTTP server stopped unexpectedly", err)
+		}
+	}()
+	logy.Get().Info("HTTP server started on port {}", s.boundPort)
 	return nil
 }
 
-// Stop gracefully shuts down the server without interrupting
-// any active connections.
+// Stop drains active requests; a timeout also closes remaining connections.
 func (s *Server) Stop(ctx context.Context) error {
-	return s.httpServer.Shutdown(ctx)
+	s.mu.Lock()
+	server := s.httpServer
+	if server == nil {
+		s.mu.Unlock()
+		return nil
+	}
+	s.stopping = true
+	s.mu.Unlock()
+	err := server.Shutdown(ctx)
+	if err != nil {
+		err = errors.Join(err, server.Close())
+	}
+	s.mu.Lock()
+	s.running = false
+	s.stopping = false
+	s.mu.Unlock()
+	return err
 }
 
-// Port returns the port number the server is configured to listen on.
 func (s *Server) Port() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.boundPort != 0 {
+		return s.boundPort
+	}
 	return s.props.Port
 }
 
@@ -119,5 +160,29 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.contextPool.Put(ctx)
 	}()
 
-	_ = s.dispatcher.Dispatch(ctx)
+	if err := s.dispatcher.Dispatch(ctx); err != nil {
+		logy.Get().Error("HTTP request failed", err)
+		if !ctx.Response().IsCommitted() {
+			_ = ctx.Response().Reset()
+			ctx.Response().SetStatus(StatusInternalServerError)
+		}
+	} else if ctx.Endpoint() == nil && !ctx.Response().IsCommitted() && ctx.Response().Status() == StatusOK {
+		ctx.Response().SetStatus(StatusNotFound)
+	}
+	ctx.Response().writeHeaders()
+}
+
+// serverLifecycle keeps lifecycle discovery separate from runtime.Server.
+type serverLifecycle struct{ server *Server }
+
+func newServerLifecycle(server *Server) *serverLifecycle {
+	return &serverLifecycle{server: server}
+}
+
+func (s *serverLifecycle) Start(ctx context.Context) error { return s.server.Start(ctx) }
+func (s *serverLifecycle) Stop(ctx context.Context) error  { return s.server.Stop(ctx) }
+func (s *serverLifecycle) IsRunning() bool {
+	s.server.mu.RLock()
+	defer s.server.mu.RUnlock()
+	return s.server.running
 }

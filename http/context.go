@@ -109,6 +109,13 @@ func (c *Context) SetEndpoint(endpoint *Endpoint) {
 // reset clears the context state and assigns a new HTTP request and response writer.
 func (c *Context) reset(r *http.Request, w http.ResponseWriter) {
 	c.err = nil
+	c.endpoint = nil
+	c.req.ctx = c
+	c.res.ctx = c
+	c.req.pathValues.reset()
+	if c.res.headers == nil {
+		c.res.headers = make(Header)
+	}
 	clear(c.values)
 
 	c.req.nativeReq = r

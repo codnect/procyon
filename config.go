@@ -17,9 +17,13 @@ package procyon
 import (
 	"context"
 
+	"codnect.io/procyon/component"
 	"codnect.io/procyon/runtime"
 	"codnect.io/procyon/runtime/config"
 )
+
+// Compile-time check that configPropertiesProcessor implements component.AfterInitProcessor.
+var _ component.AfterInitProcessor = (*configPropertiesProcessor)(nil)
 
 // configPropertiesProcessor binds configuration properties to components
 // that implement the config.Properties interface.
@@ -41,7 +45,7 @@ func newConfigPropertiesProcessor(env runtime.Environment) *configPropertiesProc
 
 // ProcessAfterInit binds configuration properties to the given component
 // if it implements the config.Properties interface.
-func (c *configPropertiesProcessor) ProcessAfterInit(_ context.Context, instance any) (any, error) {
+func (c *configPropertiesProcessor) ProcessAfterInit(_ context.Context, _ string, instance any) (any, error) {
 	if properties, ok := instance.(config.Properties); ok {
 		binder := config.NewDefaultPropertyBinder(c.env.PropertySources())
 

@@ -16,6 +16,7 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"strings"
 )
@@ -72,6 +73,7 @@ type EndpointDataSource interface {
 
 type endpointDataSource struct {
 	endpoints []*Endpoint
+	sealed    bool
 }
 
 func newEndpointDataSource() *endpointDataSource {
@@ -82,24 +84,13 @@ func NewEndpointDataSource(endpoints ...*Endpoint) EndpointDataSource {
 	return &endpointDataSource{endpoints: endpoints}
 }
 
-// register collects endpoint definitions. Their delegates are built later,
-// once endpoint mapping has completed.
-func (s *endpointDataSource) register(group *EndpointGroup) {
-	for _, route := range group.routes {
-		methods := route.methods
-
-		for _, method := range methods {
-			endpoint := NewEndpoint(method, route.path, func(ctx *Context) error {
-				_, _ = route.handler.Handle(ctx)
-				return nil
-			})
-			s.endpoints = append(s.endpoints, endpoint)
-		}
+// register collects executable endpoints before the dispatcher is initialized.
+func (s *endpointDataSource) register(endpoint *Endpoint) error {
+	if s.sealed {
+		return fmt.Errorf("endpoint mapping has already completed")
 	}
-
-	for _, child := range group.children {
-		s.register(child)
-	}
+	s.endpoints = append(s.endpoints, endpoint)
+	return nil
 }
 
 func (s *endpointDataSource) Endpoints() []*Endpoint {
@@ -239,14 +230,15 @@ func (g *EndpointGroup) MapGroup(prefix string) *EndpointGroup {
 // has completed, so mappings can use initialized component state.
 type endpointMappingProcessor struct {
 	dataSource *endpointDataSource
+	executors  *ResultExecutorRegistry
 }
 
-func newEndpointMappingProcessor(dataSource *endpointDataSource) *endpointMappingProcessor {
+func newEndpointMappingProcessor(dataSource *endpointDataSource, executors *ResultExecutorRegistry) *endpointMappingProcessor {
 	if dataSource == nil {
 		panic("nil endpoint data source")
 	}
 
-	return &endpointMappingProcessor{dataSource: dataSource}
+	return &endpointMappingProcessor{dataSource: dataSource, executors: executors}
 }
 
 func (p *endpointMappingProcessor) ProcessAfterInit(ctx context.Context, name string, instance any) (any, error) {
@@ -257,8 +249,45 @@ func (p *endpointMappingProcessor) ProcessAfterInit(ctx context.Context, name st
 
 	group := newEndpointGroup("/")
 	configurer.ConfigureEndpoints(group)
-	p.dataSource.register(group)
+
+	if err := p.collect(group); err != nil {
+		return nil, fmt.Errorf("map endpoints for %q: %w", name, err)
+	}
 	return instance, nil
+}
+
+func (p *endpointMappingProcessor) collect(group *EndpointGroup) error {
+	for _, route := range group.routes {
+		if isNilResultValue(route.handler) {
+			return fmt.Errorf("nil handler for %s", route.path)
+		}
+		handler := route.handler
+		delegate := RequestDelegate(func(ctx *Context) error {
+			result, err := handler.Handle(ctx)
+			if err != nil {
+				return err
+			}
+			if isNilResultValue(result) {
+				return nil
+			}
+			executor, ok := p.executors.Resolve(result)
+			if !ok {
+				return fmt.Errorf("no result executor for %T", result)
+			}
+			return executor.Execute(ctx, result)
+		})
+		for _, method := range route.methods {
+			if err := p.dataSource.register(NewEndpoint(method, route.path, delegate)); err != nil {
+				return err
+			}
+		}
+	}
+	for _, child := range group.children {
+		if err := p.collect(child); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // joinPaths joins multiple path elements into a single path string,

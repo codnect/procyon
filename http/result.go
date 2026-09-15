@@ -435,6 +435,9 @@ func (s StreamResult) Value() any {
 
 func (s StreamResult) Header() Header {
 	h := s.Headers.Clone()
+	if h == nil {
+		h = make(Header)
+	}
 	h.Set("Content-Type", s.ContentType)
 	return h
 }

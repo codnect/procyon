@@ -14,6 +14,11 @@
 
 package http
 
+import (
+	"context"
+	"fmt"
+)
+
 // Dispatcher interface represents a dispatcher that can process
 // an HTTP request contained in the Context.
 type Dispatcher interface {
@@ -21,7 +26,32 @@ type Dispatcher interface {
 }
 
 type RequestDispatcher struct {
-	delegate RequestDelegate
+	delegate    RequestDelegate
+	dataSource  *endpointDataSource
+	middlewares []Middleware
+}
+
+// newRequestDispatcher defers pipeline construction until mapping is complete.
+func newRequestDispatcher(source *endpointDataSource, middlewares []Middleware) *RequestDispatcher {
+	return &RequestDispatcher{dataSource: source, middlewares: middlewares}
+}
+
+func (d *RequestDispatcher) SingletonsInitialized(ctx context.Context) error {
+	if d.delegate != nil {
+		return nil
+	}
+	d.dataSource.sealed = true
+	matcher, err := buildEndpointMatcher(d.dataSource)
+	if err != nil {
+		return err
+	}
+	for _, middleware := range d.middlewares {
+		if isNilResultValue(middleware) {
+			return fmt.Errorf("nil HTTP middleware")
+		}
+	}
+	d.delegate = buildPipeline(matcher, d.middlewares...)
+	return nil
 }
 
 // NewRequestDispatcher creates a new dispatcher by building
@@ -46,6 +76,9 @@ func NewRequestDispatcher(endpointMatcher EndpointMatcher, middlewares ...Middle
 
 // Dispatch executes the built pipeline for the given request context.
 func (d *RequestDispatcher) Dispatch(ctx *Context) error {
+	if d.delegate == nil {
+		return fmt.Errorf("HTTP dispatcher is not initialized")
+	}
 	return d.delegate(ctx)
 }
 

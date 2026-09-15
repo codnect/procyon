@@ -20,4 +20,8 @@ func init() {
 	component.Register(newServerProperties)
 	component.Register(newEndpointDataSource)
 	component.Register(newEndpointMappingProcessor)
+	component.Register(newResultExecutorRegistry)
+	component.Register(newRequestDispatcher)
+	component.Register(newServer)
+	component.Register(newServerLifecycle)
 }

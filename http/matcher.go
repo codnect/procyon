@@ -117,19 +117,27 @@ type radixEndpointMatcher struct {
 
 // NewEndpointMatcher creates a new empty radix-tree router.
 func NewEndpointMatcher(endpointDataSource EndpointDataSource) EndpointMatcher {
-	matcher := &radixEndpointMatcher{root: &radixNode{}}
-
-	if endpointDataSource == nil {
-		return matcher
+	matcher, err := buildEndpointMatcher(endpointDataSource)
+	if err != nil {
+		panic(err.Error())
 	}
+	return matcher
+}
 
-	for _, endpoint := range endpointDataSource.Endpoints() {
+func buildEndpointMatcher(source EndpointDataSource) (EndpointMatcher, error) {
+	matcher := &radixEndpointMatcher{root: &radixNode{}}
+	if source == nil {
+		return matcher, nil
+	}
+	for _, endpoint := range source.Endpoints() {
+		if endpoint == nil {
+			return nil, fmt.Errorf("nil endpoint")
+		}
 		if err := matcher.addEndpoint(endpoint); err != nil {
-			panic(fmt.Sprintf("failed to add endpoint %s %s: %v", endpoint.method, endpoint.path, err))
+			return nil, fmt.Errorf("failed to add endpoint %s %s: %w", endpoint.method, endpoint.path, err)
 		}
 	}
-
-	return matcher
+	return matcher, nil
 }
 
 // insertStatic inserts a static path fragment into the radix tree.
@@ -498,6 +506,9 @@ func (t *radixEndpointMatcher) Match(ctx *Context) (*Endpoint, bool) {
 	mi := methodIndex(request.Method())
 
 	request.pathValues.reset()
+	if mi < 0 {
+		return nil, false
+	}
 
 	node := t.match(t.root, path[1:], ctx, mi)
 
