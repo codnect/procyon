@@ -15,8 +15,8 @@
 package procyon
 
 import (
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/runtime/config"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/runtime/config"
 )
 
 func init() {

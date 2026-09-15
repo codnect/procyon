@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"io"
 
-	"codnect.io/procyon/runtime"
+	"go.codnect.io/procyon/runtime"
 )
 
 var (

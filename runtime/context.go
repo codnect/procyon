@@ -17,8 +17,8 @@ package runtime
 import (
 	"context"
 
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/io"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/io"
 )
 
 // Context represents the central runtime context of the application.

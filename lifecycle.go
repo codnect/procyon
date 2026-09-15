@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/runtime"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/runtime"
 )
 
 // defaultLifecycleManager is the default implementation of LifecycleManager. It manages the lifecycle of components

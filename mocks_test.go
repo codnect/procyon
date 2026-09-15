@@ -19,9 +19,9 @@ import (
 	"context"
 	stdio "io"
 
-	"codnect.io/procyon/io"
-	"codnect.io/procyon/runtime"
 	"github.com/stretchr/testify/mock"
+	"go.codnect.io/procyon/io"
+	"go.codnect.io/procyon/runtime"
 )
 
 type AnyComponent struct {
@@ -187,7 +187,7 @@ type AnyMockCommandLineRunner struct {
 	mock.Mock
 }
 
-func newAnyMockCommandLinerRunner(anyComponent AnyComponent) *AnyMockCommandLineRunner {
+func newAnyMockCommandLinerRunner(_ AnyComponent) *AnyMockCommandLineRunner {
 	return &AnyMockCommandLineRunner{}
 }
 

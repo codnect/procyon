@@ -14,7 +14,7 @@
 
 package http
 
-import "codnect.io/procyon/component"
+import "go.codnect.io/procyon/component"
 
 func init() {
 	component.Register(newServerProperties)

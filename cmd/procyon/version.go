@@ -15,9 +15,10 @@
 package main
 
 import (
-	"codnect.io/procyon"
 	"fmt"
+
 	"github.com/spf13/cobra"
+	"go.codnect.io/procyon"
 )
 
 // versionCmd represents the command to print the current Procyon framework version.
