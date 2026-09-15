@@ -110,31 +110,39 @@ func (n *radixNode) findChild(b byte) (*radixNode, bool) {
 	return nil, false
 }
 
-// RequestEndpointMatcher is a router implementation based on a radix tree.
-type RequestEndpointMatcher struct {
+// radixEndpointMatcher is a router implementation based on a radix tree.
+type radixEndpointMatcher struct {
 	root *radixNode
 }
 
-// NewRequestEndpointMatcher creates a new empty radix-tree router.
-func NewRequestEndpointMatcher(endpointDataSource EndpointDataSource) *RequestEndpointMatcher {
-	matcher := &RequestEndpointMatcher{root: &radixNode{}}
-
-	if endpointDataSource == nil {
-		return matcher
+// NewEndpointMatcher creates a new empty radix-tree router.
+func NewEndpointMatcher(endpointDataSource EndpointDataSource) EndpointMatcher {
+	matcher, err := buildEndpointMatcher(endpointDataSource)
+	if err != nil {
+		panic(err.Error())
 	}
+	return matcher
+}
 
-	for _, endpoint := range endpointDataSource.Endpoints() {
+func buildEndpointMatcher(source EndpointDataSource) (EndpointMatcher, error) {
+	matcher := &radixEndpointMatcher{root: &radixNode{}}
+	if source == nil {
+		return matcher, nil
+	}
+	for _, endpoint := range source.Endpoints() {
+		if endpoint == nil {
+			return nil, fmt.Errorf("nil endpoint")
+		}
 		if err := matcher.addEndpoint(endpoint); err != nil {
-			panic(fmt.Sprintf("failed to add endpoint %s %s: %v", endpoint.method, endpoint.path, err))
+			return nil, fmt.Errorf("failed to add endpoint %s %s: %w", endpoint.method, endpoint.path, err)
 		}
 	}
-
-	return matcher
+	return matcher, nil
 }
 
 // insertStatic inserts a static path fragment into the radix tree.
 // The function performs prefix compression and splits nodes when necessary.
-func (t *RequestEndpointMatcher) insertStatic(n *radixNode, path string) *radixNode {
+func (t *radixEndpointMatcher) insertStatic(n *radixNode, path string) *radixNode {
 
 	for {
 		if len(path) == 0 {
@@ -193,7 +201,7 @@ func (t *RequestEndpointMatcher) insertStatic(n *radixNode, path string) *radixN
 }
 
 // addEndpoint registers a new endpoint into the radix tree.
-func (t *RequestEndpointMatcher) addEndpoint(endpoint *Endpoint) error {
+func (t *radixEndpointMatcher) addEndpoint(endpoint *Endpoint) error {
 	if methodIndex(endpoint.method) < 0 {
 		return fmt.Errorf("unsupported HTTP method: %s", endpoint.method)
 	}
@@ -327,7 +335,7 @@ func (t *RequestEndpointMatcher) addEndpoint(endpoint *Endpoint) error {
 }
 
 // match recursively matches the request path against the radix tree.
-func (t *RequestEndpointMatcher) match(n *radixNode, path string, ctx *Context, mi int) *radixNode {
+func (t *radixEndpointMatcher) match(n *radixNode, path string, ctx *Context, mi int) *radixNode {
 	request := ctx.Request()
 
 	for {
@@ -482,7 +490,7 @@ func (t *RequestEndpointMatcher) match(n *radixNode, path string, ctx *Context, 
 }
 
 // Match resolves the incoming request to a registered endpoint.
-func (t *RequestEndpointMatcher) Match(ctx *Context) (*Endpoint, bool) {
+func (t *radixEndpointMatcher) Match(ctx *Context) (*Endpoint, bool) {
 	request := ctx.Request()
 	path := request.Path()
 
@@ -498,6 +506,9 @@ func (t *RequestEndpointMatcher) Match(ctx *Context) (*Endpoint, bool) {
 	mi := methodIndex(request.Method())
 
 	request.pathValues.reset()
+	if mi < 0 {
+		return nil, false
+	}
 
 	node := t.match(t.root, path[1:], ctx, mi)
 

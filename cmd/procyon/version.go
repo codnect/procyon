@@ -15,8 +15,9 @@
 package main
 
 import (
-	"codnect.io/procyon"
 	"fmt"
+
+	"codnect.io/procyon"
 	"github.com/spf13/cobra"
 )
 

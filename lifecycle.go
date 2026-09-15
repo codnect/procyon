@@ -16,6 +16,7 @@ package procyon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -41,6 +42,7 @@ type defaultLifecycleManager struct {
 func newDefaultLifecycleManager(container component.Container) *defaultLifecycleManager {
 	return &defaultLifecycleManager{
 		container:        container,
+		shutdownTimeout:  30 * time.Second,
 		lifecycleObjects: make(map[string]runtime.Lifecycle),
 	}
 }
@@ -65,10 +67,18 @@ func (d *defaultLifecycleManager) Startup(ctx context.Context) error {
 		d.lifecycleObjects[definition.Name()] = lifecycleObj.(runtime.Lifecycle)
 	}
 
+	started := make([]runtime.Lifecycle, 0, len(d.lifecycleObjects))
 	for objectName, lifecycle := range d.lifecycleObjects {
 		if err := lifecycle.Start(ctx); err != nil {
-			return fmt.Errorf("start lifecycle component %q: %w", objectName, err)
+			startupErr := fmt.Errorf("start lifecycle component %q: %w", objectName, err)
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), d.shutdownTimeout)
+			defer cancel()
+			for i := len(started) - 1; i >= 0; i-- {
+				startupErr = errors.Join(startupErr, started[i].Stop(shutdownCtx))
+			}
+			return startupErr
 		}
+		started = append(started, lifecycle)
 
 		log.Debug("Started lifecycle component '{}'", objectName)
 	}

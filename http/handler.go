@@ -14,6 +14,18 @@
 
 package http
 
+import "context"
+
+type handlerContext[T any] interface {
+	*T
+	context.Context
+
+	SetValue(key, value any)
+	Request() *ServerRequest
+	Response() *ServerResponse
+	private()
+}
+
 // Handler represents an HTTP request handler that processes
 // an incoming request and returns a Result or an error.
 type Handler interface {
@@ -29,18 +41,15 @@ func (f HandlerFunc) Handle(ctx *Context) (Result, error) {
 	return f(ctx)
 }
 
-// typedHandler wraps a function that takes a typed context and returns only an error.
+// handlerAdapter wraps a function that takes a typed context and returns only an error.
 // Used internally when the handler doesn't need to return a Result.
-type typedHandler[T any, C interface {
-	*T
-	serverContext
-}] struct {
+type handlerAdapter[T any, C handlerContext[T]] struct {
 	fn func(C) error
 }
 
 // Handle creates a typed context, binds the base Context to it,
 // and executes the handler function.
-func (h *typedHandler[T, C]) Handle(ctx *Context) (Result, error) {
+func (h *handlerAdapter[T, C]) Handle(ctx *Context) (Result, error) {
 	endpointCtx := C(new(T))
 	if provider, ok := any(endpointCtx).(interface{ setContext(*Context) }); ok {
 		provider.setContext(ctx)
@@ -48,18 +57,15 @@ func (h *typedHandler[T, C]) Handle(ctx *Context) (Result, error) {
 	return nil, h.fn(endpointCtx)
 }
 
-// typedResultHandler wraps a function that takes a typed context and returns a Result.
+// handlerResultAdapter wraps a function that takes a typed context and returns a Result.
 // Used internally for handlers that return structured responses.
-type typedResultHandler[T any, C interface {
-	*T
-	serverContext
-}, R Result] struct {
+type handlerResultAdapter[T any, C handlerContext[T], R Result] struct {
 	fn func(C) (R, error)
 }
 
 // Handle creates a typed context, binds the base Context to it,
 // and executes the handler function, returning the Result.
-func (h *typedResultHandler[T, C, R]) Handle(ctx *Context) (Result, error) {
+func (h *handlerResultAdapter[T, C, R]) Handle(ctx *Context) (Result, error) {
 	endpointCtx := C(new(T))
 	if provider, ok := any(endpointCtx).(interface{ setContext(*Context) }); ok {
 		provider.setContext(ctx)
@@ -69,28 +75,24 @@ func (h *typedResultHandler[T, C, R]) Handle(ctx *Context) (Result, error) {
 
 // Handle creates a Handler from a function that returns only an error.
 // Type parameters are inferred from the function signature.
-func Handle[T any, C interface {
-	*T
-	serverContext
-}](fn func(C) error) Handler {
+func Handle[T any, C handlerContext[T]](fn func(C) error) Handler {
+
 	if _, ok := any((*T)(nil)).(*Context); ok {
 		return HandlerFunc(func(ctx *Context) (Result, error) {
 			return nil, fn(any(ctx).(C))
 		})
 	}
-	return &typedHandler[T, C]{fn: fn}
+	return &handlerAdapter[T, C]{fn: fn}
 }
 
 // HandleResult creates a Handler from a function that returns a Result.
 // Type parameters are inferred from the function signature.
-func HandleResult[T any, C interface {
-	*T
-	serverContext
-}, R Result](fn func(C) (R, error)) Handler {
+func HandleResult[T any, C handlerContext[T], R Result](fn func(C) (R, error)) Handler {
 	if _, ok := any((*T)(nil)).(*Context); ok {
 		return HandlerFunc(func(ctx *Context) (Result, error) {
 			return fn(any(ctx).(C))
 		})
 	}
-	return &typedResultHandler[T, C, R]{fn: fn}
+
+	return &handlerResultAdapter[T, C, R]{fn: fn}
 }

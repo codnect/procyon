@@ -15,18 +15,10 @@
 package http
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"time"
 )
-
-type serverContext interface {
-	context.Context
-	SetValue(key, value any)
-	Request() *ServerRequest
-	Response() *ServerResponse
-}
 
 // Context represents the context for an HTTP request and response.
 type Context struct {
@@ -117,6 +109,13 @@ func (c *Context) SetEndpoint(endpoint *Endpoint) {
 // reset clears the context state and assigns a new HTTP request and response writer.
 func (c *Context) reset(r *http.Request, w http.ResponseWriter) {
 	c.err = nil
+	c.endpoint = nil
+	c.req.ctx = c
+	c.res.ctx = c
+	c.req.pathValues.reset()
+	if c.res.headers == nil {
+		c.res.headers = make(Header)
+	}
 	clear(c.values)
 
 	c.req.nativeReq = r
@@ -128,6 +127,10 @@ func (c *Context) reset(r *http.Request, w http.ResponseWriter) {
 	c.res.writtenHeaders = false
 	c.res.writerUsed = false
 	clear(c.res.headers)
+}
+
+func (c *Context) private() {
+
 }
 
 // EndpointContext represents a typed context for an HTTP endpoint handler.
@@ -189,4 +192,8 @@ func (e *EndpointContext[I]) NativeContext() *Context {
 // setContext sets the underlying base Context.
 func (e *EndpointContext[I]) setContext(ctx *Context) {
 	e.ctx = ctx
+}
+
+func (e *EndpointContext[I]) private() {
+
 }
