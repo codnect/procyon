@@ -14,6 +14,8 @@
 
 package component
 
+import "context"
+
 // SingletonRegistry defines methods for managing singleton instances within the component system.
 type SingletonRegistry interface {
 	// RegisterSingleton registers a singleton instance with the given name.
@@ -35,4 +37,10 @@ type SingletonRegistry interface {
 
 	// SingletonNames returns a slice of all registered singleton names.
 	SingletonNames() []string
+}
+
+// AfterSingleton is called once after singleton initialization, before lifecycle
+// startup.
+type AfterSingleton interface {
+	SingletonsInitialized(ctx context.Context) error
 }

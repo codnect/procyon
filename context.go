@@ -269,6 +269,10 @@ func (c *Context) doRefresh(ctx context.Context) (err error) {
 		return err
 	}
 
+	if err = c.invokeAfterSingletons(ctx); err != nil {
+		return err
+	}
+
 	if err = c.resolveLifecycleManager(ctx); err != nil {
 		return err
 	}
@@ -523,6 +527,27 @@ func (c *Context) initializeSingletons(ctx context.Context) error {
 
 		if err != nil {
 			return fmt.Errorf("initialize singleton %q: %w", definition.Name(), err)
+		}
+	}
+
+	return nil
+}
+
+// invokeAfterSingletons invokes completion callbacks on singleton components
+// whose definitions implement AfterSingleton.
+func (c *Context) invokeAfterSingletons(ctx context.Context) error {
+	afterSingletonType := reflect.TypeFor[component.AfterSingleton]()
+
+	for _, definition := range c.container.DefinitionsOf(afterSingletonType) {
+		name := definition.Name()
+		instance, err := c.container.Resolve(ctx, name)
+		if err != nil {
+			return fmt.Errorf("resolve after-singleton %q: %w", name, err)
+		}
+
+		afterSingleton := instance.(component.AfterSingleton)
+		if err = afterSingleton.SingletonsInitialized(ctx); err != nil {
+			return fmt.Errorf("invoke after-singleton %q: %w", name, err)
 		}
 	}
 
