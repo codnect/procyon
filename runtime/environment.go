@@ -18,7 +18,7 @@ import (
 	"os"
 	"strings"
 
-	"codnect.io/procyon/runtime/config"
+	"go.codnect.io/procyon/runtime/config"
 )
 
 // Environment interface represents the application environment.

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	stdio "io"
 
-	"codnect.io/procyon/io"
+	"go.codnect.io/procyon/io"
 	"gopkg.in/yaml.v3"
 )
 

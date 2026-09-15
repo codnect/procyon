@@ -20,12 +20,12 @@ import (
 	"io/fs"
 	"testing"
 
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/runtime"
-	"codnect.io/procyon/runtime/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/runtime"
+	"go.codnect.io/procyon/runtime/config"
 )
 
 type FakeFile struct {

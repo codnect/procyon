@@ -19,10 +19,10 @@ import (
 	"errors"
 	"testing"
 
-	"codnect.io/procyon/io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.codnect.io/procyon/io"
 )
 
 type AnyResourceResolver struct {

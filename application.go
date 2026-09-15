@@ -24,9 +24,9 @@ import (
 	"syscall"
 	"time"
 
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/io"
-	"codnect.io/procyon/runtime"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/io"
+	"go.codnect.io/procyon/runtime"
 )
 
 const (

@@ -23,7 +23,7 @@ import (
 	"slices"
 	"strings"
 
-	"codnect.io/procyon/io"
+	"go.codnect.io/procyon/io"
 )
 
 const (

@@ -23,9 +23,9 @@ import (
 	"strings"
 	"sync"
 
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/runtime"
-	"codnect.io/procyon/runtime/config"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/runtime"
+	"go.codnect.io/procyon/runtime/config"
 )
 
 const (

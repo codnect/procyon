@@ -17,9 +17,9 @@ package procyon
 import (
 	"context"
 
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/runtime"
-	"codnect.io/procyon/runtime/config"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/runtime"
+	"go.codnect.io/procyon/runtime/config"
 )
 
 // Compile-time check that configPropertiesProcessor implements component.AfterInitProcessor.

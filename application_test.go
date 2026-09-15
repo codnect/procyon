@@ -21,12 +21,12 @@ import (
 	"testing"
 	"time"
 
-	"codnect.io/procyon/component"
-	"codnect.io/procyon/io"
-	"codnect.io/procyon/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.codnect.io/procyon/component"
+	"go.codnect.io/procyon/io"
+	"go.codnect.io/procyon/runtime"
 )
 
 func TestNew(t *testing.T) {

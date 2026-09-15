@@ -15,7 +15,7 @@
 package runtime
 
 import (
-	"codnect.io/procyon/io"
+	"go.codnect.io/procyon/io"
 )
 
 // Application defines the interface for an application.

@@ -1,4 +1,4 @@
-module codnect.io/procyon
+module go.codnect.io/procyon
 
 go 1.24.0
 
