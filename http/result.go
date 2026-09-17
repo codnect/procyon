@@ -16,12 +16,18 @@ package http
 
 // Result represents an HTTP response produced by a handler.
 type Result interface {
-	// StatusCode returns the HTTP status code of the response.
-	StatusCode() Status
-	// BodyValue returns the body value of the response.
-	BodyValue() any
+	// Status returns the HTTP status of the response.
+	Status() Status
 	// Header returns the HTTP headers of the response.
 	Header() Header
+}
+
+// ValueResult represents an HTTP result that carries a response value.
+type ValueResult interface {
+	Result
+
+	// Value returns the value carried by the response.
+	Value() any
 }
 
 // TypedResult represents a typed HTTP response with a generic body type.
