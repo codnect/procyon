@@ -120,6 +120,16 @@ func TestMakeDefinition(t *testing.T) {
 			wantErr:   errors.New("constructor has no parameter of type string"),
 		},
 		{
+			name: "with qualifier for ambiguous type",
+			constructorFn: func(first AnySimpleComponent, second AnySimpleComponent) *AnyDependentComponent {
+				return &AnyDependentComponent{}
+			},
+			opts: []DefinitionOption{
+				WithQualifierFor[AnySimpleComponent]("anyQualifier"),
+			},
+			wantErr: errors.New("constructor has multiple parameters of type component.AnySimpleComponent"),
+		},
+		{
 
 			name:          "with metadata",
 			constructorFn: NewAnyPointerComponent,

@@ -189,22 +189,29 @@ func AsPrototype() DefinitionOption {
 
 // WithQualifierFor sets a named qualifier for the constructor argument that matches the given type T.
 func WithQualifierFor[T any](name string) DefinitionOption {
+
 	return func(def *Definition) error {
 		typ := reflect.TypeFor[T]()
 		objectConstructor := def.constructor
+		matchIndex := -1
 
-		exists := false
 		for index, arg := range objectConstructor.Args() {
-			if arg.Type() == typ {
-				objectConstructor.args[index].name = name
-				exists = true
+			if arg.Type() != typ {
+				continue
 			}
+
+			if matchIndex != -1 {
+				return fmt.Errorf("constructor has multiple parameters of type %v", typ)
+			}
+
+			matchIndex = index
 		}
 
-		if !exists {
+		if matchIndex == -1 {
 			return fmt.Errorf("constructor has no parameter of type %v", typ)
 		}
 
+		objectConstructor.args[matchIndex].name = name
 		return nil
 	}
 }
