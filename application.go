@@ -68,6 +68,12 @@ func New() *Application {
 	}
 }
 
+// Run creates an application with the default configuration and starts it
+// with the given command-line arguments.
+func Run(args ...string) error {
+	return New().Run(args...)
+}
+
 // SetBannerPrinter sets the banner printer to be used by the application to print the banner at startup.
 func (a *Application) SetBannerPrinter(printer runtime.BannerPrinter) {
 	if printer == nil {
