@@ -14,14 +14,14 @@
 
 package runtime
 
-import "context"
+import (
+	"context"
+)
 
-// Server interface represents a server with start and stop capabilities.
+// Server represents a server managed by the application runtime.
 type Server interface {
 	// Start method starts the server.
 	Start(ctx context.Context) error
-	// Stop method stops the server.
-	Stop(ctx context.Context) error
-	// Port method returns the port the server is running on.
-	Port() int
+	// Shutdown method shuts down the server.
+	Shutdown(ctx context.Context) error
 }
