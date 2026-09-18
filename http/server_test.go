@@ -46,12 +46,12 @@ func TestNewServer(t *testing.T) {
 			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					NewServer(ServerProperties{}, tc.dispatcher)
+					NewDefaultServer(ServerProperties{}, tc.dispatcher)
 				})
 				return
 			}
 
-			server := NewServer(ServerProperties{}, tc.dispatcher)
+			server := NewDefaultServer(ServerProperties{}, tc.dispatcher)
 
 			// then
 			require.NotNil(t, server)
@@ -75,7 +75,7 @@ func TestServer_Port(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			server := NewServer(tc.props, &RequestDispatcher{})
+			server := NewDefaultServer(tc.props, &RequestDispatcher{})
 
 			// when
 			port := server.Port()
