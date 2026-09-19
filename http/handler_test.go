@@ -21,24 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type AnyResult struct {
-	Status  Status
-	Body    any
-	Headers Header
-}
-
-func (a *AnyResult) StatusCode() Status {
-	return a.Status
-}
-
-func (a *AnyResult) BodyValue() any {
-	return a.Body
-}
-
-func (a *AnyResult) Header() Header {
-	return a.Headers
-}
-
 func TestHandlerFunc_Handle(t *testing.T) {
 	anyResult := &AnyResult{}
 
