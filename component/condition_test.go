@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,130 +27,8 @@ type AnyCondition struct {
 	matches bool
 }
 
-func (a AnyCondition) Matches(ctx ConditionContext) bool {
+func (a AnyCondition) Matches(ctx context.Context, container Container) bool {
 	return a.matches
-}
-
-func TestNewConditionContext(t *testing.T) {
-	testCases := []struct {
-		name      string
-		ctx       context.Context
-		container Container
-		wantPanic error
-	}{
-		{
-			name:      "nil context",
-			ctx:       nil,
-			container: NewStandardContainer(),
-			wantPanic: errors.New("nil context"),
-		},
-		{
-			name:      "nil container",
-			ctx:       context.Background(),
-			container: nil,
-			wantPanic: errors.New("nil container"),
-		},
-		{
-			name:      "valid context and container",
-			ctx:       context.Background(),
-			container: NewStandardContainer(),
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// given
-
-			// when
-			if tc.wantPanic != nil {
-				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					newConditionContext(tc.ctx, tc.container)
-				})
-				return
-			}
-
-			condCtx := newConditionContext(tc.ctx, tc.container)
-
-			// then
-			require.NotNil(t, condCtx)
-		})
-	}
-}
-
-func TestConditionContext_Container(t *testing.T) {
-	// given
-	ctx := context.Background()
-	container := NewStandardContainer()
-	conditionCtx := newConditionContext(ctx, container)
-
-	// when
-	result := conditionCtx.Container()
-
-	// then
-	assert.Equal(t, container, result)
-}
-
-func TestConditionContext_Err(t *testing.T) {
-	// given
-	ctx, cancelFn := context.WithCancel(context.Background())
-
-	// cancel context
-	cancelFn()
-
-	container := NewStandardContainer()
-	conditionCtx := newConditionContext(ctx, container)
-
-	// when
-	err := conditionCtx.Err()
-
-	// then
-	assert.Equal(t, context.Canceled, err)
-}
-
-func TestConditionContext_Value(t *testing.T) {
-	// given
-	ctx := context.WithValue(context.Background(), "anyKey", "anyValue")
-	container := NewStandardContainer()
-	conditionCtx := newConditionContext(ctx, container)
-
-	// when
-	result := conditionCtx.Value("anyKey")
-
-	// then
-	assert.Equal(t, "anyValue", result)
-}
-
-func TestConditionContext_Done(t *testing.T) {
-	// given
-	ctx, cancelFn := context.WithCancel(context.Background())
-
-	// cancel context
-	cancelFn()
-
-	container := NewStandardContainer()
-	conditionCtx := newConditionContext(ctx, container)
-
-	// when
-	<-conditionCtx.Done()
-
-	// then
-	assert.Equal(t, context.Canceled, ctx.Err())
-}
-
-func TestConditionContext_Deadline(t *testing.T) {
-	// given
-	deadline := time.Now()
-	ctx, _ := context.WithDeadline(context.Background(), deadline)
-
-	container := NewStandardContainer()
-	conditionCtx := newConditionContext(ctx, container)
-
-	// when
-	result, ok := conditionCtx.Deadline()
-
-	// then
-	assert.True(t, ok)
-	assert.Equal(t, deadline, result)
 }
 
 func TestNewConditionEvaluator(t *testing.T) {

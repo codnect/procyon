@@ -71,9 +71,9 @@ type Registration struct {
 	component *Component
 }
 
-// Conditional attaches a runtime condition to the component.
+// WithCondition attaches a runtime condition to the component.
 // The condition is evaluated before the component is loaded into the container.
-func (r *Registration) Conditional(cond Condition) *Registration {
+func (r *Registration) WithCondition(cond Condition) *Registration {
 	r.component.attachCondition(cond)
 	return r
 }

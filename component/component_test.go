@@ -180,7 +180,7 @@ func TestRegister(t *testing.T) {
 
 			// Apply conditions if any
 			for _, cond := range tc.conditions {
-				reg.Conditional(cond)
+				reg.WithCondition(cond)
 			}
 
 			// then
@@ -269,7 +269,7 @@ func TestList(t *testing.T) {
 	clear(components)
 
 	// given
-	Register(NewAnySimpleComponent).Conditional(AnyCondition{})
+	Register(NewAnySimpleComponent).WithCondition(AnyCondition{})
 
 	// when
 	componentList := List()
@@ -292,8 +292,8 @@ func TestList_MultipleComponent(t *testing.T) {
 	clear(components)
 
 	// given
-	Register(NewAnySimpleComponent).Conditional(AnyCondition{})
-	Register(NewAnyPointerComponent).Conditional(nil)
+	Register(NewAnySimpleComponent).WithCondition(AnyCondition{})
+	Register(NewAnyPointerComponent).WithCondition(nil)
 
 	// when
 	componentList := List()
