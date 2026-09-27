@@ -20,9 +20,9 @@ import (
 	"testing"
 )
 
-func TestRadixTreeMatcher_Match(t *testing.T) {
+func TestDefaultEndpointMatcher_Match(t *testing.T) {
 	t.Run("static routes", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -160,7 +160,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("param routes", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -224,7 +224,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("wildcard routes", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -271,7 +271,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("double wildcard routes", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -346,7 +346,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("pattern routes", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -420,7 +420,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("priority: static > pattern > param > wildcard > double wildcard", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -488,7 +488,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("backtracking", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -556,7 +556,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("multiple methods same path", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -633,7 +633,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("mixed route types in same tree", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -807,7 +807,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 	})
 
 	t.Run("normalization", func(t *testing.T) {
-		tree := NewRequestEndpointMatcher(nil)
+		tree := NewDefaultEndpointMatcher(nil)
 
 		endpoints := []struct {
 			method string
@@ -882,7 +882,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 			for _, e := range endpoints {
 				t.Run(e.name, func(t *testing.T) {
-					tree := NewRequestEndpointMatcher(nil)
+					tree := NewDefaultEndpointMatcher(nil)
 					err := tree.addEndpoint(&Endpoint{"GET", e.path, nil})
 					if err == nil {
 						t.Errorf("expected error for path %q", e.path)
@@ -906,7 +906,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 			for _, e := range endpoints {
 				t.Run(e.name, func(t *testing.T) {
-					tree := NewRequestEndpointMatcher(nil)
+					tree := NewDefaultEndpointMatcher(nil)
 					err := tree.addEndpoint(&Endpoint{"GET", e.path, nil})
 					if err != nil {
 						t.Errorf("unexpected error for path %q: %v", e.path, err)
@@ -928,7 +928,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 			for _, e := range endpoints {
 				t.Run(e.name, func(t *testing.T) {
-					tree := NewRequestEndpointMatcher(nil)
+					tree := NewDefaultEndpointMatcher(nil)
 					_ = tree.addEndpoint(&Endpoint{Method(e.method), e.path, nil})
 					err := tree.addEndpoint(&Endpoint{Method(e.method), e.path, nil})
 					if err == nil {
@@ -939,7 +939,7 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 		})
 
 		t.Run("different method same path is ok", func(t *testing.T) {
-			tree := NewRequestEndpointMatcher(nil)
+			tree := NewDefaultEndpointMatcher(nil)
 
 			endpoints := []struct {
 				method string
@@ -968,8 +968,8 @@ func TestRadixTreeMatcher_Match(t *testing.T) {
 
 }
 
-func BenchmarkRadixTreeMatcher_Match(b *testing.B) {
-	tree := NewRequestEndpointMatcher(nil)
+func BenchmarkDefaultEndpointMatcher_Match(b *testing.B) {
+	tree := NewDefaultEndpointMatcher(nil)
 
 	endpoints := []struct {
 		method string
