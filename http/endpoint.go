@@ -119,10 +119,10 @@ type Endpoints interface {
 	MapGroup(prefix string) *EndpointGroup
 }
 
-// EndpointConfigurer interface represents a type that can configure HTTP routes.
-type EndpointConfigurer interface {
-	// ConfigureEndpoints method configures the given routes.
-	ConfigureEndpoints(endpoints Endpoints)
+// EndpointMapper represents a type that can map HTTP endpoints.
+type EndpointMapper interface {
+	// MapEndpoints maps HTTP endpoints to the given endpoint collection.
+	MapEndpoints(endpoints Endpoints)
 }
 
 // EndpointBuilder represents a route definition bound to a path,
