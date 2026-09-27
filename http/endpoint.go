@@ -63,21 +63,25 @@ func (e Endpoint) RequestDelegate() RequestDelegate {
 	return e.delegate
 }
 
-// EndpointDataSource provides a collection of endpoint definitions.
-type EndpointDataSource interface {
-	// Endpoints returns all available endpoint definitions.
+// EndpointSource provides access to endpoint definitions.
+type EndpointSource interface {
+	// Endpoints returns the available endpoint definitions.
 	Endpoints() []*Endpoint
 }
 
-type endpointDataSource struct {
+// DefaultEndpointSource is the default implementation of EndpointSource.
+type DefaultEndpointSource struct {
 	endpoints []*Endpoint
 }
 
-func NewEndpointDataSource(endpoints ...*Endpoint) EndpointDataSource {
-	return &endpointDataSource{endpoints: endpoints}
+// NewDefaultEndpointSource creates a new DefaultEndpointSource containing the
+// given endpoints.
+func NewDefaultEndpointSource(endpoints ...*Endpoint) EndpointSource {
+	return &DefaultEndpointSource{endpoints: endpoints}
 }
 
-func (s *endpointDataSource) Endpoints() []*Endpoint {
+// Endpoints returns the available endpoint definitions.
+func (s *DefaultEndpointSource) Endpoints() []*Endpoint {
 	return s.endpoints
 }
 

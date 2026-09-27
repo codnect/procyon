@@ -116,16 +116,16 @@ type DefaultEndpointMatcher struct {
 }
 
 // NewDefaultEndpointMatcher creates a new DefaultEndpointMatcher from the
-// provided endpoint data source.
-func NewDefaultEndpointMatcher(endpointDataSource EndpointDataSource) *DefaultEndpointMatcher {
-	matcher, err := buildEndpointMatcher(endpointDataSource)
+// provided endpoint source.
+func NewDefaultEndpointMatcher(endpointSource EndpointSource) *DefaultEndpointMatcher {
+	matcher, err := buildEndpointMatcher(endpointSource)
 	if err != nil {
 		panic(err.Error())
 	}
 	return matcher
 }
 
-func buildEndpointMatcher(source EndpointDataSource) (*DefaultEndpointMatcher, error) {
+func buildEndpointMatcher(source EndpointSource) (*DefaultEndpointMatcher, error) {
 	matcher := &DefaultEndpointMatcher{root: &radixNode{}}
 	if source == nil {
 		return matcher, nil
