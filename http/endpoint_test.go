@@ -107,16 +107,16 @@ func TestEndpoint_RequestDelegate(t *testing.T) {
 	assert.NotNil(t, requestDelegate)
 }
 
-func TestEndpointDataSource_Endpoints(t *testing.T) {
+func TestEndpointSource_Endpoints(t *testing.T) {
 	// given
 	endpoint := NewEndpoint(MethodGet, "/test", func(ctx *Context) error {
 		return nil
 	})
 
-	reqEndpointDataSource := NewEndpointDataSource(endpoint)
+	endpointSource := NewDefaultEndpointSource(endpoint)
 
 	// when
-	endpoints := reqEndpointDataSource.Endpoints()
+	endpoints := endpointSource.Endpoints()
 
 	// then
 	assert.Len(t, endpoints, 1)
