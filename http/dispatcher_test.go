@@ -46,7 +46,7 @@ func TestNewRequestDispatcher(t *testing.T) {
 		},
 		{
 			name:            "valid endpoint matcher",
-			endpointMatcher: NewRequestEndpointMatcher(nil),
+			endpointMatcher: NewDefaultEndpointMatcher(nil),
 		},
 	}
 
