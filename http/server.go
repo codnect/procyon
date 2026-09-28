@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"codnect.io/logy"
 	"go.codnect.io/procyon/runtime"
@@ -164,4 +165,48 @@ func (s *DefaultServer) serve(listener net.Listener) {
 		!errors.Is(err, http.ErrServerClosed) {
 		log.Error("HTTP server stopped unexpectedly: {}", err)
 	}
+}
+
+// serverLifecycle manages the lifecycle state of an HTTP server.
+type serverLifecycle struct {
+	server  Server
+	running atomic.Bool
+}
+
+// newServerLifecycle creates a new serverLifecycle for the given server.
+func newServerLifecycle(server Server) *serverLifecycle {
+	if server == nil {
+		panic("nil server")
+	}
+
+	return &serverLifecycle{
+		server: server,
+	}
+}
+
+// Start starts the server and marks the lifecycle as running when the server
+// starts successfully.
+func (s *serverLifecycle) Start(ctx context.Context) error {
+	if err := s.server.Start(ctx); err != nil {
+		return err
+	}
+
+	s.running.Store(true)
+	return nil
+}
+
+// Stop stops the server and marks the lifecycle as stopped when the server
+// stops successfully.
+func (s *serverLifecycle) Stop(ctx context.Context) error {
+	if err := s.server.Shutdown(ctx); err != nil {
+		return err
+	}
+
+	s.running.Store(false)
+	return nil
+}
+
+// IsRunning reports whether the server is running.
+func (s *serverLifecycle) IsRunning() bool {
+	return s.running.Load()
 }
