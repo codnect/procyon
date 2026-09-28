@@ -15,27 +15,138 @@
 package http
 
 import (
+	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewServer(t *testing.T) {
+func TestNewServerProperties(t *testing.T) {
+	// given
+
+	// when
+	props := newServerProperties()
+
+	// then
+	require.NotNil(t, props)
+}
+
+func TestServerProperties_Prefix(t *testing.T) {
+	// given
+	props := newServerProperties()
+
+	// when
+	prefix := props.Prefix()
+
+	// then
+	assert.Equal(t, "server", prefix)
+
+}
+
+func TestNewServerAdapter(t *testing.T) {
 	testCases := []struct {
 		name       string
 		dispatcher Dispatcher
 		wantPanic  error
 	}{
 		{
+			name:      "nil dispatcher",
+			wantPanic: errors.New("nil dispatcher"),
+		},
+		{
+			name:       "valid dispatcher",
+			dispatcher: &AnyDispatcher{},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			// when
+			if tc.wantPanic != nil {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
+					newServerAdapter(tc.dispatcher)
+				})
+				return
+			}
+			adapter := newServerAdapter(tc.dispatcher)
+			// then
+			require.NotNil(t, adapter)
+		})
+	}
+}
+
+func TestServerAdapter_ServeHTTP(t *testing.T) {
+	testCases := []struct {
+		name         string
+		preCondition func(dispatcher *AnyDispatcher)
+	}{
+		{
+			name: "successfully dispatch",
+			preCondition: func(dispatcher *AnyDispatcher) {
+				dispatcher.
+					On("Dispatch", mock.AnythingOfType("*http.Context")).
+					Return(nil)
+			},
+		},
+		{
+			name: "dispatch error",
+			preCondition: func(dispatcher *AnyDispatcher) {
+				dispatcher.
+					On("Dispatch", mock.AnythingOfType("*http.Context")).
+					Return(errors.New("dispatch error"))
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			dispatcher := &AnyDispatcher{}
+
+			if tc.preCondition != nil {
+				tc.preCondition(dispatcher)
+			}
+
+			adapter := newServerAdapter(dispatcher)
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			res := httptest.NewRecorder()
+
+			// when
+			adapter.ServeHTTP(res, req)
+
+			// then
+			dispatcher.AssertExpectations(t)
+		})
+	}
+}
+
+func TestNewDefaultServer(t *testing.T) {
+	testCases := []struct {
+		name       string
+		properties *ServerProperties
+		dispatcher Dispatcher
+		wantPanic  error
+	}{
+		{
+			name:       "nil server properties",
+			properties: nil,
+			wantPanic:  errors.New("nil server properties"),
+		},
+		{
 			name:       "nil dispatcher",
+			properties: &ServerProperties{},
 			dispatcher: nil,
 			wantPanic:  errors.New("nil dispatcher"),
 		},
 		{
-			name:       "valid dispatcher",
-			dispatcher: &RequestDispatcher{},
+			name:       "valid properties and dispatcher",
+			properties: &ServerProperties{},
+			dispatcher: &DefaultDispatcher{},
 		},
 	}
 
@@ -46,12 +157,12 @@ func TestNewServer(t *testing.T) {
 			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					NewDefaultServer(ServerProperties{}, tc.dispatcher)
+					NewDefaultServer(tc.properties, tc.dispatcher)
 				})
 				return
 			}
 
-			server := NewDefaultServer(ServerProperties{}, tc.dispatcher)
+			server := NewDefaultServer(tc.properties, tc.dispatcher)
 
 			// then
 			require.NotNil(t, server)
@@ -59,15 +170,74 @@ func TestNewServer(t *testing.T) {
 	}
 }
 
-func TestServer_Port(t *testing.T) {
+func TestDefaultServer_Start(t *testing.T) {
+	// given
+	server := NewDefaultServer(
+		&ServerProperties{
+			Port: 0,
+		},
+		&DefaultDispatcher{},
+	)
+
+	// when
+	err := server.Start(context.Background())
+
+	// then
+	require.NoError(t, err)
+	require.NotNil(t, server.httpServer)
+	assert.NotZero(t, server.boundPort)
+
+	// cleanup
+	require.NoError(t, server.Shutdown(context.Background()))
+}
+
+func TestDefaultServer_Shutdown(t *testing.T) {
+	testCases := []struct {
+		name         string
+		preCondition func(t *testing.T, server *DefaultServer)
+	}{
+		{
+			name: "server not started",
+		},
+		{
+			name: "server started",
+			preCondition: func(t *testing.T, server *DefaultServer) {
+				err := server.Start(context.Background())
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			server := NewDefaultServer(
+				&ServerProperties{Port: 0},
+				&DefaultDispatcher{},
+			)
+
+			if tc.preCondition != nil {
+				tc.preCondition(t, server)
+			}
+
+			// when
+			err := server.Shutdown(context.Background())
+
+			// then
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestDefaultServer_Port(t *testing.T) {
 	testCases := []struct {
 		name     string
-		props    ServerProperties
+		props    *ServerProperties
 		wantPort int
 	}{
 		{
 			name:     "with port",
-			props:    ServerProperties{Port: 9090},
+			props:    &ServerProperties{Port: 9090},
 			wantPort: 9090,
 		},
 	}
@@ -75,7 +245,7 @@ func TestServer_Port(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			server := NewDefaultServer(tc.props, &RequestDispatcher{})
+			server := NewDefaultServer(tc.props, &DefaultDispatcher{})
 
 			// when
 			port := server.Port()

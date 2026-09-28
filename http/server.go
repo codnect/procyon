@@ -16,116 +16,152 @@ package http
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"net"
 	"net/http"
+	"strconv"
 	"sync"
 
+	"codnect.io/logy"
 	"go.codnect.io/procyon/runtime"
 )
 
-// ServerProperties defines the configuration properties for the DefaultServer component.
-type ServerProperties struct {
-	Port int `property:"port,default=8080"`
-}
-
+// Server represents an HTTP server managed by the application runtime.
 type Server interface {
 	runtime.Server
 
+	// Port returns the port the server is bound to, or the configured port
+	// if the server has not been started.
 	Port() int
 }
 
+// ServerProperties defines the configuration properties for an HTTP server.
+type ServerProperties struct {
+	// Port specifies the port the HTTP server listens on.
+	Port int `property:"port,default=8080"`
+}
+
+// newServerProperties creates a new ServerProperties.
 func newServerProperties() *ServerProperties {
 	return &ServerProperties{}
 }
 
+// Prefix returns the configuration property prefix for the HTTP server.
 func (s *ServerProperties) Prefix() string {
 	return "server"
 }
 
-// stdServer abstracts http.DefaultServer to allow DefaultServer to be tested
-// without starting a real HTTP listener.
-type stdServer interface {
-	// ListenAndServe starts the HTTP server and begins accepting requests.
-
-	ListenAndServe() error
-	// Shutdown gracefully stops the HTTP server without interrupting
-	// active connections.
-	Shutdown(ctx context.Context) error
-}
-
-// DefaultServer is the HTTP server that listens for incoming requests and
-// dispatches them through the configured Dispatcher.
-//
-// It implements http.Handler and uses a sync.Pool for Context reuse
-// to minimize allocations per request.
-type DefaultServer struct {
-	props       ServerProperties
-	httpServer  stdServer
+// serverAdapter adapts net/http requests to the HTTP request handling pipeline.
+type serverAdapter struct {
 	contextPool sync.Pool
 	dispatcher  Dispatcher
 }
 
-// NewDefaultServer creates a new DefaultServer with the given properties and dispatcher.
-// The dispatcher is invoked for every incoming request to route it through
-// the middleware pipeline to the appropriate endpoint handler.
-func NewDefaultServer(props ServerProperties, dispatcher Dispatcher) *DefaultServer {
+// newServerAdapter creates a new serverAdapter with the given dispatcher.
+func newServerAdapter(dispatcher Dispatcher) *serverAdapter {
 	if dispatcher == nil {
 		panic("nil dispatcher")
 	}
 
-	return &DefaultServer{
-		props: props,
+	return &serverAdapter{
 		contextPool: sync.Pool{
 			New: func() any {
-				return &Context{
-					req:    &ServerRequest{},
-					res:    &ServerResponse{},
-					values: map[any]any{},
-				}
+				return newContext(nil, nil)
 			},
 		},
 		dispatcher: dispatcher,
 	}
 }
 
-// Start begins listening for HTTP requests on the configured port.
-// It blocks until the server is shut down or an error occurs.
-func (s *DefaultServer) Start(ctx context.Context) error {
-	if s.httpServer == nil {
-		s.httpServer = &http.Server{
-			Addr:    fmt.Sprintf(":%d", s.props.Port),
-			Handler: s,
-		}
+// ServeHTTP dispatches an incoming HTTP request through the request handling
+// pipeline.
+func (a *serverAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := a.contextPool.Get().(*Context)
+	ctx.reset(r, w)
+
+	defer a.contextPool.Put(ctx)
+
+	if err := a.dispatcher.Dispatch(ctx); err != nil {
+		logy.Get().Error("HTTP request dispatch failed: {}", err)
+	}
+}
+
+// DefaultServer is the default HTTP server implementation.
+type DefaultServer struct {
+	props         *ServerProperties
+	httpServer    *http.Server
+	serverAdapter *serverAdapter
+	boundPort     int
+}
+
+// NewDefaultServer creates a new DefaultServer with the given properties and
+// dispatcher.
+func NewDefaultServer(props *ServerProperties, dispatcher Dispatcher) *DefaultServer {
+	if props == nil {
+		panic("nil server properties")
 	}
 
-	if err := s.httpServer.ListenAndServe(); err != nil {
+	if dispatcher == nil {
+		panic("nil dispatcher")
+	}
+
+	return &DefaultServer{
+		props:         props,
+		serverAdapter: newServerAdapter(dispatcher),
+	}
+}
+
+// Start begins listening for HTTP requests on the configured port.
+func (s *DefaultServer) Start(ctx context.Context) error {
+	addr := net.JoinHostPort("", strconv.Itoa(s.props.Port))
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
 		return err
 	}
 
+	s.httpServer = &http.Server{
+		Handler: s.serverAdapter,
+	}
+
+	s.boundPort = listener.Addr().(*net.TCPAddr).Port
+
+	go s.serve(listener)
+
+	log.Info("HTTP server started on port {}", s.boundPort)
 	return nil
 }
 
-// Shutdown gracefully shuts down the server without interrupting
-// any active connections.
+// Shutdown gracefully shuts down the server without interrupting active
+// connections.
 func (s *DefaultServer) Shutdown(ctx context.Context) error {
-	return s.httpServer.Shutdown(ctx)
+	if s.httpServer == nil {
+		return nil
+	}
+
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return err
+	}
+
+	log.Info("HTTP server stopped")
+	return nil
+
 }
 
-// Port returns the port number the server is configured to listen on.
+// Port returns the bound port, or the configured port before the server has
+// been started.
 func (s *DefaultServer) Port() int {
+	if s.boundPort != 0 {
+		return s.boundPort
+	}
+
 	return s.props.Port
 }
 
-// ServeHTTP handles an incoming HTTP request by obtaining a pooled
-// Context, dispatching it through the middleware pipeline, and
-// returning the Context to the pool when done.
-func (s *DefaultServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := s.contextPool.Get().(*Context)
-	ctx.reset(r, w)
-
-	defer func() {
-		s.contextPool.Put(ctx)
-	}()
-
-	_ = s.dispatcher.Dispatch(ctx)
+// serve serves HTTP requests using the given listener.
+func (s *DefaultServer) serve(listener net.Listener) {
+	if err := s.httpServer.Serve(listener); err != nil &&
+		!errors.Is(err, http.ErrServerClosed) {
+		log.Error("HTTP server stopped unexpectedly: {}", err)
+	}
 }
