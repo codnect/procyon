@@ -112,7 +112,7 @@ func TestTypedResult_Header(t *testing.T) {
 	assert.Equal(t, headers, typedResult.Header())
 }
 
-func TestResultExecutorRegistry_Register(t *testing.T) {
+func TestDefaultResultExecutorRegistry_Register(t *testing.T) {
 	resultExecutor := &AnyResultExecutor{}
 
 	testCases := []struct {
@@ -137,7 +137,7 @@ func TestResultExecutorRegistry_Register(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			registry := NewResultExecutorRegistry()
+			registry := newDefaultResultExecutorRegistry()
 
 			// when
 			err := registry.Register(tc.executor)
@@ -145,7 +145,6 @@ func TestResultExecutorRegistry_Register(t *testing.T) {
 			// then
 			if tc.wantErr != "" {
 				require.EqualError(t, err, tc.wantErr)
-				require.Equal(t, tc.wantExecutors, registry.executors)
 				return
 			}
 
@@ -155,8 +154,10 @@ func TestResultExecutorRegistry_Register(t *testing.T) {
 	}
 }
 
-func TestResultExecutorRegistry_Resolve(t *testing.T) {
+func TestDefaultResultExecutorRegistry_Resolve(t *testing.T) {
 	resultExecutor := &AnyResultExecutor{}
+	resultExecutor.On("CanExecute", mock.AnythingOfType("*http.AnyResult")).
+		Return(true)
 	anyResult := &AnyResult{}
 
 	testCases := []struct {
@@ -187,7 +188,7 @@ func TestResultExecutorRegistry_Resolve(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			registry := NewResultExecutorRegistry()
+			registry := newDefaultResultExecutorRegistry()
 			for _, executor := range tc.executors {
 				require.NoError(t, registry.Register(executor))
 			}

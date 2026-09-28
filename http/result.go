@@ -74,19 +74,29 @@ type ResultExecutor interface {
 }
 
 // ResultExecutorRegistry stores and resolves result executors.
-type ResultExecutorRegistry struct {
+type ResultExecutorRegistry interface {
+	// Register adds the given result executor to the registry.
+	Register(executor ResultExecutor) error
+
+	// Resolve returns the first executor that can execute the given result.
+	Resolve(result Result) (ResultExecutor, bool)
+}
+
+// defaultResultExecutorRegistry is the default implementation of ResultExecutorRegistry.
+type defaultResultExecutorRegistry struct {
 	executors []ResultExecutor
 }
 
-// NewResultExecutorRegistry creates a new empty ResultExecutorRegistry.
-func NewResultExecutorRegistry() *ResultExecutorRegistry {
-	return &ResultExecutorRegistry{
-		executors: []ResultExecutor{},
+// newDefaultResultExecutorRegistry creates a new defaultResultExecutorRegistry
+// with the given result executors.
+func newDefaultResultExecutorRegistry(executors ...ResultExecutor) *defaultResultExecutorRegistry {
+	return &defaultResultExecutorRegistry{
+		executors: executors,
 	}
 }
 
-// Register adds a result executor to the registry.
-func (r *ResultExecutorRegistry) Register(executor ResultExecutor) error {
+// Register adds the given result executor to the registry.
+func (r *defaultResultExecutorRegistry) Register(executor ResultExecutor) error {
 	if executor == nil {
 		return errors.New("nil result executor")
 	}
@@ -95,8 +105,8 @@ func (r *ResultExecutorRegistry) Register(executor ResultExecutor) error {
 	return nil
 }
 
-// Resolve returns the first executor that can execute the given result.
-func (r *ResultExecutorRegistry) Resolve(result Result) (ResultExecutor, bool) {
+// Resolve returns the first registered executor that can execute the given result.
+func (r *defaultResultExecutorRegistry) Resolve(result Result) (ResultExecutor, bool) {
 	for _, executor := range r.executors {
 		if executor.CanExecute(result) {
 			return executor, true
