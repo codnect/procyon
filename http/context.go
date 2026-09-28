@@ -30,6 +30,7 @@ type Context struct {
 	err    error
 }
 
+// CreateContext creates a new Context with the given HTTP request and response writer.
 func CreateContext(req *http.Request, writer http.ResponseWriter) *Context {
 	if req == nil {
 		panic("nil http request")
@@ -39,6 +40,12 @@ func CreateContext(req *http.Request, writer http.ResponseWriter) *Context {
 		panic("nil response writer")
 	}
 
+	return newContext(req, writer)
+}
+
+// newContext creates an empty Context with its request and response wired
+// back to it.
+func newContext(req *http.Request, writer http.ResponseWriter) *Context {
 	ctx := &Context{
 		values: make(map[any]any),
 		req: &ServerRequest{
@@ -108,6 +115,7 @@ func (c *Context) SetEndpoint(endpoint *Endpoint) {
 
 // reset clears the context state and assigns a new HTTP request and response writer.
 func (c *Context) reset(r *http.Request, w http.ResponseWriter) {
+	c.endpoint = nil
 	c.err = nil
 	clear(c.values)
 
