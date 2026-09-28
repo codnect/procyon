@@ -57,12 +57,12 @@ func TestNewRequestDispatcher(t *testing.T) {
 			// when
 			if tc.wantPanic != nil {
 				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
-					NewRequestDispatcher(tc.endpointMatcher, tc.middlewares...)
+					NewDefaultDispatcher(tc.endpointMatcher, tc.middlewares...)
 				})
 				return
 			}
 
-			dispatcher := NewRequestDispatcher(tc.endpointMatcher, tc.middlewares...)
+			dispatcher := NewDefaultDispatcher(tc.endpointMatcher, tc.middlewares...)
 			require.NotNil(t, dispatcher, "nil dispatcher")
 
 			// then
@@ -134,7 +134,7 @@ func TestRequestDispatcher_Dispatch(t *testing.T) {
 			// given
 			requestDelegate := &AnyMockRequestDelegate{}
 			mockEndpointMatcher := &AnyMockEndpointMatcher{}
-			dispatcher := NewRequestDispatcher(mockEndpointMatcher, tc.middlewares...)
+			dispatcher := NewDefaultDispatcher(mockEndpointMatcher, tc.middlewares...)
 
 			if tc.preCondition != nil {
 				tc.preCondition(requestDelegate, mockEndpointMatcher)

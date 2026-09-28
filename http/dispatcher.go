@@ -14,38 +14,34 @@
 
 package http
 
+import "slices"
+
 // Dispatcher interface represents a dispatcher that can process
 // an HTTP request contained in the Context.
 type Dispatcher interface {
 	Dispatch(ctx *Context) error
 }
 
-type RequestDispatcher struct {
+// DefaultDispatcher is the default implementation of Dispatcher.
+type DefaultDispatcher struct {
 	delegate RequestDelegate
 }
 
-// NewRequestDispatcher creates a new dispatcher by building
-// a middleware pipeline around the given EndpointMatcher.
-//
-// The pipeline is always structured as:
-//
-//	routing → [user middlewares] → endpoint
-//
-// User middlewares run after routing, so they can inspect the
-// matched endpoint via ctx.Endpoint() before it executes.
-func NewRequestDispatcher(endpointMatcher EndpointMatcher, middlewares ...Middleware) Dispatcher {
+// NewDefaultDispatcher creates a new DefaultDispatcher with the given
+// endpoint matcher and middlewares.
+func NewDefaultDispatcher(endpointMatcher EndpointMatcher, middlewares ...Middleware) Dispatcher {
 	if endpointMatcher == nil {
 		panic("nil endpoint matcher")
 	}
 
 	pipeline := buildPipeline(endpointMatcher, middlewares...)
-	return &RequestDispatcher{
+	return &DefaultDispatcher{
 		delegate: pipeline,
 	}
 }
 
 // Dispatch executes the built pipeline for the given request context.
-func (d *RequestDispatcher) Dispatch(ctx *Context) error {
+func (d *DefaultDispatcher) Dispatch(ctx *Context) error {
 	return d.delegate(ctx)
 }
 
@@ -68,8 +64,8 @@ func buildChain(middlewares []Middleware) RequestDelegate {
 		return nil
 	}
 
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		middleware := middlewares[i]
+	for _, middleware := range slices.Backward(middlewares) {
+
 		current := next
 		next = func(ctx *Context) error {
 			return middleware.Invoke(ctx, current)
