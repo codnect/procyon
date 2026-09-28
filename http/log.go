@@ -14,13 +14,9 @@
 
 package http
 
-import (
-	"go.codnect.io/procyon/component"
-)
+import "codnect.io/logy"
 
-func init() {
-	// server
-	component.Register(newServerProperties)
-	component.Register(NewDefaultServer)
-	component.Register(newServerLifecycle)
-}
+var (
+	// log is the package-level logger.
+	log = logy.Get()
+)

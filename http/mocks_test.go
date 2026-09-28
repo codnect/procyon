@@ -15,12 +15,35 @@
 package http
 
 import (
-	"go.codnect.io/procyon/component"
+	"context"
+
+	"github.com/stretchr/testify/mock"
 )
 
-func init() {
-	// server
-	component.Register(newServerProperties)
-	component.Register(NewDefaultServer)
-	component.Register(newServerLifecycle)
+type AnyDispatcher struct {
+	mock.Mock
+}
+
+func (a *AnyDispatcher) Dispatch(ctx *Context) error {
+	result := a.Called(ctx)
+	return result.Error(0)
+}
+
+type AnyServer struct {
+	mock.Mock
+}
+
+func (a *AnyServer) Start(ctx context.Context) error {
+	result := a.Called(ctx)
+	return result.Error(0)
+}
+
+func (a *AnyServer) Shutdown(ctx context.Context) error {
+	result := a.Called(ctx)
+	return result.Error(0)
+}
+
+func (a *AnyServer) Port() int {
+	result := a.Called()
+	return result.Int(0)
 }

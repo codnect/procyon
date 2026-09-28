@@ -255,3 +255,187 @@ func TestDefaultServer_Port(t *testing.T) {
 		})
 	}
 }
+
+func TestNewServerLifecycle(t *testing.T) {
+	testCases := []struct {
+		name      string
+		server    Server
+		wantPanic error
+	}{
+		{
+			name:      "nil server",
+			server:    nil,
+			wantPanic: errors.New("nil server"),
+		},
+		{
+			name:      "valid server",
+			server:    &AnyServer{},
+			wantPanic: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+
+			// when
+			if tc.wantPanic != nil {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
+					newServerLifecycle(tc.server)
+				})
+				return
+			}
+
+			server := newServerLifecycle(tc.server)
+
+			// then
+			require.NotNil(t, server)
+		})
+	}
+}
+
+func TestServerLifecycle_Start(t *testing.T) {
+	testCases := []struct {
+		name         string
+		ctx          context.Context
+		preCondition func(ctx context.Context, server *AnyServer)
+		wantErr      error
+	}{
+		{
+			name: "start error",
+			preCondition: func(ctx context.Context, server *AnyServer) {
+				server.On("Start", ctx).Return(errors.New("start error"))
+			},
+			wantErr: errors.New("start error"),
+		},
+		{
+			name: "successfully start",
+			preCondition: func(ctx context.Context, server *AnyServer) {
+				server.On("Start", ctx).Return(nil)
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			anyServer := &AnyServer{}
+
+			if tc.preCondition != nil {
+				tc.preCondition(tc.ctx, anyServer)
+			}
+
+			lifecycle := newServerLifecycle(anyServer)
+
+			// when
+			err := lifecycle.Start(tc.ctx)
+
+			// then
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tc.wantErr.Error())
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestServerLifecycle_Stop(t *testing.T) {
+	testCases := []struct {
+		name         string
+		ctx          context.Context
+		preCondition func(ctx context.Context, server *AnyServer)
+		wantErr      error
+	}{
+		{
+			name: "stop error",
+			preCondition: func(ctx context.Context, server *AnyServer) {
+				server.On("Shutdown", ctx).Return(errors.New("stop error"))
+			},
+			wantErr: errors.New("stop error"),
+		},
+		{
+			name: "successfully stop",
+			preCondition: func(ctx context.Context, server *AnyServer) {
+				server.On("Shutdown", ctx).Return(nil)
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			anyServer := &AnyServer{}
+
+			if tc.preCondition != nil {
+				tc.preCondition(tc.ctx, anyServer)
+			}
+
+			lifecycle := newServerLifecycle(anyServer)
+
+			// when
+			err := lifecycle.Stop(tc.ctx)
+
+			// then
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tc.wantErr.Error())
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestServerLifecycle_IsRunning(t *testing.T) {
+	ctx := context.Background()
+
+	anyServer := &AnyServer{}
+	anyServer.On("Start", ctx).Return(nil)
+	anyServer.On("Shutdown", ctx).Return(nil)
+
+	testCases := []struct {
+		name         string
+		preCondition func(ctx context.Context, lifecycle *serverLifecycle)
+		wantResult   bool
+	}{
+		{
+			name: "already started",
+			preCondition: func(ctx context.Context, lifecycle *serverLifecycle) {
+				err := lifecycle.Start(ctx)
+				assert.NoError(t, err)
+			},
+			wantResult: true,
+		},
+		{
+			name: "already stopped",
+			preCondition: func(ctx context.Context, lifecycle *serverLifecycle) {
+				err := lifecycle.Stop(ctx)
+				assert.NoError(t, err)
+			},
+			wantResult: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			lifecycle := newServerLifecycle(anyServer)
+
+			if tc.preCondition != nil {
+				tc.preCondition(ctx, lifecycle)
+			}
+
+			// when
+			running := lifecycle.IsRunning()
+
+			// then
+			assert.Equal(t, tc.wantResult, running)
+		})
+	}
+}
