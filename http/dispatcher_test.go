@@ -32,7 +32,7 @@ func (m *AnyMiddleware) Invoke(ctx *Context, next RequestDelegate) error {
 	return m.err
 }
 
-func TestNewRequestDispatcher(t *testing.T) {
+func TestNewDefaultDispatcher(t *testing.T) {
 	testCases := []struct {
 		name            string
 		endpointMatcher EndpointMatcher
@@ -46,7 +46,7 @@ func TestNewRequestDispatcher(t *testing.T) {
 		},
 		{
 			name:            "valid endpoint matcher",
-			endpointMatcher: NewDefaultEndpointMatcher(nil),
+			endpointMatcher: NewDefaultEndpointMatcher(NewDefaultEndpointRegistry()),
 		},
 	}
 

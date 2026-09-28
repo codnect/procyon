@@ -15,6 +15,9 @@
 package http
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"path"
 	"strings"
 )
@@ -69,20 +72,37 @@ type EndpointSource interface {
 	Endpoints() []*Endpoint
 }
 
-// DefaultEndpointSource is the default implementation of EndpointSource.
-type DefaultEndpointSource struct {
+// EndpointRegistrar registers endpoint definitions.
+type EndpointRegistrar interface {
+	// Register registers the given endpoint.
+	Register(endpoint *Endpoint) error
+}
+
+// DefaultEndpointRegistry is the default registry for storing endpoint definitions.
+type DefaultEndpointRegistry struct {
 	endpoints []*Endpoint
 }
 
-// NewDefaultEndpointSource creates a new DefaultEndpointSource containing the
-// given endpoints.
-func NewDefaultEndpointSource(endpoints ...*Endpoint) EndpointSource {
-	return &DefaultEndpointSource{endpoints: endpoints}
+// NewDefaultEndpointRegistry creates a new empty DefaultEndpointRegistry.
+func NewDefaultEndpointRegistry() *DefaultEndpointRegistry {
+	return &DefaultEndpointRegistry{
+		endpoints: make([]*Endpoint, 0),
+	}
 }
 
-// Endpoints returns the available endpoint definitions.
-func (s *DefaultEndpointSource) Endpoints() []*Endpoint {
-	return s.endpoints
+// Register registers the given endpoint.
+func (r *DefaultEndpointRegistry) Register(endpoint *Endpoint) error {
+	if endpoint == nil {
+		return errors.New("nil endpoint")
+	}
+
+	r.endpoints = append(r.endpoints, endpoint)
+	return nil
+}
+
+// Endpoints returns the registered endpoint definitions.
+func (r *DefaultEndpointRegistry) Endpoints() []*Endpoint {
+	return r.endpoints
 }
 
 // EndpointMatcher matches an incoming request context
@@ -135,6 +155,10 @@ type EndpointBuilder struct {
 
 // newEndpointBuilder creates a new EndpointBuilder with the given path, methods, and handler.
 func newEndpointBuilder(path string, methods []Method, handler Handler) *EndpointBuilder {
+	if handler == nil {
+		panic("nil handler")
+	}
+
 	return &EndpointBuilder{
 		path:    path,
 		methods: methods,
@@ -206,6 +230,94 @@ func (g *EndpointGroup) MapGroup(prefix string) *EndpointGroup {
 	group := newEndpointGroup(result)
 	g.children = append(g.children, group)
 	return group
+}
+
+// endpointMappingProcessor processes EndpointMapper components and registers
+// their mapped endpoints after component initialization.
+type endpointMappingProcessor struct {
+	endpointRegistrar EndpointRegistrar
+	executors         ResultExecutorRegistry
+}
+
+// newEndpointMappingProcessor creates a new endpointMappingProcessor with the
+// given endpoint registrar and result executor registry.
+func newEndpointMappingProcessor(endpointRegistrar EndpointRegistrar,
+	executorRegistry ResultExecutorRegistry) *endpointMappingProcessor {
+	if endpointRegistrar == nil {
+		panic("nil endpoint registrar")
+	}
+
+	if executorRegistry == nil {
+		panic("nil result executor registry")
+	}
+
+	return &endpointMappingProcessor{
+		endpointRegistrar: endpointRegistrar,
+		executors:         executorRegistry,
+	}
+}
+
+// ProcessAfterInit maps and registers endpoints from EndpointMapper components
+// after their initialization has completed.
+func (p *endpointMappingProcessor) ProcessAfterInit(_ context.Context, name string, instance any) (any, error) {
+	mapper, ok := instance.(EndpointMapper)
+	if !ok {
+		return instance, nil
+	}
+
+	group := newEndpointGroup("/")
+	mapper.MapEndpoints(group)
+
+	if err := p.collectEndpoints(group); err != nil {
+		return nil, fmt.Errorf("map endpoints for %q: %w", name, err)
+	}
+
+	return instance, nil
+}
+
+// collectEndpoints recursively collects endpoints from the given endpoint group
+// and registers them with the endpoint registrar.
+func (p *endpointMappingProcessor) collectEndpoints(group *EndpointGroup) error {
+	for _, route := range group.routes {
+		delegate := p.createRequestDelegate(route.handler)
+		for _, method := range route.methods {
+			endpoint := NewEndpoint(method, route.path, delegate)
+			if err := p.endpointRegistrar.Register(endpoint); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, child := range group.children {
+		if err := p.collectEndpoints(child); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createRequestDelegate creates a request delegate that invokes the given
+// handler and executes its result using the appropriate result executor.
+func (p *endpointMappingProcessor) createRequestDelegate(handler Handler) RequestDelegate {
+	return func(ctx *Context) error {
+		result, err := handler.Handle(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		if result == nil {
+			return nil
+		}
+
+		executor, ok := p.executors.Resolve(result)
+
+		if !ok {
+			return fmt.Errorf("no result executor for %T", result)
+		}
+		return executor.Execute(ctx, result)
+	}
 }
 
 // joinPaths joins multiple path elements into a single path string,
