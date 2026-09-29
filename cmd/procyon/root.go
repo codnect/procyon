@@ -26,6 +26,7 @@ var rootCmd = &cobra.Command{
 // Execute adds all subcommands to the root command and executes it.
 // It is called by the main function to start the CLI.
 func Execute() {
+	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(versionCmd)
 	cobra.CheckErr(rootCmd.Execute())
 }
