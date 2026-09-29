@@ -15,12 +15,20 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+type AnyEndpointMapper struct{}
+
+func (m *AnyEndpointMapper) MapEndpoints(endpoints Endpoints) {
+	endpoints.MapGet("/test", &AnyHandler{})
+}
 
 func TestNewEndpoint(t *testing.T) {
 	testCases := []struct {
@@ -107,16 +115,18 @@ func TestEndpoint_RequestDelegate(t *testing.T) {
 	assert.NotNil(t, requestDelegate)
 }
 
-func TestEndpointSource_Endpoints(t *testing.T) {
+func TestDefaultEndpointRegistry_Endpoints(t *testing.T) {
 	// given
 	endpoint := NewEndpoint(MethodGet, "/test", func(ctx *Context) error {
 		return nil
 	})
 
-	endpointSource := NewDefaultEndpointSource(endpoint)
+	registry := NewDefaultEndpointRegistry()
+	err := registry.Register(endpoint)
+	assert.NoError(t, err)
 
 	// when
-	endpoints := endpointSource.Endpoints()
+	endpoints := registry.Endpoints()
 
 	// then
 	assert.Len(t, endpoints, 1)
@@ -323,6 +333,131 @@ func TestEndpointGroup_MapGroup(t *testing.T) {
 	assert.NotNil(t, group)
 	assert.Equal(t, "/prefix/test", group.prefix)
 	assert.Len(t, group.routes, 0)
+}
+
+func TestNewEndpointMappingProcessor(t *testing.T) {
+	testCases := []struct {
+		name              string
+		endpointRegistrar EndpointRegistrar
+		executors         ResultExecutorRegistry
+		wantPanic         error
+	}{
+		{
+			name:              "nil endpoint registrar",
+			endpointRegistrar: nil,
+			executors:         newDefaultResultExecutorRegistry(),
+			wantPanic:         errors.New("nil endpoint registrar"),
+		},
+		{
+			name:              "nil result executor registry",
+			endpointRegistrar: &DefaultEndpointRegistry{},
+			executors:         nil,
+			wantPanic:         errors.New("nil result executor registry"),
+		},
+		{
+			name:              "valid dependencies",
+			endpointRegistrar: &DefaultEndpointRegistry{},
+			executors:         newDefaultResultExecutorRegistry(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+
+			// when
+			if tc.wantPanic != nil {
+				require.PanicsWithValue(t, tc.wantPanic.Error(), func() {
+					newEndpointMappingProcessor(
+						tc.endpointRegistrar,
+						tc.executors,
+					)
+				})
+				return
+			}
+
+			processor := newEndpointMappingProcessor(
+				tc.endpointRegistrar,
+				tc.executors,
+			)
+
+			// then
+			require.NotNil(t, processor)
+			assert.Equal(t, tc.endpointRegistrar, processor.endpointRegistrar)
+			assert.Equal(t, tc.executors, processor.executors)
+		})
+	}
+}
+
+func TestEndpointMappingProcessor_ProcessAfterInit(t *testing.T) {
+	testCases := []struct {
+		name         string
+		instance     any
+		preCondition func(registrar *AnyEndpointRegistrar)
+		wantErr      error
+	}{
+		{
+			name:     "not endpoint mapper",
+			instance: &struct{}{},
+		},
+		{
+			name:     "endpoint mapper",
+			instance: &AnyEndpointMapper{},
+			preCondition: func(registrar *AnyEndpointRegistrar) {
+				registrar.
+					On("Register", mock.AnythingOfType("*http.Endpoint")).
+					Return(nil)
+			},
+		},
+		{
+			name:     "endpoint registration error",
+			instance: &AnyEndpointMapper{},
+			preCondition: func(registrar *AnyEndpointRegistrar) {
+				registrar.
+					On("Register", mock.AnythingOfType("*http.Endpoint")).
+					Return(errors.New("register error"))
+			},
+			wantErr: errors.New(
+				`map endpoints for "endpoint registration error": register error`,
+			),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			registrar := &AnyEndpointRegistrar{}
+
+			if tc.preCondition != nil {
+				tc.preCondition(registrar)
+			}
+
+			processor := newEndpointMappingProcessor(
+				registrar,
+				newDefaultResultExecutorRegistry(),
+			)
+
+			// when
+			result, err := processor.ProcessAfterInit(
+				context.Background(),
+				tc.name,
+				tc.instance,
+			)
+
+			// then
+			if tc.wantErr != nil {
+				require.Error(t, err)
+				require.EqualError(t, err, tc.wantErr.Error())
+				assert.Nil(t, result)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Same(t, tc.instance, result)
+
+			registrar.AssertExpectations(t)
+		})
+	}
 }
 
 func TestJoinPaths(t *testing.T) {

@@ -14,7 +14,10 @@
 
 package http
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // nodeKind represents the type of node stored in the radix tree.
 // Each kind corresponds to a different path matching strategy.
@@ -112,17 +115,44 @@ func (n *radixNode) findChild(b byte) (*radixNode, bool) {
 
 // DefaultEndpointMatcher is a router implementation based on a radix tree.
 type DefaultEndpointMatcher struct {
-	root *radixNode
+	source EndpointSource
+	root   *radixNode
 }
 
 // NewDefaultEndpointMatcher creates a new DefaultEndpointMatcher from the
 // provided endpoint source.
 func NewDefaultEndpointMatcher(endpointSource EndpointSource) *DefaultEndpointMatcher {
-	matcher, err := buildEndpointMatcher(endpointSource)
-	if err != nil {
-		panic(err.Error())
+	if endpointSource == nil {
+		panic("nil endpoint source")
 	}
+
+	matcher := &DefaultEndpointMatcher{
+		source: endpointSource,
+	}
+
+	if err := matcher.refresh(); err != nil {
+		panic(err)
+	}
+
 	return matcher
+}
+
+// SingletonsInitialized prepares routing after singleton endpoints are collected.
+func (t *DefaultEndpointMatcher) SingletonsInitialized(_ context.Context) error {
+	return t.refresh()
+}
+
+// refresh rebuilds the routing tree from the current endpoint source.
+// It must be called before requests are served. A failed build preserves the
+// existing tree.
+func (t *DefaultEndpointMatcher) refresh() error {
+	matcher, err := buildEndpointMatcher(t.source)
+	if err != nil {
+		return err
+	}
+
+	t.root = matcher.root
+	return nil
 }
 
 func buildEndpointMatcher(source EndpointSource) (*DefaultEndpointMatcher, error) {
@@ -161,10 +191,7 @@ func (t *DefaultEndpointMatcher) insertStatic(n *radixNode, path string) *radixN
 
 		// determine longest common prefix
 		commonLen := 0
-		minLen := len(child.prefix)
-		if len(path) < minLen {
-			minLen = len(path)
-		}
+		minLen := min(len(path), len(child.prefix))
 
 		for commonLen < minLen && child.prefix[commonLen] == path[commonLen] {
 			commonLen++
@@ -377,7 +404,7 @@ func (t *DefaultEndpointMatcher) match(n *radixNode, path string, ctx *Context, 
 			if len(path) >= prefixLen {
 				match := true
 
-				for i := 0; i < prefixLen; i++ {
+				for i := range prefixLen {
 					if path[i] != child.prefix[i] {
 						match = false
 						break
@@ -494,6 +521,10 @@ func (t *DefaultEndpointMatcher) match(n *radixNode, path string, ctx *Context, 
 
 // Match resolves the incoming request to a registered endpoint.
 func (t *DefaultEndpointMatcher) Match(ctx *Context) (*Endpoint, bool) {
+	if t.root == nil {
+		return nil, false
+	}
+
 	request := ctx.Request()
 	path := request.Path()
 

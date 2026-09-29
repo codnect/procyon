@@ -47,3 +47,26 @@ func (a *AnyServer) Port() int {
 	result := a.Called()
 	return result.Int(0)
 }
+
+type AnyHandler struct {
+	mock.Mock
+}
+
+func (h *AnyHandler) Handle(ctx *Context) (Result, error) {
+	result := h.Called(ctx)
+
+	if result.Get(0) == nil {
+		return nil, result.Error(1)
+	}
+
+	return result.Get(0).(Result), result.Error(1)
+}
+
+type AnyEndpointRegistrar struct {
+	mock.Mock
+}
+
+func (r *AnyEndpointRegistrar) Register(endpoint *Endpoint) error {
+	args := r.Called(endpoint)
+	return args.Error(0)
+}

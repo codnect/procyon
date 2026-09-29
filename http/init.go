@@ -19,6 +19,13 @@ import (
 )
 
 func init() {
+	// endpoint
+	component.Register(NewDefaultEndpointRegistry)
+	component.Register(NewDefaultEndpointMatcher)
+	component.Register(NewDefaultDispatcher)
+	component.Register(newDefaultResultExecutorRegistry)
+	component.Register(newEndpointMappingProcessor)
+
 	// server
 	component.Register(newServerProperties)
 	component.Register(NewDefaultServer)
