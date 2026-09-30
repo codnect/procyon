@@ -25,8 +25,8 @@ import (
 // Properties can be implemented by configuration property structs to define
 // the configuration prefix used during property binding.
 type Properties interface {
-	// Prefix returns the configuration property prefix.
-	Prefix() string
+	// PropertyPrefix returns the configuration property prefix.
+	PropertyPrefix() string
 }
 
 // PropertySource interface represents a source of properties.

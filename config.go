@@ -49,11 +49,10 @@ func (c *configPropertiesProcessor) ProcessAfterInit(_ context.Context, _ string
 	if properties, ok := instance.(config.Properties); ok {
 		binder := config.NewDefaultPropertyBinder(c.env.PropertySources())
 
-		if err := binder.Bind(properties.Prefix(), properties); err != nil {
+		if err := binder.Bind(properties.PropertyPrefix(), properties); err != nil {
 			return nil, err
 		}
 	}
 
 	return instance, nil
-
 }

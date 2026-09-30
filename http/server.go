@@ -47,8 +47,8 @@ func newServerProperties() *ServerProperties {
 	return &ServerProperties{}
 }
 
-// Prefix returns the configuration property prefix for the HTTP server.
-func (s *ServerProperties) Prefix() string {
+// PropertyPrefix returns the configuration property prefix for the HTTP server.
+func (s *ServerProperties) PropertyPrefix() string {
 	return "server"
 }
 
