@@ -41,7 +41,7 @@ func TestServerProperties_Prefix(t *testing.T) {
 	props := newServerProperties()
 
 	// when
-	prefix := props.Prefix()
+	prefix := props.PropertyPrefix()
 
 	// then
 	assert.Equal(t, "server", prefix)
